@@ -1,4 +1,4 @@
-# EchoXIV 🌸
+# <img src="https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/images/icon.png" width="48" height="48" align="center" /> EchoXIV 🌸
 
 **EchoXIV** es un plugin avanzado para XIVLauncher/Dalamud diseñado para romper las barreras del idioma en FFXIV. A diferencia de otros traductores, EchoXIV se enfoca en la **comunicación activa**: permitiéndote ser entendido en cualquier idioma de forma fluida y natural.
 

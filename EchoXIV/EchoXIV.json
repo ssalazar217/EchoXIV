@@ -19,7 +19,7 @@
   "LoadSync": false,
   "CanUnloadAsync": false,
   "LoadPriority": 0,
-  "IconUrl": "",
+  "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/images/icon.png",
   "Changelog": "0.0.1: Initial dev version",
   "AssemblyVersion": "0.0.66"
 }
