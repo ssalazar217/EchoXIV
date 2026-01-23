@@ -7,13 +7,12 @@
   "RepoUrl": "https://github.com/ssalazar217/EchoXIV",
   "Homepage": "https://github.com/ssalazar217/EchoXIV",
   "ApplicableVersion": "any",
-  "Tags": [
-    "chat",
-    "translation",
-    "translator",
-    "chat2",
-    "language"
-  ],
+    "Tags": [
+      "chat",
+      "translation",
+      "translator",
+      "language"
+    ],
   "DalamudApiLevel": 14,
   "LoadRequiredState": 2,
   "LoadSync": false,
@@ -21,5 +20,5 @@
   "LoadPriority": 0,
   "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
   "Changelog": "0.0.1: Initial dev version",
-  "AssemblyVersion": "0.0.68"
+  "AssemblyVersion": "0.0.100"
 }

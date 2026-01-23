@@ -30,7 +30,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Traductor Chat" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TitleText" Text="Traductor Chat" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
                         
                         <StackPanel Grid.Column="2" Orientation="Horizontal">
                             <Button x:Name="BtnLock" Content="🔓" Click="Lock_Click" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0" ToolTip="Bloquear/Compactar (Click-Through)"/>

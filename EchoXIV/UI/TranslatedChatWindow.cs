@@ -6,6 +6,7 @@ using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using EchoXIV.Resources;
+using EchoXIV.Services;
 
 namespace EchoXIV.UI
 {
@@ -16,26 +17,41 @@ namespace EchoXIV.UI
     public class TranslatedChatWindow : Window, IDisposable
     {
         private readonly Configuration _configuration;
+        private readonly MessageHistoryManager _historyManager;
         private readonly List<TranslatedChatMessage> _messages = new();
         private readonly object _messagesLock = new();
         private bool _autoScroll = true;
+        private bool _resetPending = false;
 
-        public TranslatedChatWindow(Configuration configuration)
+        public TranslatedChatWindow(Configuration configuration, MessageHistoryManager historyManager)
             : base(Loc.ChatWindow_Title + "###TranslatedChatWindow")
         {
             _configuration = configuration;
+            _historyManager = historyManager;
 
-            // Tamaño inicial
-            Size = new Vector2(400, 300);
-            SizeCondition = ImGuiCond.FirstUseEver;
+            // Sincronizar con historial existente
+            lock (_messagesLock)
+            {
+                _messages.AddRange(_historyManager.GetHistory());
+            }
 
-            // Flags para mejor rendimiento
-            // NoNavInputs y NoNavFocus reducen overhead de navegación
-            // NoScrollbar porque usamos child region con scroll propio
+            // Suscribirse a eventos
+            _historyManager.OnMessageAdded += AddPendingMessage;
+            _historyManager.OnMessageUpdated += UpdateMessage;
+            _historyManager.OnHistoryCleared += ClearMessages;
+
+            // Flags básicos (permitir movimiento y resize)
             Flags = ImGuiWindowFlags.NoScrollbar 
-                  | ImGuiWindowFlags.NoScrollWithMouse
-                  | ImGuiWindowFlags.NoNavInputs
-                  | ImGuiWindowFlags.NoNavFocus;
+                  | ImGuiWindowFlags.NoScrollWithMouse;
+
+            // Cargar posición y tamaño desde configuración para independencia total
+            Position = _configuration.ImGuiPosition;
+            Size = _configuration.ImGuiSize;
+            PositionCondition = ImGuiCond.Appearing;
+            SizeCondition = ImGuiCond.Appearing;
+
+            // Sincronizar visibilidad inicial
+            IsOpen = _configuration.OverlayVisible;
         }
 
         /// <summary>
@@ -88,7 +104,31 @@ namespace EchoXIV.UI
             }
         }
 
-        public override bool DrawConditions() => Plugin.IsChatVisible();
+        public override bool DrawConditions() 
+        {
+            if (!Plugin.IsChatVisible()) return false;
+
+            // Smart Visibility: Ocultar si el juego no tiene el foco (opcional)
+            if (_configuration.SmartVisibility)
+            {
+                var foreground = GetForegroundWindow();
+                if (foreground == IntPtr.Zero) return false;
+
+                GetWindowThreadProcessId(foreground, out uint foregroundPid);
+                var currentPid = (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
+                
+                // Si el foco no está en nuestro proceso, ocultamos
+                if (foregroundPid != currentPid) return false;
+            }
+
+            return true;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         public override void Draw()
         {
@@ -99,6 +139,57 @@ namespace EchoXIV.UI
 
             // Lista de mensajes
             DrawMessageList();
+
+            // Sincronizar posición y tamaño con la configuración de EchoXIV
+            // (Hacemos esto manualmente para que sea independiente de imgui.ini y de WPF)
+            var currentPos = ImGui.GetWindowPos();
+            var currentSize = ImGui.GetWindowSize();
+
+            if (currentPos != _configuration.ImGuiPosition)
+            {
+                _configuration.ImGuiPosition = currentPos;
+                _configuration.Save();
+            }
+            if (currentSize != _configuration.ImGuiSize)
+            {
+                _configuration.ImGuiSize = currentSize;
+                _configuration.Save();
+            }
+
+            if (_resetPending)
+            {
+                _resetPending = false;
+                PositionCondition = ImGuiCond.Appearing;
+                SizeCondition = ImGuiCond.Appearing;
+            }
+        }
+
+        public override void OnOpen()
+        {
+            if (!_configuration.OverlayVisible)
+            {
+                _configuration.OverlayVisible = true;
+                _configuration.Save();
+            }
+        }
+
+        public override void OnClose()
+        {
+            if (_configuration.OverlayVisible)
+            {
+                _configuration.OverlayVisible = false;
+                _configuration.Save();
+            }
+        }
+
+        public void ResetPosition()
+        {
+            Position = new Vector2(100, 100);
+            Size = new Vector2(400, 300);
+            PositionCondition = ImGuiCond.Always;
+            SizeCondition = ImGuiCond.Always;
+            _resetPending = true;
+            IsOpen = true;
         }
 
         private void DrawToolbar()
@@ -129,7 +220,8 @@ namespace EchoXIV.UI
             // Contador de mensajes
             lock (_messagesLock)
             {
-                ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), $"({_messages.Count})");
+                var engineName = _configuration.SelectedEngine.ToString();
+                ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), $"[{engineName}] ({_messages.Count})");
             }
         }
 
@@ -143,6 +235,12 @@ namespace EchoXIV.UI
                     foreach (var message in _messages)
                     {
                         DrawMessage(message);
+                        
+                        // Espaciado entre mensajes (paridad con WPF)
+                        if (_configuration.ChatMessageSpacing > 0)
+                        {
+                            ImGui.Dummy(new Vector2(0, _configuration.ChatMessageSpacing));
+                        }
                     }
                 }
 
@@ -160,7 +258,19 @@ namespace EchoXIV.UI
             // Color según canal
             var channelColor = GetChannelColor(message.ChatType);
             var channelName = GetChannelName(message.ChatType);
+            
+            var startX = ImGui.GetCursorPosX();
+            var startY = ImGui.GetCursorPosY();
+            
+            // Calculamos una indentación fija para paridad con WPF (24-30px aprox)
+            // O podemos hacerla dinámica según el contenido del prefix.
+            // Para paridad exacta con el estilo de "hanging indent" de WPF:
+            float indentSize = 30.0f;
+            if (_configuration.ShowTimestamps) indentSize += 40.0f; // Ajuste si hay timestamp
 
+            // 1. Dibujar Metadatos (Prefix)
+            ImGui.BeginGroup();
+            
             // Timestamp
             if (_configuration.ShowTimestamps)
             {
@@ -168,42 +278,77 @@ namespace EchoXIV.UI
                 ImGui.SameLine();
             }
 
-            // Canal
-            ImGui.TextColored(channelColor, $"[{channelName}]");
-            ImGui.SameLine();
+            // Canal + Sender
+            if (message.ChatType == XivChatType.TellOutgoing)
+            {
+                var name = string.IsNullOrEmpty(message.Recipient) ? message.Sender : message.Recipient;
+                ImGui.TextColored(channelColor, $"[Tell] >> {name}:");
+            }
+            else if (message.ChatType == XivChatType.TellIncoming)
+            {
+                ImGui.TextColored(channelColor, $"[Tell] << {message.Sender}:");
+            }
+            else
+            {
+                ImGui.TextColored(channelColor, $"[{channelName}] {message.Sender}:");
+            }
+            
+            ImGui.EndGroup();
 
-            // Nombre del remitente
-            ImGui.TextColored(channelColor, $"{message.Sender}:");
+            // 2. Dibujar Mensaje con Alineación (Hanging Indent simulado)
+            // Si el prefix es corto, el texto empieza en la misma línea.
+            // Si el texto envuelve, queremos que las siguientes líneas estén indentadas.
+            
             ImGui.SameLine();
-
-            // Texto traducido o indicador de traducción
+            
             if (message.IsTranslating)
             {
                 ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.2f, 1f), Loc.ChatWindow_Translating);
             }
             else
             {
-                ImGui.TextWrapped(message.TranslatedText);
-
-                // Tooltip con texto original
-                if (_configuration.ShowOriginalText && ImGui.IsItemHovered())
+                ImGui.PushTextWrapPos(0.0f);
+                
+                // Si el texto traducido es igual al original, solo mostramos uno (el original)
+                if (string.Equals(message.OriginalText, message.TranslatedText, StringComparison.OrdinalIgnoreCase))
                 {
-                    ImGui.BeginTooltip();
-                    ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Loc.ChatWindow_Original);
                     ImGui.Text(message.OriginalText);
-                    ImGui.EndTooltip();
                 }
+                else
+                {
+                    // Mostramos "Original -> Traducción" o similar para satisfacer "idioma de origen"
+                    ImGui.Text(message.OriginalText);
+                    ImGui.SameLine();
+                    ImGui.TextColored(new Vector4(0.0f, 1.0f, 0.5f, 1f), "->");
+                    ImGui.SameLine();
+                    ImGui.Text(message.TranslatedText);
+                }
+                
+                // Indicador de original [?] (Mantenemos por si acaso, o como tooltip de ayuda)
+                if (_configuration.ShowOriginalText)
+                {
+                    ImGui.SameLine();
+                    ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), "[?]");
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Loc.ChatWindow_Original);
+                        ImGui.Text(message.OriginalText);
+                        ImGui.EndTooltip();
+                    }
+                }
+                ImGui.PopTextWrapPos();
             }
         }
 
         /// <summary>
-        /// Colores exactos de Chat2 (valores RGB normalizados a 0-1)
+        /// Colores de chat (valores RGB normalizados a 0-1)
         /// </summary>
         private static Vector4 GetChannelColor(XivChatType type)
         {
             return type switch
             {
-                // Colores de Chat2 (RGB/255 convertidos a 0-1)
+                // Colores oficiales (RGB/255 convertidos a 0-1)
                 XivChatType.Say => new Vector4(247f/255f, 247f/255f, 247f/255f, 1f),           // #F7F7F7
                 XivChatType.Shout => new Vector4(255f/255f, 166f/255f, 102f/255f, 1f),         // #FFA666
                 XivChatType.Yell => new Vector4(255f/255f, 255f/255f, 0f/255f, 1f),            // #FFFF00
@@ -250,10 +395,18 @@ namespace EchoXIV.UI
                 XivChatType.CrossLinkShell7 => "CWLS7",
                 XivChatType.CrossLinkShell8 => "CWLS8",
                 XivChatType.NoviceNetwork => "NN",
+                XivChatType.TellOutgoing => "Tell",
+                XivChatType.TellIncoming => "Tell",
+                XivChatType.Debug => "Echo",
                 _ => type.ToString()
             };
         }
 
-        public void Dispose() { }
+        public void Dispose()
+        {
+            _historyManager.OnMessageAdded -= AddPendingMessage;
+            _historyManager.OnMessageUpdated -= UpdateMessage;
+            _historyManager.OnHistoryCleared -= ClearMessages;
+        }
     }
 }

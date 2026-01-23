@@ -6,7 +6,7 @@ namespace EchoXIV.GameFunctions
 {
     /// <summary>
     /// Envío directo de mensajes al chat del juego
-    /// Basado en ChatTwo.GameFunctions.ChatBox
+    /// Funciones base para ChatBox
     /// </summary>
     public static unsafe class ChatBox
     {

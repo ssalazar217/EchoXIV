@@ -18,6 +18,7 @@ namespace EchoXIV
         public string Sender { get; set; } = string.Empty;
         public string OriginalText { get; set; } = string.Empty;
         public string TranslatedText { get; set; } = string.Empty;
+        public string Recipient { get; set; } = string.Empty; // Destinatario (para Tells)
         public bool IsTranslating { get; set; }
         public Guid Id { get; set; } = Guid.NewGuid();
     }
@@ -31,6 +32,7 @@ namespace EchoXIV
         private ITranslationService _translatorService;
         private readonly IChatGui _chatGui;
         private readonly IClientState _clientState;
+        private readonly IObjectTable _objectTable;
         private readonly IPluginLog _pluginLog;
 
         /// <summary>
@@ -43,17 +45,24 @@ namespace EchoXIV
         /// </summary>
         public event Action<TranslatedChatMessage>? OnTranslationStarted;
 
+        /// <summary>
+        /// Evento emitido cuando se solicita un cambio de motor por fallo (failover)
+        /// </summary>
+        public event Action? OnRequestEngineFailover;
+
         public IncomingMessageHandler(
             Configuration configuration,
             ITranslationService translatorService,
             IChatGui chatGui,
             IClientState clientState,
+            IObjectTable objectTable,
             IPluginLog pluginLog)
         {
             _configuration = configuration;
             _translatorService = translatorService;
             _chatGui = chatGui;
             _clientState = clientState;
+            _objectTable = objectTable;
             _pluginLog = pluginLog;
 
             _chatGui.ChatMessage += OnChatMessage;
@@ -68,8 +77,8 @@ namespace EchoXIV
 
         private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
         {
-            // Solo procesar si las traducciones entrantes están habilitadas Y la ventana es visible
-            if (!_configuration.IncomingTranslationEnabled || !_configuration.OverlayVisible)
+            // Solo procesar si las traducciones entrantes están habilitadas.
+            if (!_configuration.IncomingTranslationEnabled)
                 return;
 
             // Verificar si el canal está en la lista de canales a traducir
@@ -89,15 +98,29 @@ namespace EchoXIV
                 return;
 
             // Verificar si es del jugador local
-            var localPlayerName = _clientState.LocalPlayer?.Name.TextValue;
+            var localPlayer = _objectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter;
+            var localPlayerName = localPlayer?.Name.TextValue;
             var isLocalPlayer = !string.IsNullOrEmpty(localPlayerName) && senderName == localPlayerName;
             
             if (isLocalPlayer && !_configuration.ShowOutgoingMessages)
                 return;
 
-            // Verificar lista de exclusión
+            // Verificar lista de exclusión (insensible a mayúsculas gracias al HashSet configurado)
             if (_configuration.ExcludedMessages.Contains(messageText))
+            {
+                // Mensaje excluido: se muestra en el historial pero NO se traduce
+                var excludedMsg = new TranslatedChatMessage
+                {
+                    Timestamp = DateTime.Now,
+                    ChatType = type,
+                    Sender = senderName,
+                    OriginalText = messageText,
+                    TranslatedText = messageText, // El texto traducido es el mismo original
+                    IsTranslating = false
+                };
+                OnMessageTranslated?.Invoke(excludedMsg);
                 return;
+            }
 
             // Crear mensaje inicial (mostrando "traduciendo...")
             var translatedMessage = new TranslatedChatMessage
@@ -137,10 +160,20 @@ namespace EchoXIV
                 message.TranslatedText = translation;
                 message.IsTranslating = false;
 
-                _pluginLog.Info($"📥 Traducido entrante: '{message.OriginalText}' → '{message.TranslatedText}'");
+                if (_configuration.VerboseLogging) _pluginLog.Info($"📥 Traducido entrante: '{message.OriginalText}' → '{message.TranslatedText}'");
 
                 // Notificar que la traducción está lista
                 OnMessageTranslated?.Invoke(message);
+            }
+            catch (TranslationRateLimitException ex)
+            {
+                _pluginLog.Warning($"⚠️ {ex.Message}. Activando conmutación automática a Google...");
+                message.TranslatedText = message.OriginalText; // Fallback inmediato para este mensaje
+                message.IsTranslating = false;
+                OnMessageTranslated?.Invoke(message);
+
+                // Activar failover (cambiar motor globalmente)
+                OnRequestEngineFailover?.Invoke();
             }
             catch (Exception ex)
             {
@@ -159,7 +192,7 @@ namespace EchoXIV
         public void Dispose()
         {
             _chatGui.ChatMessage -= OnChatMessage;
-            _pluginLog.Info("🔌 IncomingMessageHandler desconectado");
+            if (_configuration.VerboseLogging) _pluginLog.Info("🔌 IncomingMessageHandler desconectado");
         }
     }
 }

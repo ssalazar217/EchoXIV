@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png" width="48" height="48" align="center" /> EchoXIV 🌸
+# <img src="https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png" width="48" height="48" align="center" /> EchoXIV 🌸 [![Discord](https://img.shields.io/discord/1464143706616627316?label=Discord&logo=discord&logoColor=white&color=7289da)](https://discord.gg/B3qnvuhN9G)
 
 **EchoXIV** es un plugin avanzado para XIVLauncher/Dalamud diseñado para romper las barreras del idioma en FFXIV. A diferencia de otros traductores, EchoXIV se enfoca en la **comunicación activa**: permitiéndote ser entendido en cualquier idioma de forma fluida y natural.
 
@@ -9,8 +9,27 @@
 - **Detección Dinámica de Canales**: El sistema "No-Prefix" detecta automáticamente si estás en Party, FC, Say o en un Tell privado.
 - **Superposición Nativa (WPF)**: Una ventana elegante y fluida que se integra perfectamente con el juego.
 - **Visibilidad Inteligente (Smart Visibility)**: El plugin se oculta automáticamente durante cinemáticas, pantallas de carga y cuando el juego pierde el foco.
-- **Privacidad y Simplicidad**: Usa los servicios de Google Translate y DeepL sin necessidade de configurar complicadas API keys.
-- **Integración con ChatTwo**: Compatible con el ecosistema de ChatTwo para una experiencia unificada.
+- **Privacidad y Simplicidad**: Soporte para **Google Translate** (sin API key) y **DeepL** (usado por profesionales) para una traducción de alta fidelidad.
+- **Diferentes Modos de Ventana**: Elige el que mejor se adapte a tu setup técnico.
+
+### 🖥️ Comparativa de Modos de Ventana
+
+| Característica  | Ventana Interna (ImGui)                 | Ventana Nativa (WPF)               |
+| :-------------- | :-------------------------------------- | :--------------------------------- |
+| **Integración** | Total (dentro del juego)                | Ventana flotante independiente     |
+| **Rendimiento** | Puede afectar FPS en monitores externos | **Sin impacto en FPS del juego**   |
+| **Uso Ideal**   | Un solo monitor / Modo inmersivo        | Multi-monitor / Máximo rendimiento |
+| **Tecnología**  | Dalamud WindowSystem                    | .NET WPF (Nativo Windows)          |
+
+## 📷 Capturas de Pantalla
+
+|              Ventana Nativa (WPF)              |           Ventana Interna (ImGui)            |
+| :--------------------------------------------: | :------------------------------------------: |
+| ![Native Chat](EchoXIV/images/native_chat.png) | ![ImGui Chat](EchoXIV/images/imgui_chat.png) |
+
+|            Configuración             |
+| :----------------------------------: |
+| ![Config](EchoXIV/images/config.png) |
 
 ## 🚀 Instalación Rápida
 
@@ -25,12 +44,11 @@
 
 ## 📖 Comandos
 
-| Comando            | Descripción                                        |
-| ------------------ | -------------------------------------------------- |
-| `/echoxiv`         | Abre la ventana de configuración.                  |
-| `/tl <mensaje>`    | Traduce y envía el mensaje al canal activo actual. |
-| `/tl /p <mensaje>` | Fuerza la traducción al canal de Party.            |
-| `/tl config`       | Acceso rápido a las opciones.                      |
+| Comando         | Descripción                                        |
+| --------------- | -------------------------------------------------- |
+| `/echoxiv`      | Abre la ventana de configuración.                  |
+| `/tl <mensaje>` | Traduce y envía el mensaje al canal activo actual. |
+| `/tl config`    | Acceso rápido a las opciones.                      |
 
 ## 🔧 Configuración
 
@@ -44,7 +62,6 @@ Accede al menú con `/echoxiv`:
 
 - **TataruHelper**: Por la inspiración técnica en el método de traducción.
 - **Dalamud/XIVLauncher**: Por el increíble ecosistema de desarrollo.
-- **ChatTwo**: Por el soporte de integración.
 
 ---
 
