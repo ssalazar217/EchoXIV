@@ -32,6 +32,7 @@
                     <TextBlock Text="Traductor Chat" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
                     
                     <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button x:Name="BtnLock" Content="🔓" Click="Lock_Click" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0" ToolTip="Bloquear/Compactar (Click-Through)"/>
                         <Button Content="Limpiar" Click="Clear_Click" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0"/>
                         <Button Content="X" Click="Hide_Click" Padding="5,2" Background="#88FF0000" Foreground="White" BorderThickness="0"/>
                     </StackPanel>

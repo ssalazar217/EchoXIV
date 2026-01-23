@@ -84,3 +84,8 @@ ServiceFabricBackup/
 # Dalamud específico
 *.dll.old
 *.pdb.old
+
+DISTRIBUTION.md
+
+# Build Logs
+build_log*.txt

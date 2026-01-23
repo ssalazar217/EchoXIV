@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
+using System.Runtime.InteropServices; 
+using System.Diagnostics;
 using FFXIVChatTranslator.UI.Native;
 
 namespace FFXIVChatTranslator.Services
@@ -17,6 +19,13 @@ namespace FFXIVChatTranslator.Services
 
         // Evento para señalizar que el host está listo
         private readonly ManualResetEvent _readyEvent = new(false);
+        
+        // Smart Visibility
+        private DispatcherTimer? _visibilityTimer;
+        private IntPtr _gameWindowHandle;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
 
         private readonly Dalamud.Plugin.Services.IPluginLog _logger;
 
@@ -83,6 +92,13 @@ namespace FFXIVChatTranslator.Services
                 _chatWindow.Show();
                 _logger.Info("[FFXIVChatTranslator] Ventana creada y mostrada.");
                 IsInitialized = true; // SUCCESS
+                
+                // Inicializar Smart Visibility Timer
+                _gameWindowHandle = Process.GetCurrentProcess().MainWindowHandle;
+                _visibilityTimer = new DispatcherTimer();
+                _visibilityTimer.Interval = TimeSpan.FromMilliseconds(500);
+                _visibilityTimer.Tick += VisibilityTimer_Tick;
+                _visibilityTimer.Start();
             }
             catch (Exception ex)
             {
@@ -109,6 +125,31 @@ namespace FFXIVChatTranslator.Services
         }
 
         // ... (AddMessage, UpdateMessage, etc. unchanged) ...
+
+        private void VisibilityTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_chatWindow == null || !_configuration.SmartVisibility) return;
+
+            var foreground = GetForegroundWindow();
+            var windowHandle = new System.Windows.Interop.WindowInteropHelper(_chatWindow).Handle;
+
+            // Visible si el foco está en el juego O en nuestra ventana
+            bool shouldBeVisible = (foreground == _gameWindowHandle || foreground == windowHandle);
+            
+            // Estado actual
+            bool isVisible = _chatWindow.Visibility == Visibility.Visible;
+            
+            // Solo actuar si cambia el estado deseado
+            if (shouldBeVisible && !isVisible)
+            {
+                _chatWindow.Show();
+                _chatWindow.Topmost = true; // Asegurar topmost al volver
+            }
+            else if (!shouldBeVisible && isVisible)
+            {
+                _chatWindow.Hide();
+            }
+        }
 
         public void AddMessage(TranslatedChatMessage message)
         {
@@ -150,6 +191,36 @@ namespace FFXIVChatTranslator.Services
             }
         }
 
+        public void SetSmartVisibility(bool enabled)
+        {
+            // La configuración ya se actualizó (es referencia compartida).
+            // Forzamos un checkeo inmediato del timer si es posible, o simplemente esperamos el siguiente tick.
+            if (_chatWindow != null && _isRunning)
+            {
+                _chatWindow.Dispatcher.InvokeAsync(() => 
+                {
+                    // Forzar tick manual
+                    VisibilityTimer_Tick(null, EventArgs.Empty);
+                });
+            }
+        }
+
+        public void SetLock(bool locked)
+        {
+            if (_chatWindow != null && _isRunning)
+            {
+                 _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.SetLock(locked));
+            }
+        }
+
+        public void UpdateVisuals()
+        {
+            if (_chatWindow != null && _isRunning)
+            {
+                 _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.UpdateVisuals());
+            }
+        }
+
         public void Dispose()
         {
             if (!_isRunning) return;
@@ -166,6 +237,12 @@ namespace FFXIVChatTranslator.Services
                     }, DispatcherPriority.Send); 
                 }
                 catch { /* Ignorar errores al cerrar */ }
+            }
+            
+            if (_visibilityTimer != null)
+            {
+                _visibilityTimer.Stop();
+                _visibilityTimer = null;
             }
 
             // Detener el Dispatcher Loop de ESTE hilo
