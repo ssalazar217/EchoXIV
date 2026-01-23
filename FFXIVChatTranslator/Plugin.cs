@@ -38,7 +38,8 @@ namespace FFXIVChatTranslator
         private TranslatedChatWindow? _translatedChatWindow = null;
         private WpfHost? _wpfHost = null; // Host para ventana WPF nativa
         private IncomingMessageHandler? _incomingMessageHandler = null;
-        private GameFunctions.ChatBoxHook? _chatBoxHook = null;
+        private GameFunctions.ChatBoxHook? _chatBoxHook = null!;
+        private static bool _chatVisible = false;
         
         public Plugin()
         {
@@ -142,6 +143,9 @@ namespace FFXIVChatTranslator
                 // Registrar UI callback principal (botón "Abrir" abre configuración)
                 PluginInterface.UiBuilder.OpenMainUi += ToggleConfigUI;
 
+                // Suscribirse al Update del Framework para caché de visibilidad seguro entre hilos
+                Framework.Update += OnFrameworkUpdate;
+
                 // Suscribirse a eventos de login/logout para manejar la ventana nativa
                 ClientState.Login += delegate { OnLogin(); };
                 ClientState.Logout += delegate { OnLogout(); };
@@ -219,7 +223,8 @@ namespace FFXIVChatTranslator
             CommandManager.RemoveHandler(CommandNameShort);
             
             // Limpiar eventos
-            PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
+                Framework.Update -= OnFrameworkUpdate;
+                PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
             PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
             PluginInterface.UiBuilder.OpenMainUi -= ToggleConfigUI;
         }
@@ -529,13 +534,23 @@ namespace FFXIVChatTranslator
             }
         }
 
-        /// <summary>
-        /// Determina si el chat es actualmente visible (siguiendo la lógica de ChatTwo)
-        /// </summary>
-        public static unsafe bool IsChatVisible()
+        private void OnFrameworkUpdate(IFramework framework)
         {
-            // 1. Verificar login básico
-            if (!ClientState.IsLoggedIn || ClientState.LocalPlayer == null) 
+            _chatVisible = UpdateChatVisibilityInternal();
+        }
+
+        /// <summary>
+        /// Determina si el chat es actualmente visible (retorna valor cacheado de forma segura)
+        /// </summary>
+        public static bool IsChatVisible() => _chatVisible;
+
+        /// <summary>
+        /// Lógica interna para determinar la visibilidad del chat (solo llamar desde hilo principal)
+        /// </summary>
+        private static unsafe bool UpdateChatVisibilityInternal()
+        {
+            // 1. Verificar login básico y presencia real de un personaje en el mundo
+            if (!ClientState.IsLoggedIn || ClientState.LocalPlayer == null || ClientState.LocalContentId == 0) 
                 return false;
 
             // 2. Verificar estados que impiden ver el chat (Carga, Cutscenes, GPose)
@@ -548,18 +563,13 @@ namespace FFXIVChatTranslator
             }
 
             // 3. Verificar si el addon de chat nativo está visible
-            // Si el usuario ocultó el HUD (Scroll Lock), este addon no será visible.
-            var chatLogAddon = (FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase*)GameGui.GetAddonByName("ChatLog");
-            bool nativeChatVisible = chatLogAddon != null && chatLogAddon->IsVisible;
+            var chatLogAddon = (FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase*)(nint)GameGui.GetAddonByName("ChatLog");
+            bool nativeChatVisible = chatLogAddon != null && chatLogAddon->IsVisible && chatLogAddon->RootNode != null;
 
             if (nativeChatVisible) return true;
 
             // 4. Si el chat nativo no es visible, comprobar si el usuario está usando ChatTwo
-            // ChatTwo oculta el chat nativo pero se muestra a sí mismo.
             bool chatTwoPresent = PluginInterface.InstalledPlugins.Any(p => p.InternalName == "ChatTwo" && p.IsLoaded);
-            
-            // Si ChatTwo está presente y no estamos en carga/cutscene (puntos 1 y 2), 
-            // asumimos que el usuario tiene un chat visible a través de ChatTwo.
             return chatTwoPresent;
         }
     }
