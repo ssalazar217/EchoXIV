@@ -5,9 +5,9 @@ using System.Numerics;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
-using FFXIVChatTranslator.Resources;
+using EchoXIV.Resources;
 
-namespace FFXIVChatTranslator.UI
+namespace EchoXIV.UI
 {
     /// <summary>
     /// Ventana flotante para mostrar traducciones de mensajes entrantes

@@ -9,11 +9,11 @@ $ErrorActionPreference = "Stop"
 
 # Rutas
 $projectPath = $PSScriptRoot
-$buildPath = Join-Path $projectPath "FFXIVChatTranslator\bin\Release"
-$devPluginsPath = Join-Path $env:APPDATA "XIVLauncher\devPlugins\FFXIVChatTranslator"
+$buildPath = Join-Path $projectPath "EchoXIV\bin\Release"
+$devPluginsPath = Join-Path $env:APPDATA "XIVLauncher\devPlugins\EchoXIV"
 
 Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "  FFXIV Chat Translator - Installer" -ForegroundColor Cyan
+Write-Host "  EchoXIV - Installer" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -35,7 +35,7 @@ Write-Host ""
 
 # Paso 3: Compilar
 Write-Host "[3/6] Compilando plugin..." -ForegroundColor Yellow
-$csprojPath = Join-Path $projectPath "FFXIVChatTranslator\FFXIVChatTranslator.csproj"
+$csprojPath = Join-Path $projectPath "EchoXIV\EchoXIV.csproj"
 $buildOutput = & dotnet build $csprojPath -c Release 2>&1
 
 if ($LASTEXITCODE -ne 0) {
@@ -67,24 +67,24 @@ Write-Host ""
 Write-Host "[5/6] Copiando archivos del plugin..." -ForegroundColor Yellow
 
 # Copiar DLL principal
-$mainDll = Join-Path $buildPath "FFXIVChatTranslator.dll"
+$mainDll = Join-Path $buildPath "EchoXIV.dll"
 if (Test-Path $mainDll) {
     Copy-Item $mainDll -Destination $devPluginsPath
-    Write-Host "   ✓ FFXIVChatTranslator.dll" -ForegroundColor Green
+    Write-Host "   ✓ EchoXIV.dll" -ForegroundColor Green
 }
 else {
-    Write-Host "   ❌ No se encontró FFXIVChatTranslator.dll" -ForegroundColor Red
+    Write-Host "   ❌ No se encontró EchoXIV.dll" -ForegroundColor Red
     exit 1
 }
 
 # Copiar manifest
-$manifest = Join-Path $projectPath "FFXIVChatTranslator\FFXIVChatTranslator.json"
+$manifest = Join-Path $projectPath "EchoXIV\EchoXIV.json"
 if (Test-Path $manifest) {
     Copy-Item $manifest -Destination $devPluginsPath
-    Write-Host "   ✓ FFXIVChatTranslator.json" -ForegroundColor Green
+    Write-Host "   ✓ EchoXIV.json" -ForegroundColor Green
 }
 else {
-    Write-Host "   ⚠️ Advertencia: No se encontró FFXIVChatTranslator.json" -ForegroundColor Yellow
+    Write-Host "   ⚠️ Advertencia: No se encontró EchoXIV.json" -ForegroundColor Yellow
 }
 
 # Copiar Newtonsoft.Json
@@ -95,7 +95,7 @@ if (Test-Path $newtonsoftDll) {
 }
 
 # Copiar recursos
-$resourcesPath = Join-Path $projectPath "FFXIVChatTranslator\Resources"
+$resourcesPath = Join-Path $projectPath "EchoXIV\Resources"
 if (Test-Path $resourcesPath) {
     $destResources = Join-Path $devPluginsPath "Resources"
     Copy-Item $resourcesPath -Destination $devPluginsPath -Recurse -Force
@@ -120,7 +120,7 @@ Write-Host "3. Ve a 'Experimental' y activa 'Enable plugin testing'" -Foreground
 Write-Host "4. En 'Dev Plugin Locations', agrega:" -ForegroundColor White
 Write-Host "   %AppData%\XIVLauncher\devPlugins" -ForegroundColor Gray
 Write-Host "5. Guarda y escribe: /xlplugins" -ForegroundColor White
-Write-Host "6. Activa 'FFXIV Chat Translator'" -ForegroundColor White
+Write-Host "6. Activa 'EchoXIV'" -ForegroundColor White
 Write-Host ""
 Write-Host "Configuración: /translate config" -ForegroundColor Yellow
 Write-Host ""

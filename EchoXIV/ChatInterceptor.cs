@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
-using FFXIVChatTranslator.Services;
+using EchoXIV.Services;
 
-namespace FFXIVChatTranslator
+namespace EchoXIV
 {
     /// <summary>
     /// Intercepta mensajes salientes del chat y los traduce antes de enviarlos

@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Resources;
 
-namespace FFXIVChatTranslator.Resources
+namespace EchoXIV.Resources
 {
     /// <summary>
     /// Clase de localización para acceder a strings traducidos
@@ -9,7 +9,7 @@ namespace FFXIVChatTranslator.Resources
     public static class Loc
     {
         private static readonly ResourceManager ResourceManager = 
-            new("FFXIVChatTranslator.Resources.Strings", typeof(Loc).Assembly);
+            new("EchoXIV.Resources.Strings", typeof(Loc).Assembly);
         
         private static CultureInfo _culture = CultureInfo.CurrentUICulture;
         

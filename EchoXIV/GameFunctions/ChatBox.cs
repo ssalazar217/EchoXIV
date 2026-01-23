@@ -2,7 +2,7 @@ using System.Text;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 
-namespace FFXIVChatTranslator.GameFunctions
+namespace EchoXIV.GameFunctions
 {
     /// <summary>
     /// Envío directo de mensajes al chat del juego

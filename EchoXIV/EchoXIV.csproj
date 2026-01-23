@@ -1,6 +1,6 @@
 <Project Sdk="Dalamud.NET.Sdk/14.0.1">
   <PropertyGroup>
-    <Version>0.0.56</Version>
+    <Version>0.0.66</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -8,6 +8,8 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <LangVersion>latest</LangVersion>
     <UseWPF>true</UseWPF>
+    <AssemblyName>EchoXIV</AssemblyName>
+    <RootNamespace>EchoXIV</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,7 +34,7 @@
   </ItemGroup>
 
   <Target Name="AutoIncrementVersion" BeforeTargets="BeforeBuild">
-    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)scripts\UpdateVersion.ps1&quot; -ProjectFile &quot;$(ProjectPath)&quot; -ManifestFile &quot;$(ProjectDir)FFXIVChatTranslator.json&quot;" />
+    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)scripts\UpdateVersion.ps1&quot; -ProjectFile &quot;$(ProjectPath)&quot; -ManifestFile &quot;$(ProjectDir)EchoXIV.json&quot;" />
   </Target>
 
 </Project>

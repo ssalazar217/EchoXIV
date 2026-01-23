@@ -4,9 +4,9 @@ using System.Windows;
 using System.Windows.Threading;
 using System.Runtime.InteropServices; 
 using System.Diagnostics;
-using FFXIVChatTranslator.UI.Native;
+using EchoXIV.UI.Native;
 
-namespace FFXIVChatTranslator.Services
+namespace EchoXIV.Services
 {
     public class WpfHost : IDisposable
     {
@@ -46,7 +46,7 @@ namespace FFXIVChatTranslator.Services
             _wpfThread = new Thread(WpfThreadEntryPoint);
             _wpfThread.SetApartmentState(ApartmentState.STA);
             _wpfThread.IsBackground = true;
-            _wpfThread.Name = "FFXIVChatTranslator_WpfHost";
+            _wpfThread.Name = "EchoXIV_WpfHost";
             _wpfThread.Start();
 
             // Esperar a que la ventana esté lista (con timeout)
