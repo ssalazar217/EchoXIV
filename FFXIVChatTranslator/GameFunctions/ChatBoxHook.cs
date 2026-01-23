@@ -17,7 +17,7 @@ namespace FFXIVChatTranslator.GameFunctions
     internal unsafe class ChatBoxHook : IDisposable
     {
         private readonly Configuration _configuration;
-        private readonly GoogleTranslatorService _translatorService;
+        private ITranslationService _translatorService;
         private readonly IPluginLog _pluginLog;
         private readonly IClientState _clientState;
         private readonly IGameInteropProvider _gameInteropProvider;
@@ -29,7 +29,7 @@ namespace FFXIVChatTranslator.GameFunctions
         
         public ChatBoxHook(
             Configuration configuration,
-            GoogleTranslatorService translatorService,
+            ITranslationService translatorService,
             IPluginLog pluginLog,
             IClientState clientState,
             IGameInteropProvider gameInteropProvider)
@@ -38,7 +38,13 @@ namespace FFXIVChatTranslator.GameFunctions
             _translatorService = translatorService;
             _pluginLog = pluginLog;
             _clientState = clientState;
+            _clientState = clientState;
             _gameInteropProvider = gameInteropProvider;
+        }
+
+        public void UpdateTranslator(ITranslationService newService)
+        {
+            _translatorService = newService;
         }
         
         public void Enable()
@@ -46,9 +52,9 @@ namespace FFXIVChatTranslator.GameFunctions
             try
             {
                 // Intentar hookear ProcessChatBoxEntry
-                // Signature puede necesitar ajustes según versión del juego
+                // Signature compatible con 7.x
                 _processChatBoxHook = _gameInteropProvider.HookFromSignature<ProcessChatBoxDelegate>(
-                    "48 89 5C 24 ?? 57 48 83 EC 20 48 8B FA 48 8B D9 45 84 C9",
+                    "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 48 8B FA 48 8B D9",
                     ProcessChatBoxDetour
                 );
                 

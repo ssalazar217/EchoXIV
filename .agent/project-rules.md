@@ -7,26 +7,14 @@ Los siguientes comandos deben ejecutarse **automáticamente sin pedir confirmaci
 ### 1. Compilación
 
 ```powershell
+dotnet build
 dotnet build -c Release
+dotnet build -c Debug
 ```
 
 **Razón**: Comando seguro de solo lectura que genera archivos en `/bin/Release/`
 
-### 2. Copia de Archivos del Plugin
-
-```powershell
-Copy-Item "FFXIVChatTranslator\bin\Release\FFXIVChatTranslator.dll" -Destination "$env:APPDATA\XIVLauncher\devPlugins\FFXIVChatTranslator\" -Force
-
-Copy-Item "FFXIVChatTranslator\FFXIVChatTranslator.json" -Destination "$env:APPDATA\XIVLauncher\devPlugins\FFXIVChatTranslator\" -Force
-```
-
-**Razón**:
-
-- Copia archivos dentro del workspace del proyecto
-- Destino es la carpeta de desarrollo de Dalamud (controlada por el usuario)
-- Operación de deployment estándar
-
-### 3. Comandos de Listado/Lectura
+### 2. Comandos de Listado/Lectura
 
 ```powershell
 Get-ChildItem
@@ -46,24 +34,15 @@ ls, dir, cat
 d:\Codigo\FFXIV\ffxiv-chat-translator\FFXIVChatTranslator\
 ```
 
-### Deployment (Dalamud DevPlugins)
-
-```
-%APPDATA%\XIVLauncher\devPlugins\FFXIVChatTranslator\
-```
-
-Estas dos rutas están permitidas para operaciones de copia automáticas.
-
 ---
 
 ## 🎯 Workflow de Desarrollo
 
 1. Editar código en `d:\Codigo\FFXIV\ffxiv-chat-translator\`
 2. Compilar con `dotnet build -c Release`
-3. Copiar automáticamente `.dll` y `.json` a `devPlugins`
-4. Usuario recarga plugin en juego con `/xlplugins`
+3. Usuario recarga plugin en juego con `/xlplugins`
 
-**Todos los pasos 1-3 deben ser automáticos (SafeToAutoRun: true)**
+**Todos los pasos 1-2 deben ser automáticos (SafeToAutoRun: true)**
 
 ---
 

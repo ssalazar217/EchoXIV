@@ -9,6 +9,12 @@ namespace FFXIVChatTranslator
     /// <summary>
     /// Configuración del plugin
     /// </summary>
+    public enum TranslationEngine
+    {
+        Google,
+        DeepL
+    }
+
     [Serializable]
     public class Configuration : IPluginConfiguration
     {
@@ -119,6 +125,9 @@ namespace FFXIVChatTranslator
         /// Ocultar ventana automáticamente cuando el juego pierde el foco
         /// </summary>
         public bool SmartVisibility { get; set; } = true;
+
+        public TranslationEngine SelectedEngine { get; set; } = TranslationEngine.Google;
+        public bool OverlayVisible { get; set; } = true;
 
         /// <summary>
         /// Usar ventana nativa (WPF) en lugar de ventana interna de Dalamud

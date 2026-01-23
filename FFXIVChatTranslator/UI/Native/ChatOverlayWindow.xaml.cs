@@ -4,6 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Text.RegularExpressions;
+using System.Diagnostics;
 using Dalamud.Game.Text;
 
 namespace FFXIVChatTranslator.UI.Native
@@ -14,21 +16,24 @@ namespace FFXIVChatTranslator.UI.Native
         private bool _autoScroll = true;
         private bool _isLocked = false;
         
-        // P/Invoke
-        private const int GWL_EXSTYLE = -20;
-        private const int WS_EX_TRANSPARENT = 0x00000020;
-        private const int WS_EX_TOOLWINDOW = 0x00000080; // Ocultar de Alt-Tab
+        // P/Invoke - Ya no necesarios para Click-Through (usamos IsHitTestVisible)
+        // private const int GWL_EXSTYLE = -20;
+        // private const int WS_EX_TRANSPARENT = 0x00000020;
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern int GetWindowLong(IntPtr hwnd, int index);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
+        public Action<bool>? OnVisibilityChanged;
 
         public ChatOverlayWindow(Configuration configuration)
         {
             InitializeComponent();
             _configuration = configuration;
+            
+            // Estado inicial de visibilidad
+            if (!_configuration.OverlayVisible)
+            {
+                this.Visibility = Visibility.Collapsed;
+            }
+            
             SetOpacity(_configuration.WindowOpacity);
             
             // Restaurar geometría
@@ -85,14 +90,19 @@ namespace FFXIVChatTranslator.UI.Native
         {
              if (this.Visibility == Visibility.Visible)
              {
+                _configuration.OverlayVisible = false;
                 this.Hide();
+                OnVisibilityChanged?.Invoke(false);
              }
              else
              {
+                _configuration.OverlayVisible = true;
                 this.Show();
                 this.Topmost = true; // Reforzar
                 this.Activate(); // Traer al frente
+                OnVisibilityChanged?.Invoke(true);
              }
+             _configuration.Save();
         }
         
         public void ResetPosition()
@@ -167,7 +177,7 @@ namespace FFXIVChatTranslator.UI.Native
             }
             else
             {
-                p.Inlines.Add(new Run(message.TranslatedText) { Foreground = Brushes.White });
+                AddTextWithUrls(p, message.TranslatedText, Brushes.White);
 
                 if (_configuration.ShowOriginalText)
                 {
@@ -208,7 +218,10 @@ namespace FFXIVChatTranslator.UI.Native
 
         private void Hide_Click(object sender, RoutedEventArgs e)
         {
+            _configuration.OverlayVisible = false;
+            _configuration.Save();
             this.Hide();
+            OnVisibilityChanged?.Invoke(false);
         }
 
         private void Lock_Click(object sender, RoutedEventArgs e)
@@ -216,57 +229,69 @@ namespace FFXIVChatTranslator.UI.Native
             SetLock(!_isLocked);
         }
 
+        private void UnlockOverlay_Click(object sender, RoutedEventArgs e)
+        {
+            SetLock(false);
+        }
+
         public void SetLock(bool state)
         {
             _isLocked = state;
-            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
             
             if (_isLocked)
             {
-                // MODO COMPACTO / CLICK-THROUGH
-                // 1. Ocultar header y bordes
-                // (Necesitamos acceso a los elementos por nombre, asegúrate de añadirlos en XAML si no existen)
-                // Asumimos que el border principal es MainBorder
-                MainBorder.BorderThickness = new Thickness(0);
-                MainBorder.Background = Brushes.Transparent; // Transparente pero... ¿clickeable? No si WS_EX_TRANSPARENT
+                // MODO COMPACTO / CLICK-THROUGH SIMULADO
+                // 1. Desactivar HitTest en el contenedor principal (permite click-through a lo que hay detrás)
+                MainBorder.IsHitTestVisible = false;
                 
-                // Ocultar Header (Asumiendo que el border header es el child 0 del grid)
-                // Mejor asignar x:Name="HeaderBorder" al border del header en XAML para ser seguro
-                // Por ahora usamos la estructura visual conocida:
-                if (MainBorder.Child is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Border header)
+                // 2. Ocultar fondo y bordes para que sea totalmente transparente
+                MainBorder.Background = Brushes.Transparent;
+                MainBorder.BorderThickness = new Thickness(0);
+
+                // 3. Ocultar Header
+                if (HeaderBorder != null)
                 {
-                    header.Visibility = Visibility.Collapsed;
+                    HeaderBorder.Visibility = Visibility.Collapsed;
                 }
 
-                // 2. Hacer click-through
-                int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-                SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT);
+                // 4. Mostrar botón flotante de desbloqueo (que SÍ es HitTestVisible)
+                if (BtnUnlockOverlay != null)
+                {
+                    BtnUnlockOverlay.Visibility = Visibility.Visible;
+                }
                 
-                // 3. Bloquear resize
+                // 5. Bloquear resize y asegurar Topmost
                 this.ResizeMode = ResizeMode.NoResize;
+                this.Topmost = true;
                 
-                BtnLock.Content = "🔒";
+                if (BtnLock != null) BtnLock.Content = "🔒";
             }
             else
             {
                 // MODO NORMAL
-                // 1. Restaurar estilos visuales
-                SetOpacity(_configuration.WindowOpacity); // Restaura color de fondo
+                // 1. Activar HitTest
+                MainBorder.IsHitTestVisible = true;
+                
+                // 2. Restaurar estilos visuales
+                SetOpacity(_configuration.WindowOpacity);
                 MainBorder.BorderThickness = new Thickness(1);
 
-                if (MainBorder.Child is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Border header)
+                // 3. Mostrar Header
+                if (HeaderBorder != null)
                 {
-                    header.Visibility = Visibility.Visible;
+                    HeaderBorder.Visibility = Visibility.Visible;
                 }
 
-                // 2. Quitar click-through
-                int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-                SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_TRANSPARENT);
-                
-                // 3. Restaurar resize
+                // 4. Ocultar botón flotante
+                if (BtnUnlockOverlay != null)
+                {
+                    BtnUnlockOverlay.Visibility = Visibility.Collapsed;
+                }
+                 
+                // 5. Restaurar resize
                 this.ResizeMode = ResizeMode.CanResizeWithGrip;
                 
-                 BtnLock.Content = "🔓";
+                if (BtnLock != null) BtnLock.Content = "🔓";
             }
         }
         
@@ -291,6 +316,57 @@ namespace FFXIVChatTranslator.UI.Native
         }
 
         // --- Helpers de Colores y Nombres (Copia adaptada de TranslatedChatWindow) ---
+
+        private void AddTextWithUrls(Paragraph p, string text, Brush foreground)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+
+            // Simple regex for URLs
+            var regex = new Regex(@"(https?://[^\s]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            var matches = regex.Matches(text);
+            
+            int lastIndex = 0;
+            foreach (Match match in matches)
+            {
+                // Text before match
+                if (match.Index > lastIndex)
+                {
+                    string segment = text.Substring(lastIndex, match.Index - lastIndex);
+                    p.Inlines.Add(new Run(segment) { Foreground = foreground });
+                }
+                
+                // The Link
+                string url = match.Value;
+                try
+                {
+                    var link = new Hyperlink(new Run(url))
+                    {
+                        NavigateUri = new Uri(url),
+                        Foreground = new SolidColorBrush(Color.FromRgb(0, 255, 255)), // Cian
+                        Cursor = Cursors.Hand
+                    };
+                    link.RequestNavigate += (s, e) => 
+                    {
+                        try { Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); }
+                        catch { /* log? */ }
+                        e.Handled = true;
+                    };
+                    p.Inlines.Add(link);
+                }
+                catch
+                {
+                   p.Inlines.Add(new Run(url) { Foreground = foreground });
+                }
+                
+                lastIndex = match.Index + match.Length;
+            }
+            
+            // Remaining text
+            if (lastIndex < text.Length)
+            {
+                p.Inlines.Add(new Run(text.Substring(lastIndex)) { Foreground = foreground });
+            }
+        }
 
         private Color GetChannelColor(XivChatType type)
         {

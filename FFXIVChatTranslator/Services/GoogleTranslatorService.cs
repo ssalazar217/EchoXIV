@@ -11,8 +11,10 @@ namespace FFXIVChatTranslator.Services
     /// Servicio de traducción usando Google Translate móvil sin API key.
     /// Adaptado del método de TataruHelper.
     /// </summary>
-    public class GoogleTranslatorService : IDisposable
+    public class GoogleTranslatorService : ITranslationService, IDisposable
     {
+        public string Name => "Google";
+
         private readonly HttpClient _httpClient;
         private readonly CookieContainer _cookieContainer;
         
