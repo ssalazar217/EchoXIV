@@ -1,0 +1,58 @@
+<Window x:Class="FFXIVChatTranslator.UI.Native.ChatOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="FFXIV Chat Translator" 
+        Height="300" Width="400"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="#01000000"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip">
+    
+    <Border x:Name="MainBorder" BorderBrush="#44FFFFFF" BorderThickness="1" CornerRadius="5" Background="#AA000000">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Toolbar / Drag Handle -->
+            <Border Grid.Row="0" Background="#33FFFFFF" CornerRadius="5,5,0,0" MouseLeftButtonDown="DragWindow" Cursor="SizeAll">
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Traductor Chat" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+                    
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Content="Limpiar" Click="Clear_Click" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0"/>
+                        <Button Content="X" Click="Hide_Click" Padding="5,2" Background="#88FF0000" Foreground="White" BorderThickness="0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Chat Content -->
+            <RichTextBox x:Name="ChatOutput" Grid.Row="1" 
+                         Background="Transparent" 
+                         Foreground="White" 
+                         BorderThickness="0" 
+                         IsReadOnly="True" 
+                         IsDocumentEnabled="True"
+                         VerticalScrollBarVisibility="Auto"
+                         Padding="5">
+                <FlowDocument FontSize="14" FontFamily="Segoe UI, Tahoma">
+                    <Paragraph>
+                        <Run Text="Traductor iniciado..." Foreground="Gray"/>
+                    </Paragraph>
+                </FlowDocument>
+            </RichTextBox>
+        </Grid>
+    </Border>
+</Window>
