@@ -1,10 +1,10 @@
-# <img src="https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/images/icon.png" width="48" height="48" align="center" /> EchoXIV 🌸
+# <img src="https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png" width="48" height="48" align="center" /> EchoXIV 🌸
 
 **EchoXIV** es un plugin avanzado para XIVLauncher/Dalamud diseñado para romper las barreras del idioma en FFXIV. A diferencia de otros traductores, EchoXIV se enfoca en la **comunicación activa**: permitiéndote ser entendido en cualquier idioma de forma fluida y natural.
 
 ## 🌟 Características Principales
 
-- **Tu Voz en Cualquier Idioma (Outgoing Translation)**: Usa el comando `/tl <mensaje>` para enviar una traducción instantánea al canal activo.
+- **Tu Mensaje en Cualquier Idioma (Outgoing Translation)**: Usa el comando `/tl <mensaje>` para enviar una traducción instantánea al canal activo.
 - **Traducción Bidireccional**: Entiende lo que dicen y asegúrate de que te entiendan.
 - **Detección Dinámica de Canales**: El sistema "No-Prefix" detecta automáticamente si estás en Party, FC, Say o en un Tell privado.
 - **Superposición Nativa (WPF)**: Una ventana elegante y fluida que se integra perfectamente con el juego.

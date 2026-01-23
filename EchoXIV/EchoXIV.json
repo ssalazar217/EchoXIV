@@ -1,7 +1,7 @@
 {
   "Author": "ssalazar217 (SteSE)",
   "Name": "EchoXIV",
-  "Punchline": "Tu voz en cualquier idioma. Traducción de chat bidireccional enfocada en la comunicación activa.",
+  "Punchline": "Tu mensaje en cualquier idioma. Traducción de chat bidireccional enfocada en la comunicación activa.",
   "Description": "Automatically translates your outgoing messages (to the party language) and incoming messages (to your local language) using Google Translate. Overlay window included. No API Key required.",
   "InternalName": "EchoXIV",
   "RepoUrl": "https://github.com/ssalazar217/EchoXIV",
@@ -19,7 +19,7 @@
   "LoadSync": false,
   "CanUnloadAsync": false,
   "LoadPriority": 0,
-  "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/images/icon.png",
+  "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
   "Changelog": "0.0.1: Initial dev version",
   "AssemblyVersion": "0.0.67"
 }
