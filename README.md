@@ -14,13 +14,14 @@
 
 ## 🚀 Instalación Rápida
 
-1. **Descarga el plugin** desde la sección de [Releases](https://github.com/ssalazar217/EchoXIV/releases).
-2. Extrae el contenido en tu carpeta de plugins de desarrollo:
+1. Abre **XIVLauncher** (o el menú `/xlsettings` dentro del juego).
+2. Ve a la pestaña **Experimental** -> **Custom Plugin Repositories**.
+3. Añade la siguiente URL:
    ```
-   %AppData%\XIVLauncher\devPlugins\EchoXIV
+   https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/repo.json
    ```
-3. En el juego, habilita los plugins de prueba en `/xlsettings` -> Experimental.
-4. ¡Listo! Usa `/tl` para empezar a hablar.
+4. Guarda los cambios.
+5. Busca **EchoXIV** en la lista de plugins disponibles e instálalo.
 
 ## 📖 Comandos
 
