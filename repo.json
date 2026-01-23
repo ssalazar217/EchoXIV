@@ -20,7 +20,7 @@
     "CanUnloadAsync": false,
     "LoadPriority": 0,
     "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
-    "Punchline": "Tu mensaje en cualquier idioma. Traducción de chat bidireccional enfocada en la comunicación activa.",
+    "Punchline": "Your message in any language. Bidirectional chat translation focused on active communication.",
     "DownloadLinkInstall": "https://github.com/ssalazar217/EchoXIV/releases/download/v0.0.67/EchoXIV.zip",
     "IsHide": false,
     "IsTestingExclusive": false
