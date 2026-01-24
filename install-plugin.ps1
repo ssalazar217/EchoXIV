@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 # Rutas
 $projectPath = $PSScriptRoot
-$buildPath = Join-Path $projectPath "bin\Release"
+$buildPath = Join-Path $projectPath "FFXIVChatTranslator\bin\Release"
 $devPluginsPath = Join-Path $env:APPDATA "XIVLauncher\devPlugins\FFXIVChatTranslator"
 
 Write-Host "================================================" -ForegroundColor Cyan
@@ -17,34 +17,9 @@ Write-Host "  FFXIV Chat Translator - Installer" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Paso 1: Verificar DLLs de Dalamud
-Write-Host "[1/6] Verificando DLLs de Dalamud..." -ForegroundColor Yellow
-$dalamudPath = Join-Path $env:APPDATA "XIVLauncher\addon\Hooks\dev"
-
-if (-not (Test-Path $dalamudPath)) {
-    Write-Host "❌ ERROR: No se encontró la carpeta de Dalamud" -ForegroundColor Red
-    Write-Host "   Ruta esperada: $dalamudPath" -ForegroundColor Red
-    Write-Host "   Ejecuta FFXIV con XIVLauncher al menos una vez." -ForegroundColor Red
-    exit 1
-}
-
-$requiredDlls = @("Dalamud.dll", "ImGui.NET.dll", "FFXIVClientStructs.dll")
-$missingDlls = @()
-
-foreach ($dll in $requiredDlls) {
-    $dllPath = Join-Path $dalamudPath $dll
-    if (-not (Test-Path $dllPath)) {
-        $missingDlls += $dll
-    }
-}
-
-if ($missingDlls.Count -gt 0) {
-    Write-Host "❌ ERROR: Faltan DLLs de Dalamud:" -ForegroundColor Red
-    $missingDlls | ForEach-Object { Write-Host "   - $_" -ForegroundColor Red }
-    exit 1
-}
-
-Write-Host "✅ DLLs de Dalamud encontradas" -ForegroundColor Green
+# Paso 1: Omitido (confiamos en dotnet build)
+# Los paths pueden variar entre instalaciones
+Write-Host "[1/6] Verificación de DLLs omitida (confiando en build)..." -ForegroundColor Gray
 Write-Host ""
 
 # Paso 2: Limpiar (opcional)
@@ -52,14 +27,16 @@ if ($Clean) {
     Write-Host "[2/6] Limpiando build anterior..." -ForegroundColor Yellow
     & dotnet clean -c Release | Out-Null
     Write-Host "✅ Build limpiado" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "[2/6] Omitiendo limpieza (usa -Clean para limpiar)" -ForegroundColor Gray
 }
 Write-Host ""
 
 # Paso 3: Compilar
 Write-Host "[3/6] Compilando plugin..." -ForegroundColor Yellow
-$buildOutput = & dotnet build -c Release 2>&1
+$csprojPath = Join-Path $projectPath "FFXIVChatTranslator\FFXIVChatTranslator.csproj"
+$buildOutput = & dotnet build $csprojPath -c Release 2>&1
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ ERROR: La compilación falló" -ForegroundColor Red
@@ -94,17 +71,19 @@ $mainDll = Join-Path $buildPath "FFXIVChatTranslator.dll"
 if (Test-Path $mainDll) {
     Copy-Item $mainDll -Destination $devPluginsPath
     Write-Host "   ✓ FFXIVChatTranslator.dll" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "   ❌ No se encontró FFXIVChatTranslator.dll" -ForegroundColor Red
     exit 1
 }
 
 # Copiar manifest
-$manifest = Join-Path $projectPath "FFXIVChatTranslator.json"
+$manifest = Join-Path $projectPath "FFXIVChatTranslator\FFXIVChatTranslator.json"
 if (Test-Path $manifest) {
     Copy-Item $manifest -Destination $devPluginsPath
     Write-Host "   ✓ FFXIVChatTranslator.json" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "   ⚠️ Advertencia: No se encontró FFXIVChatTranslator.json" -ForegroundColor Yellow
 }
 
@@ -116,12 +95,13 @@ if (Test-Path $newtonsoftDll) {
 }
 
 # Copiar recursos
-$resourcesPath = Join-Path $projectPath "Resources"
+$resourcesPath = Join-Path $projectPath "FFXIVChatTranslator\Resources"
 if (Test-Path $resourcesPath) {
     $destResources = Join-Path $devPluginsPath "Resources"
     Copy-Item $resourcesPath -Destination $devPluginsPath -Recurse -Force
     Write-Host "   ✓ Resources\" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "   ⚠️ Advertencia: No se encontró carpeta Resources" -ForegroundColor Yellow
 }
 

@@ -10,6 +10,7 @@ using Dalamud.Plugin.Services;
 using FFXIVChatTranslator.Services;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
+using Newtonsoft.Json;
 
 namespace FFXIVChatTranslator.Integrations
 {
@@ -52,8 +53,8 @@ namespace FFXIVChatTranslator.Integrations
         
         // IPC Subscribers para Chat2
         private ICallGateSubscriber<object?>? _chat2Available;
-        private ICallGateSubscriber<ChatInputState>? _getChatInputState;
-        private ICallGateSubscriber<ChatInputState, object?>? _chatInputStateChanged;
+        private ICallGateSubscriber<object>? _getChatInputState;
+        private ICallGateSubscriber<object, object?>? _chatInputStateChanged;
         
         // Caché de traducciones para respuestas instantáneas
         private readonly Dictionary<string, string> _translationCache = new();
@@ -74,7 +75,8 @@ namespace FFXIVChatTranslator.Integrations
         public bool IsChat2Installed { get; private set; }
         
         // Estado actual del input (opcional, para features futuras)
-        private ChatInputState? _currentInputState;
+        private dynamic? _currentInputState;
+        private int _lastActiveChannelType = 0; // Cache del último canal activo conocido
         
         public Chat2Integration(
             Configuration configuration,
@@ -96,6 +98,30 @@ namespace FFXIVChatTranslator.Integrations
             _clientState = clientState;
         }
         
+        public object? GetChatInputState()
+        {
+            if (!IsChat2Installed || _getChatInputState == null)
+                return null;
+            
+            try
+            {
+                object state = _getChatInputState.InvokeFunc();
+                // DEBUG: Serializar para ver estructura real
+                if (state != null)
+                {
+                     try {
+                        string json = JsonConvert.SerializeObject(state);
+                        _pluginLog.Info($"[DEBUG] Chat2 State RAW: {json}");
+                     } catch {}
+                }
+                return state;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        
         /// <summary>
         /// Intenta habilitar la integración con Chat2
         /// </summary>
@@ -105,8 +131,8 @@ namespace FFXIVChatTranslator.Integrations
             {
                 // Inicializar IPC subscribers
                 _chat2Available = _pluginInterface.GetIpcSubscriber<object?>("ChatTwo.Available");
-                _getChatInputState = _pluginInterface.GetIpcSubscriber<ChatInputState>("ChatTwo.GetChatInputState");
-                _chatInputStateChanged = _pluginInterface.GetIpcSubscriber<ChatInputState, object?>("ChatTwo.ChatInputStateChanged");
+                _getChatInputState = _pluginInterface.GetIpcSubscriber<object>("ChatTwo.GetChatInputState");
+                _chatInputStateChanged = _pluginInterface.GetIpcSubscriber<object, object?>("ChatTwo.ChatInputStateChanged");
                 
                 // Intentar obtener el estado actual para verificar que Chat2 está instalado
                 _currentInputState = _getChatInputState.InvokeFunc();
@@ -127,17 +153,35 @@ namespace FFXIVChatTranslator.Integrations
             _workerTask = Task.Run(TranslationWorker, _cancellationTokenSource.Token);
             _pluginLog.Info("✅ Worker thread de traducción iniciado");
             
-            // Interceptar mensajes usando ChatGui con verificación de jugador local
-            _chatGui.CheckMessageHandled += OnCheckMessageHandled;
-            _pluginLog.Info("✅ Interceptor de mensajes habilitado con verificación de jugador local");
+            // ⚠️ DESHABILITADO: Usamos TranslatorInputWindow custom (sin mensaje rojo)
+            // _chatGui.CheckMessageHandled += OnCheckMessageHandled;
+            _pluginLog.Info("ℹ️ Chat2Integration inicializado (traducción via input window custom)");
         }
         
         /// <summary>
         /// Callback cuando el estado del input de Chat2 cambia
         /// </summary>
-        private void OnChatInputStateChanged(ChatInputState state)
+        private void OnChatInputStateChanged(object stateObj)
         {
-            _currentInputState = state;
+            _currentInputState = null; 
+            
+            try {
+                dynamic state = stateObj;
+                int channelType = (int)state.ChannelType;
+                bool inputVisible = (bool)state.InputVisible;
+                
+                if (channelType != 0 && inputVisible)
+                {
+                   _lastActiveChannelType = channelType;
+                   _pluginLog.Info($"[DEBUG] Cache updated via Event: {channelType}");
+                }
+            } catch {}
+        }
+
+        public int GetLastActiveChannel()
+        {
+            // Retorna el último canal conocido, útil si el input ya se cerró
+            return _lastActiveChannelType;
         }
         
         /// <summary>

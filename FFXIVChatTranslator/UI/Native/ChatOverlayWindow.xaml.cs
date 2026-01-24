@@ -1,0 +1,235 @@
+using System;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using Dalamud.Game.Text;
+
+namespace FFXIVChatTranslator.UI.Native
+{
+    public partial class ChatOverlayWindow : Window
+    {
+        private readonly Configuration _configuration;
+        private bool _autoScroll = true;
+
+        public ChatOverlayWindow(Configuration configuration)
+        {
+            InitializeComponent();
+            _configuration = configuration;
+            SetOpacity(_configuration.WindowOpacity);
+        }
+
+        public void SetOpacity(float opacity)
+        {
+            // Ajustar solo la opacidad del fondo (MainBorder)
+            // opacity es 0.0 a 1.0. Color alpha es 0 a 255.
+            if (MainBorder != null)
+            {
+                byte alpha = (byte)(Math.Clamp(opacity, 0f, 1f) * 255);
+                // Usamos negro (#000000) como base, ajustando alpha
+                MainBorder.Background = new SolidColorBrush(Color.FromArgb(alpha, 0, 0, 0));
+            }
+        }
+
+        public void AddMessage(TranslatedChatMessage message)
+        {
+            var paragraph = CreateMessageParagraph(message);
+            ChatOutput.Document.Blocks.Add(paragraph);
+            PruneMessages();
+            ScrollToEnd();
+        }
+
+        public void UpdateMessage(TranslatedChatMessage message)
+        {
+            // En una implementación real más compleja, buscaríamos el bloque por ID.
+            // Por simplicidad, y como esto suele ser para el último mensaje,
+            // podemos simplemente eliminar el último "Traduciendo..." y agregar el nuevo.
+            // O mejor: redibujar si es costoso buscar.
+            
+            // BUSQUEDA SIMPLE: Buscar por Tag (guardaremos el ID en el Tag del parrafo)
+            foreach (var block in ChatOutput.Document.Blocks)
+            {
+                if (block is Paragraph p && p.Tag is Guid id && id == message.Id)
+                {
+                    // Reconstruir contenido
+                    p.Inlines.Clear();
+                    PopulateMessageInlines(p, message);
+                    break;
+                }
+            }
+        }
+        
+        public void ToggleVisibility()
+        {
+             if (this.Visibility == Visibility.Visible)
+             {
+                this.Hide();
+             }
+             else
+             {
+                this.Show();
+                this.Topmost = true; // Reforzar
+                this.Activate(); // Traer al frente
+             }
+        }
+        
+        public void ResetPosition()
+        {
+            this.Left = 100;
+            this.Top = 100;
+            this.Show();
+            this.Topmost = true; // Forzar Topmost al resetear
+            this.Activate();
+        }
+
+        protected override void OnDeactivated(EventArgs e)
+        {
+            base.OnDeactivated(e);
+            // Re-forzar Topmost cuando perdemos foco (ej: click en el juego)
+            this.Topmost = true;
+        }
+
+        private Paragraph CreateMessageParagraph(TranslatedChatMessage message)
+        {
+            var p = new Paragraph();
+            p.Tag = message.Id; // Guardar ID para actualizaciones
+            
+            // Sangría colgante (Hanging Indent)
+            // Margen izquierdo mueve todo el bloque a la derecha
+            // TextIndent negativo mueve la primera línea a la izquierda (recuperando el espacio)
+            // Resultado: 1ra línea al borde, siguientes líneas indentadas 24px (aprox bajo el timestamp)
+            p.Margin = new Thickness(24, 0, 0, 4); 
+            p.TextIndent = -24;
+            
+            PopulateMessageInlines(p, message);
+            return p;
+        }
+
+        private void PopulateMessageInlines(Paragraph p, TranslatedChatMessage message)
+        {
+            var color = GetChannelColor(message.ChatType);
+            var brush = new SolidColorBrush(color);
+
+            // Timestamp
+            if (_configuration.ShowTimestamps)
+            {
+                p.Inlines.Add(new Run($"[{message.Timestamp:HH:mm}] ") { Foreground = Brushes.Gray });
+            }
+
+            // Channel
+            p.Inlines.Add(new Run($"[{GetChannelName(message.ChatType)}] ") { Foreground = brush });
+
+            // Sender
+            p.Inlines.Add(new Run($"{message.Sender}: ") { Foreground = brush });
+
+            // Message
+            if (message.IsTranslating)
+            {
+                p.Inlines.Add(new Run("Traduciendo...") { Foreground = Brushes.Yellow });
+            }
+            else
+            {
+                p.Inlines.Add(new Run(message.TranslatedText) { Foreground = Brushes.White });
+
+                if (_configuration.ShowOriginalText)
+                {
+                    // Tooltip para original (simple approach: Run con ToolTip)
+                    // WPF Run.ToolTip soporta strings directos
+                    var originalRun = new Run(" [?]") { Foreground = Brushes.Gray, ToolTip = message.OriginalText, Cursor = Cursors.Help };
+                    p.Inlines.Add(originalRun);
+                }
+            }
+        }
+
+        private void PruneMessages()
+        {
+            while (ChatOutput.Document.Blocks.Count > _configuration.MaxDisplayedMessages)
+            {
+                ChatOutput.Document.Blocks.Remove(ChatOutput.Document.Blocks.FirstBlock);
+            }
+        }
+
+        private void ScrollToEnd()
+        {
+            if (_autoScroll)
+            {
+                ChatOutput.ScrollToEnd();
+            }
+        }
+
+        private void DragWindow(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+                this.DragMove();
+        }
+
+        private void Clear_Click(object sender, RoutedEventArgs e)
+        {
+            ChatOutput.Document.Blocks.Clear();
+        }
+
+        private void Hide_Click(object sender, RoutedEventArgs e)
+        {
+            this.Hide();
+        }
+
+        // --- Helpers de Colores y Nombres (Copia adaptada de TranslatedChatWindow) ---
+
+        private Color GetChannelColor(XivChatType type)
+        {
+             // Usando los colores definidos previamente (Chat2 style)
+             // Nota: WPF Color usa bytes 0-255
+            return type switch
+            {
+                XivChatType.Say => Color.FromRgb(247, 247, 247),
+                XivChatType.Shout => Color.FromRgb(255, 166, 102),
+                XivChatType.Yell => Color.FromRgb(255, 255, 0),
+                XivChatType.Party => Color.FromRgb(102, 229, 255),
+                XivChatType.Alliance => Color.FromRgb(255, 127, 0),
+                XivChatType.FreeCompany => Color.FromRgb(171, 219, 229),
+                XivChatType.TellIncoming or XivChatType.TellOutgoing => Color.FromRgb(255, 184, 222),
+                XivChatType.NoviceNetwork => Color.FromRgb(212, 255, 125),
+                // Linkshells
+                XivChatType.Ls1 or XivChatType.Ls2 or XivChatType.Ls3 or XivChatType.Ls4 or
+                XivChatType.Ls5 or XivChatType.Ls6 or XivChatType.Ls7 or XivChatType.Ls8 or
+                XivChatType.CrossLinkShell1 or XivChatType.CrossLinkShell2 or XivChatType.CrossLinkShell3 or
+                XivChatType.CrossLinkShell4 or XivChatType.CrossLinkShell5 or XivChatType.CrossLinkShell6 or
+                XivChatType.CrossLinkShell7 or XivChatType.CrossLinkShell8 
+                    => Color.FromRgb(212, 255, 125),
+                _ => Color.FromRgb(204, 204, 204)
+            };
+        }
+        
+        private string GetChannelName(XivChatType type)
+        {
+             return type switch
+            {
+                XivChatType.Say => "Say",
+                XivChatType.Shout => "Shout",
+                XivChatType.Yell => "Yell",
+                XivChatType.Party => "Party",
+                XivChatType.Alliance => "Alliance",
+                XivChatType.FreeCompany => "FC",
+                XivChatType.Ls1 => "LS1",
+                XivChatType.Ls2 => "LS2",
+                XivChatType.Ls3 => "LS3",
+                XivChatType.Ls4 => "LS4",
+                XivChatType.Ls5 => "LS5",
+                XivChatType.Ls6 => "LS6",
+                XivChatType.Ls7 => "LS7",
+                XivChatType.Ls8 => "LS8",
+                XivChatType.CrossLinkShell1 => "CWLS1",
+                XivChatType.CrossLinkShell2 => "CWLS2",
+                XivChatType.CrossLinkShell3 => "CWLS3",
+                XivChatType.CrossLinkShell4 => "CWLS4",
+                XivChatType.CrossLinkShell5 => "CWLS5",
+                XivChatType.CrossLinkShell6 => "CWLS6",
+                XivChatType.CrossLinkShell7 => "CWLS7",
+                XivChatType.CrossLinkShell8 => "CWLS8",
+                XivChatType.NoviceNetwork => "NN",
+                _ => type.ToString()
+            };
+        }
+    }
+}

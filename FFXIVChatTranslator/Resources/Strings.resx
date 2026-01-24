@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
+        <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+        <xsd:element name="root" msdata:IsDataSet="true">
+            <xsd:complexType>
+                <xsd:choice maxOccurs="unbounded">
+                    <xsd:element name="metadata">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" use="required" type="xsd:string"/>
+                            <xsd:attribute name="type" type="xsd:string"/>
+                            <xsd:attribute name="mimetype" type="xsd:string"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="assembly">
+                        <xsd:complexType>
+                            <xsd:attribute name="alias" type="xsd:string"/>
+                            <xsd:attribute name="name" type="xsd:string"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="data">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
+                            <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
+                            <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="resheader">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:choice>
+            </xsd:complexType>
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    
+    <!-- Plugin Info -->
+    <data name="PluginName">
+        <value>FFXIV Chat Translator</value>
+    </data>
+    
+    <!-- Tabs -->
+    <data name="Tab_General">
+        <value>General</value>
+    </data>
+    <data name="Tab_ExcludedMessages">
+        <value>Excluded Messages</value>
+    </data>
+    <data name="Tab_Cache">
+        <value>Cache</value>
+    </data>
+    <data name="Tab_IncomingChannels">
+        <value>Incoming Channels</value>
+    </data>
+    
+    <!-- General Tab -->
+    <data name="General_Description">
+        <value>General translator settings</value>
+    </data>
+    <data name="General_EnableTranslation">
+        <value>Enable automatic translation</value>
+    </data>
+    <data name="General_SourceLanguage">
+        <value>Source language:</value>
+    </data>
+    <data name="General_TargetLanguage">
+        <value>Target language:</value>
+    </data>
+    <data name="General_DefaultChannel">
+        <value>Default channel (fallback):</value>
+    </data>
+    <data name="General_DefaultChannelTip">
+        <value>Used when automatic detection fails.</value>
+    </data>
+    
+    <!-- Incoming Channels Tab -->
+    <data name="Incoming_Description">
+        <value>Configure channels for incoming message translation.</value>
+    </data>
+    <data name="Incoming_Enable">
+        <value>Enable incoming message translation</value>
+    </data>
+    <data name="Incoming_Disabled">
+        <value>Incoming translation disabled</value>
+    </data>
+    <data name="Incoming_TranslateTo">
+        <value>Translate incoming messages to:</value>
+    </data>
+    <data name="Incoming_AutoDetectNote">
+        <value>(Source language is auto-detected)</value>
+    </data>
+    <data name="Incoming_UseWritingLanguage">
+        <value>(Use writing language)</value>
+    </data>
+    <data name="Incoming_DisplayOptions">
+        <value>Display options:</value>
+    </data>
+    <data name="Incoming_ShowOriginal">
+        <value>Show original text in tooltip</value>
+    </data>
+    <data name="Incoming_ShowTimestamps">
+        <value>Show timestamps</value>
+    </data>
+    <data name="Incoming_MaxMessages">
+        <value>Maximum messages</value>
+    </data>
+    <data name="Incoming_ChannelsToTranslate">
+        <value>Channels to translate:</value>
+    </data>
+    <data name="Incoming_Linkshells">
+        <value>Linkshells:</value>
+    </data>
+    <data name="Incoming_CrossWorldLS">
+        <value>Cross-World Linkshells:</value>
+    </data>
+    
+    <!-- Excluded Messages Tab -->
+    <data name="Excluded_Description">
+        <value>Messages that will not be translated (emotes, universal expressions, etc.)</value>
+    </data>
+    <data name="Excluded_CurrentList">
+        <value>Current excluded list:</value>
+    </data>
+    <data name="Excluded_AddNew">
+        <value>Add new exclusion:</value>
+    </data>
+    <data name="Excluded_Add">
+        <value>Add</value>
+    </data>
+    
+    <!-- Cache Tab -->
+    <data name="Cache_Description">
+        <value>Translation cache settings</value>
+    </data>
+    <data name="Cache_Enable">
+        <value>Enable translation cache</value>
+    </data>
+    <data name="Cache_Description_Long">
+        <value>Messages shorter than the specified limit are cached. Longer messages are always translated.</value>
+    </data>
+    <data name="Cache_MaxLength">
+        <value>Maximum length for caching</value>
+    </data>
+    <data name="Cache_Stats">
+        <value>Cache statistics:</value>
+    </data>
+    <data name="Cache_Entries">
+        <value>Cached entries:</value>
+    </data>
+    <data name="Cache_Clear">
+        <value>Clear cache completely</value>
+    </data>
+    <data name="Cache_ClearTooltip">
+        <value>Deletes all saved translations. Useful if you changed target language.</value>
+    </data>
+    <data name="Cache_Tip">
+        <value>Tip: Cache is automatically cleared when full.</value>
+    </data>
+    
+    <!-- Translated Chat Window -->
+    <data name="ChatWindow_Title">
+        <value>Chat Translator</value>
+    </data>
+    <data name="ChatWindow_Active">
+        <value>Active</value>
+    </data>
+    <data name="ChatWindow_AutoScroll">
+        <value>Auto-scroll</value>
+    </data>
+    <data name="ChatWindow_Clear">
+        <value>Clear</value>
+    </data>
+    <data name="ChatWindow_Translating">
+        <value>Translating...</value>
+    </data>
+    <data name="ChatWindow_Original">
+        <value>Original:</value>
+    </data>
+    
+    <!-- Commands -->
+    <data name="Command_TranslationEnabled">
+        <value>Translation enabled.</value>
+    </data>
+    <data name="Command_TranslationDisabled">
+        <value>Translation disabled</value>
+    </data>
+    <data name="Command_WindowOpened">
+        <value>Translation window opened. Use /tl reset if you can't see it.</value>
+    </data>
+    <data name="Command_WindowClosed">
+        <value>Translation window closed.</value>
+    </data>
+    <data name="Command_PositionReset">
+        <value>Window position reset to (100, 100). It should be visible now.</value>
+    </data>
+    <data name="Command_NoMessage">
+        <value>No message to translate</value>
+    </data>
+    <data name="Command_MessageTooLong">
+        <value>Message too long</value>
+    </data>
+    <data name="Command_TranslateError">
+        <value>Translation error</value>
+    </data>
+    <data name="Command_SendError">
+        <value>Error sending message</value>
+    </data>
+    <data name="General_ChangesAppliedImmediately">
+        <value>Changes are applied immediately.</value>
+    </data>
+    <data name="Excluded_InputLabel">
+        <value>Add message:</value>
+    </data>
+    <data name="Excluded_Remove">
+        <value>Remove</value>
+    </data>
+    <data name="Excluded_RestoreDefault">
+        <value>Restore default list</value>
+    </data>
+    <data name="Cache_CharLimit">
+        <value>{0} characters</value>
+    </data>
+    <data name="Cache_PercentUsed">
+        <value>{0}% used</value>
+    </data>
+    <data name="Incoming_WindowOpacity">
+        <value>Window opacity</value>
+    </data>
+    <data name="Incoming_NativeWindow">
+        <value>Use Native Window (WPF / Better Multi-monitor)</value>
+    </data>
+    <data name="Incoming_NativeWindowTooltip">
+        <value>Activates an independent external window (better FPS performance).
+Disable to use the internal Dalamud window.
+Requires plugin reload to apply changes.</value>
+    </data>
+    <data name="Incoming_RestartNote">
+        <value>Note: Changing window mode requires plugin restart.</value>
+    </data>
+    <data name="Cache_DisabledWarning">
+        <value>Cache disabled - all translations will be new</value>
+    </data>
+</root>

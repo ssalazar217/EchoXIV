@@ -60,6 +60,71 @@ namespace FFXIVChatTranslator
         /// </summary>
         public bool PreferChat2Integration { get; set; } = true;
 
+        /// <summary>
+        /// Canal por defecto para enviar mensajes si no se detecta el canal actual
+        /// </summary>
+        public string DefaultChannel { get; set; } = "/s";
+
+        // === Configuración de Traducciones Entrantes ===
+        
+        /// <summary>
+        /// Habilitar traducción de mensajes entrantes
+        /// </summary>
+        public bool IncomingTranslationEnabled { get; set; } = true;
+        
+        /// <summary>
+        /// Máximo de mensajes a mostrar en la ventana de traducciones
+        /// </summary>
+        public int MaxDisplayedMessages { get; set; } = 50;
+        
+        /// <summary>
+        /// Mostrar texto original junto con la traducción
+        /// </summary>
+        public bool ShowOriginalText { get; set; } = true;
+        
+        /// <summary>
+        /// Mostrar timestamps en los mensajes
+        /// </summary>
+        public bool ShowTimestamps { get; set; } = true;
+        
+        /// <summary>
+        /// Idioma destino para traducciones entrantes (el idioma AL QUE se traduce)
+        /// El idioma origen siempre es auto-detectado
+        /// Si está vacío, se usa SourceLanguage por defecto
+        /// </summary>
+        public string IncomingTargetLanguage { get; set; } = "";
+        
+        /// <summary>
+        /// Canales habilitados para traducción entrante
+        /// </summary>
+
+        
+        /// <summary>
+        /// Opacidad de fondo de la ventana (0.0 a 1.0)
+        /// </summary>
+        public float WindowOpacity { get; set; } = 0.6f;
+
+        /// <summary>
+        /// Usar ventana nativa (WPF) en lugar de ventana interna de Dalamud
+        /// True = Ventana externa (mejor para multipantalla)
+        /// False = Ventana interna (mejor para overlay simple)
+        /// </summary>
+        public bool UseNativeWindow { get; set; } = true;
+
+        /// <summary>
+        /// Canales de chat entrantes a traducir
+        /// </summary>
+        public HashSet<int> IncomingChannels { get; set; } = new()
+        {
+            10,  // Say
+            11,  // Shout
+            30,  // Yell
+            14,  // Party
+            15,  // Alliance
+            24,  // FreeCompany
+        };
+
+
         [NonSerialized]
         private IDalamudPluginInterface? _pluginInterface;
 
