@@ -1,0 +1,22 @@
+{
+  "Author": "SteSE",
+  "Name": "Chat2 Translator",
+  "Punchline": "Traducción automática bidireccional para Chat2",
+  "Description": "Complemento para Chat2 que traduce automáticamente tus mensajes al enviarlos y los mensajes recibidos. Requiere Chat2 instalado. Usa Google Translate sin API key.",
+  "InternalName": "FFXIVChatTranslator",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "chat",
+    "translation",
+    "translator",
+    "chat2",
+    "language"
+  ],
+  "DalamudApiLevel": 13,
+  "LoadRequiredState": 2,
+  "LoadSync": false,
+  "CanUnloadAsync": false,
+  "LoadPriority": 0,
+  "IconUrl": "",
+  "Changelog": "Versión inicial - Complemento de traducción para Chat2"
+}
