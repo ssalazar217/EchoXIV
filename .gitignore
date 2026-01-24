@@ -89,3 +89,6 @@ DISTRIBUTION.md
 
 # Build Logs
 build_log*.txt
+
+# Agent local files (not to commit)
+.agent/

@@ -17,6 +17,7 @@ public class ConfigWindow : Window, IDisposable
     public Action<bool>? OnSmartVisibilityChanged;
     public Action? OnUnlockNativeRequested;
     public Action? OnVisualsChanged;
+    public Action<TranslationEngine>? OnTranslationEngineChanged;
     
     private string _newExcludedMessage = string.Empty;
     
@@ -81,6 +82,34 @@ public class ConfigWindow : Window, IDisposable
             _configuration.Save();
         }
         
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        
+        // Selector de Motor de Traducción
+        ImGui.Text("Motor de Traducción");
+        ImGui.SetNextItemWidth(200);
+        
+        var engines = Enum.GetValues<TranslationEngine>();
+        var engineNames = engines.Select(e => e.ToString()).ToArray();
+        var currentEngineIdx = Array.IndexOf(engines, _configuration.SelectedEngine);
+        
+        if (ImGui.Combo("##Engine", ref currentEngineIdx, engineNames, engineNames.Length))
+        {
+            var newEngine = engines[currentEngineIdx];
+            if (_configuration.SelectedEngine != newEngine)
+            {
+                _configuration.SelectedEngine = newEngine;
+                _configuration.Save();
+                OnTranslationEngineChanged?.Invoke(newEngine);
+            }
+        }
+
+        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), 
+            _configuration.SelectedEngine == TranslationEngine.Google 
+            ? "Motor clásico de Google Translate (Móvil)" 
+            : "DeepL Web Translator (Sin API Key)");
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
@@ -330,7 +359,10 @@ public class ConfigWindow : Window, IDisposable
     
     private void DrawIncomingChannelsTab()
     {
-        ImGui.TextWrapped(Loc.Incoming_Description);
+        // Añadir región desplazable para evitar corte de contenido
+        if (ImGui.BeginChild("IncomingScroll", new Vector2(0, 0), false, ImGuiWindowFlags.None))
+        {
+            ImGui.TextWrapped(Loc.Incoming_Description);
         ImGui.Separator();
         ImGui.Spacing();
         
@@ -507,6 +539,9 @@ public class ConfigWindow : Window, IDisposable
         DrawChannelCheckbox("CWLS8", XivChatType.CrossLinkShell8);
         
         ImGui.Columns(1);
+        
+            ImGui.EndChild();
+        }
     }
     
     private void DrawChannelCheckbox(string label, XivChatType chatType)

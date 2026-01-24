@@ -28,7 +28,7 @@ namespace FFXIVChatTranslator
     public class IncomingMessageHandler : IDisposable
     {
         private readonly Configuration _configuration;
-        private readonly GoogleTranslatorService _translatorService;
+        private ITranslationService _translatorService;
         private readonly IChatGui _chatGui;
         private readonly IClientState _clientState;
         private readonly IPluginLog _pluginLog;
@@ -45,7 +45,7 @@ namespace FFXIVChatTranslator
 
         public IncomingMessageHandler(
             Configuration configuration,
-            GoogleTranslatorService translatorService,
+            ITranslationService translatorService,
             IChatGui chatGui,
             IClientState clientState,
             IPluginLog pluginLog)
@@ -57,13 +57,19 @@ namespace FFXIVChatTranslator
             _pluginLog = pluginLog;
 
             _chatGui.ChatMessage += OnChatMessage;
-            _pluginLog.Info("✅ IncomingMessageHandler inicializado");
+            _pluginLog.Info($"✅ IncomingMessageHandler inicializado con motor: {_translatorService.Name}");
+        }
+
+        public void UpdateTranslator(ITranslationService newService)
+        {
+            _translatorService = newService;
+            _pluginLog.Info($"IncomingMessageHandler: Motor actualizado a {_translatorService.Name}");
         }
 
         private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
         {
-            // Solo procesar si las traducciones entrantes están habilitadas
-            if (!_configuration.IncomingTranslationEnabled)
+            // Solo procesar si las traducciones entrantes están habilitadas Y la ventana es visible
+            if (!_configuration.IncomingTranslationEnabled || !_configuration.OverlayVisible)
                 return;
 
             // Verificar si el canal está en la lista de canales a traducir

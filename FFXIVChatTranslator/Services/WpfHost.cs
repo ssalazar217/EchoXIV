@@ -56,7 +56,7 @@ namespace FFXIVChatTranslator.Services
         private void WpfThreadEntryPoint()
         {
              // Log de diagnóstico
-            _logger.Info("[FFXIVChatTranslator] Iniciando hilo WPF...");
+            _logger.Info("Iniciando hilo WPF...");
             
             // Intentar obtener la App actual o crear una nueva
             // ESTRATEGIA: Nunca matar la App. Solo usarla como contenedor.
@@ -65,13 +65,13 @@ namespace FFXIVChatTranslator.Services
                 try
                 {
                     _wpfApp = new Application();
-                    _wpfApp.ShutdownMode = ShutdownMode.OnExplicitShutdown; // Importante: Que no se cierre sola
+                    _wpfApp.ShutdownMode = ShutdownMode.OnExplicitShutdown; 
                     _weOwnTheApp = true;
-                    _logger.Info("[FFXIVChatTranslator] Nueva System.Windows.Application creada.");
+                    _logger.Info("Nueva Application creada.");
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "[FFXIVChatTranslator] Error creando App (Posiblemente ya existe una zombie?)");
+                    _logger.Error(ex, "Error creando App (¿AppDomain ocupado?)");
                     _wpfApp = Application.Current;
                     _weOwnTheApp = false;
                 }
@@ -80,17 +80,22 @@ namespace FFXIVChatTranslator.Services
             {
                 _wpfApp = Application.Current;
                 _weOwnTheApp = false;
-                _logger.Info("[FFXIVChatTranslator] Usando System.Windows.Application existente.");
+                _logger.Info("Usando Application existente.");
             }
 
             // Crear la ventana
             try
             {
-                _logger.Info($"[FFXIVChatTranslator] Creando ventana...");
+                _logger.Info("Instanciando ChatOverlayWindow...");
                 _chatWindow = new ChatOverlayWindow(_configuration);
-                _chatWindow.Closed += (s, e) => _chatWindow = null;
+                _chatWindow.Closed += (s, e) => 
+                {
+                    _chatWindow = null;
+                    _logger.Info("Ventana cerrada. Terminando thread WPF.");
+                    Dispatcher.CurrentDispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
+                };
                 _chatWindow.Show();
-                _logger.Info("[FFXIVChatTranslator] Ventana creada y mostrada.");
+                _logger.Info("✅ Ventana WPF nativa inicializada correctamente.");
                 IsInitialized = true; // SUCCESS
                 
                 // Inicializar Smart Visibility Timer
@@ -102,7 +107,7 @@ namespace FFXIVChatTranslator.Services
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "[FFXIVChatTranslator] CRITICAL: Error creando ventana");
+                _logger.Error(ex, "CRITICAL: Error creando ventana WPF");
                 IsInitialized = false;
             }
 
@@ -112,15 +117,21 @@ namespace FFXIVChatTranslator.Services
             // Iniciar dispatcher loop
             try 
             {
-                // SIEMPRE usamos Dispatcher.Run().
-                // App.Run() bloquea y requiere Shutdown() para salir, lo cual mata la App para siempre.
-                // Dispatcher.Run() solo corre el loop de este hilo y sale con InvokeShutdown().
-                _logger.Info("[FFXIVChatTranslator] Ejecutando Dispatcher.Run()...");
+                _logger.Info("Ejecutando Dispatcher.Run()...");
                 Dispatcher.Run();
             }
+            catch (ThreadAbortException) { }
             catch (Exception ex)
             {
-                 _logger.Error(ex, "[FFXIVChatTranslator] Error en Dispatcher loop");
+                 _logger.Error(ex, "Error en Dispatcher loop");
+            }
+            finally
+            {
+                _logger.Info("Dispatcher loop terminado. Limpiando hilo.");
+                IsInitialized = false;
+                _chatWindow = null;
+                _visibilityTimer?.Stop();
+                _visibilityTimer = null;
             }
         }
 
@@ -128,15 +139,26 @@ namespace FFXIVChatTranslator.Services
 
         private void VisibilityTimer_Tick(object? sender, EventArgs e)
         {
-            if (_chatWindow == null || !_configuration.SmartVisibility) return;
-
-            var foreground = GetForegroundWindow();
-            var windowHandle = new System.Windows.Interop.WindowInteropHelper(_chatWindow).Handle;
-
-            // Visible si el foco está en el juego O en nuestra ventana
-            bool shouldBeVisible = (foreground == _gameWindowHandle || foreground == windowHandle);
+            if (_chatWindow == null) return;
             
-            // Estado actual
+            // Si el usuario cerró la ventana manualmente, no hacer nada aquí
+            if (!_configuration.OverlayVisible) return;
+            
+            // Lógica de visibilidad MANDATORIA: Solo visible si el chat del juego (o ChatTwo) es visible
+            bool isChatVisible = Plugin.IsChatVisible();
+            bool shouldBeVisible = isChatVisible;
+
+            // Lógica de visibilidad OPCIONAL (Smart Visibility): Ocultar si el juego no tiene el foco
+            if (_configuration.SmartVisibility && isChatVisible)
+            {
+                var foreground = GetForegroundWindow();
+                var windowHandle = new System.Windows.Interop.WindowInteropHelper(_chatWindow).Handle;
+
+                // Visible si el foco está en el juego O en nuestra propia ventana
+                shouldBeVisible = (foreground == _gameWindowHandle || foreground == windowHandle);
+            }
+
+            // Estado actual de la ventana
             bool isVisible = _chatWindow.Visibility == Visibility.Visible;
             
             // Solo actuar si cambia el estado deseado
@@ -226,25 +248,29 @@ namespace FFXIVChatTranslator.Services
             if (!_isRunning) return;
             _isRunning = false;
 
-            if (_chatWindow != null)
-            {
-                try 
-                {
-                    // Cerrar ventana gracefully
-                    _chatWindow.Dispatcher.Invoke(() => 
-                    {
-                        _chatWindow.Close();
-                    }, DispatcherPriority.Send); 
-                }
-                catch { /* Ignorar errores al cerrar */ }
-            }
-            
             if (_visibilityTimer != null)
             {
                 _visibilityTimer.Stop();
                 _visibilityTimer = null;
             }
 
+            if (_chatWindow != null)
+            {
+                try 
+                {
+                    // Cerrar ventana gracefully
+                    if (_chatWindow.Dispatcher.CheckAccess())
+                    {
+                        _chatWindow.Close();
+                    }
+                    else
+                    {
+                        _chatWindow.Dispatcher.Invoke(() => _chatWindow.Close(), DispatcherPriority.Send);
+                    }
+                }
+                catch { /* Ignorar errores al cerrar */ }
+            }
+            
             // Detener el Dispatcher Loop de ESTE hilo
             if (_wpfThread != null && _wpfThread.IsAlive)
             {
@@ -253,22 +279,15 @@ namespace FFXIVChatTranslator.Services
                     var dispatcher = Dispatcher.FromThread(_wpfThread);
                     if (dispatcher != null && !dispatcher.HasShutdownStarted)
                     {
-                        // Esto hace que Dispatcher.Run() retorne, permitiendo que el hilo termine.
-                        dispatcher.InvokeShutdown();
+                        _logger.Info("Solicitando cierre de Dispatcher...");
+                        dispatcher.InvokeShutdown(); // Usar el síncrono para esperar
                     }
                 }
                 catch { }
-            }
 
-            // NUNCA LLAMAR A _wpfApp.Shutdown() !!!
-            // Dejamos la App viva para la próxima vez (o para otros plugins).
-
-            // Esperar a que el hilo muera
-            if (_wpfThread != null)
-            {
-                if (!_wpfThread.Join(2000))
+                if (!_wpfThread.Join(1500))
                 {
-                    _logger.Warning("[FFXIVChatTranslator] El hilo WPF no terminó a tiempo.");
+                    _logger.Warning("El hilo WPF no terminó a tiempo.");
                 }
             }
             

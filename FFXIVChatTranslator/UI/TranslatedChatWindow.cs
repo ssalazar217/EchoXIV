@@ -88,6 +88,8 @@ namespace FFXIVChatTranslator.UI
             }
         }
 
+        public override bool DrawConditions() => Plugin.IsChatVisible();
+
         public override void Draw()
         {
             // Toolbar

@@ -27,10 +27,12 @@ namespace FFXIVChatTranslator
         [PluginService] internal static IFramework Framework { get; private set; } = null!;
         [PluginService] internal static IClientState ClientState { get; private set; } = null!;
         [PluginService] internal static IPluginLog PluginLog { get; private set; } = null!;
+        [PluginService] internal static ICondition Condition { get; private set; } = null!;
         [PluginService] internal static IGameInteropProvider GameInteropProvider { get; private set; } = null!;
+        [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
         
         private Configuration _configuration = null!;
-        private GoogleTranslatorService _translatorService = null!;
+        private ITranslationService _translatorService = null!;
         private WindowSystem _windowSystem = null!;
         private ConfigWindow? _configWindow = null;
         private TranslatedChatWindow? _translatedChatWindow = null;
@@ -49,7 +51,7 @@ namespace FFXIVChatTranslator
                 Resources.Loc.SetCulture(_configuration.SourceLanguage);
                 
                 // Inicializar servicio de traducción
-                _translatorService = new GoogleTranslatorService();
+                UpdateTranslationService();
                 
                 // Inicializar sistema de ventanas
                 _windowSystem = new WindowSystem("Chat2Translator");
@@ -66,34 +68,19 @@ namespace FFXIVChatTranslator
                 _configWindow.OnSmartVisibilityChanged += (enabled) => _wpfHost?.SetSmartVisibility(enabled);
                 _configWindow.OnVisualsChanged += () => _wpfHost?.UpdateVisuals();
                 _configWindow.OnUnlockNativeRequested += () => _wpfHost?.SetLock(false);
+                _configWindow.OnTranslationEngineChanged += (engine) => UpdateTranslationService();
                 
                 // Inicializar sistema de ventanas
-                
-                // Inicializar sistema de ventanas
-                // Inicializar sistema de ventanas
+                // NOTA: No iniciamos WpfHost aquí para evitar que aparezca en la pantalla de título.
+                // Se iniciará en OnLogin solo si estamos realmente en el juego.
+                /*
                 if (_configuration.UseNativeWindow)
                 {
-                    // Crear ventana nativa (WPF)
-                    _wpfHost = new WpfHost(_configuration, PluginLog);
-                    _wpfHost.Start();
-                    
-                    if (_wpfHost.IsInitialized)
-                    {
-                         PluginLog.Info("🖥️ Ventana WPF nativa iniciada correctamente");
-                    }
-                    else
-                    {
-                        PluginLog.Error("⚠️ Falló la inicialización de ventana nativa (posible conflicto de AppDomain o Zombie App). Usando fallback a ventana interna.");
-                        ChatGui.PrintError("[Traductor] Error crítico en ventana nativa. Usando modo compatibilidad.");
-                        _wpfHost.Dispose();
-                        _wpfHost = null;
-                        
-                        // Fallback
-                        _translatedChatWindow = new TranslatedChatWindow(_configuration);
-                        _windowSystem.AddWindow(_translatedChatWindow);
-                    }
+                    // Crear ventana nativa (WPF) - ELIMINADO DE AQUÍ
                 }
-                else
+                */
+                
+                if (!_configuration.UseNativeWindow)
                 {
                     // Crear ventana interna (ImGui/Dalamud)
                     _translatedChatWindow = new TranslatedChatWindow(_configuration);
@@ -113,6 +100,24 @@ namespace FFXIVChatTranslator
                 // Conectar eventos
                 _incomingMessageHandler.OnTranslationStarted += OnIncomingTranslationStarted;
                 _incomingMessageHandler.OnMessageTranslated += OnIncomingMessageTranslated;
+                
+                // Inicializar Hook Nativo (para traducción saliente segura)
+                try
+                {
+                    _chatBoxHook = new GameFunctions.ChatBoxHook(
+                         _configuration,
+                         _translatorService,
+                         PluginLog,
+                         ClientState,
+                         GameInteropProvider
+                    );
+                    _chatBoxHook.Enable();
+                }
+                catch (Exception ex)
+                {
+                    PluginLog.Error(ex, "❌ No se pudo habilitar el Hook de Chat (Traducción saliente deshabilitada).");
+                    // No relanzamos para que el resto del plugin funcione
+                }
                 
                 // Registrar WindowSystem
                 PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
@@ -136,15 +141,46 @@ namespace FFXIVChatTranslator
                 
                 // Registrar UI callback principal (botón "Abrir" abre configuración)
                 PluginInterface.UiBuilder.OpenMainUi += ToggleConfigUI;
-                
-                PluginLog.Info($"{Name} cargado correctamente.");
-                
+
+                // Suscribirse a eventos de login/logout para manejar la ventana nativa
+                ClientState.Login += delegate { OnLogin(); };
+                ClientState.Logout += delegate { OnLogout(); };
+
+                // Si ya estamos logueados (ej: recarga de plugin), iniciar ahora
+                if (ClientState.IsLoggedIn)
+                {
+                    OnLogin();
+                }
+
                 PluginLog.Info($"{Name} cargado correctamente.");
             }
             catch (Exception ex)
             {
-                PluginLog.Error(ex, "Error al inicializar el plugin");
+                PluginLog.Error(ex, "Error fatal al inicializar el plugin. Limpiando para evitar zombies...");
+                Dispose(); 
                 throw;
+            }
+        }
+
+        private void OnLogin()
+        {
+            // Ya no es necesaria la validación aquí, el timer de WPF y DrawConditions de ImGui 
+            // se encargarán de ocultar la ventana dinámicamente según el estado del juego.
+            if (_configuration.UseNativeWindow && _wpfHost == null)
+            {
+                PluginLog.Info("Jugador logueado. Iniciando host de ventana nativa...");
+                _wpfHost = new WpfHost(_configuration, PluginLog);
+                _wpfHost.Start();
+            }
+        }
+
+        private void OnLogout()
+        {
+            if (_wpfHost != null)
+            {
+                PluginLog.Info("Jugador deslogueado. Cerrando ventana nativa...");
+                _wpfHost.Dispose();
+                _wpfHost = null;
             }
         }
         
@@ -172,7 +208,10 @@ namespace FFXIVChatTranslator
                 // lambda: _configWindow.OnUnlockNativeRequested -= ... (Not possible for anon lambda)
                 _configWindow.Dispose();
             }
-            // _translatedChatWindow?.Dispose();
+            
+            // Limpiar eventos de login (desuscripción manual no es posible con delegados anónimos, 
+            // pero Dalamud maneja la limpieza al descargar el plugin en la mayoría de casos)
+
             _wpfHost?.Dispose();
             
             // Limpiar comandos
@@ -450,6 +489,78 @@ namespace FFXIVChatTranslator
         private void OnOpacityChangedHandler(float opacity)
         {
             _wpfHost?.SetOpacity(opacity);
+        }
+
+        private void UpdateTranslationService()
+        {
+            // Dispose previous service if disposable
+            if (_translatorService is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
+            switch (_configuration.SelectedEngine)
+            {
+                case TranslationEngine.DeepL:
+                    _translatorService = new DeepLTranslatorService();
+                    PluginLog.Info("Motor de traducción cambiado a: DeepL (Web)");
+                    break;
+                case TranslationEngine.Google:
+                default:
+                    _translatorService = new GoogleTranslatorService();
+                    PluginLog.Info("Motor de traducción cambiado a: Google");
+                    break;
+            }
+            
+            // Actualizar referencia en IncomingMessageHandler si ya existe
+            if (_incomingMessageHandler != null)
+            {
+                // Un poco hacky: IncomingMessageHandler necesita el servicio actualizado
+                // Idealmente IncomingMessageHandler debería pedir el servicio al plugin o tener metodo Update
+                // Re-creamos o añadimos un setter (vamos a añadir un setter en IncomingMessageHandler)
+                _incomingMessageHandler.UpdateTranslator(_translatorService);
+            }
+            
+            // Actualizar referencia en ChatBoxHook
+            if (_chatBoxHook != null)
+            {
+                _chatBoxHook.UpdateTranslator(_translatorService);
+                PluginLog.Info("ChatBoxHook: Motor actualizado.");
+            }
+        }
+
+        /// <summary>
+        /// Determina si el chat es actualmente visible (siguiendo la lógica de ChatTwo)
+        /// </summary>
+        public static unsafe bool IsChatVisible()
+        {
+            // 1. Verificar login básico
+            if (!ClientState.IsLoggedIn || ClientState.LocalPlayer == null) 
+                return false;
+
+            // 2. Verificar estados que impiden ver el chat (Carga, Cutscenes, GPose)
+            if (Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] || 
+                Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.WatchingCutscene] || 
+                Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.OccupiedInCutSceneEvent] || 
+                Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.WatchingCutscene78])
+            {
+                return false;
+            }
+
+            // 3. Verificar si el addon de chat nativo está visible
+            // Si el usuario ocultó el HUD (Scroll Lock), este addon no será visible.
+            var chatLogAddon = (FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase*)GameGui.GetAddonByName("ChatLog");
+            bool nativeChatVisible = chatLogAddon != null && chatLogAddon->IsVisible;
+
+            if (nativeChatVisible) return true;
+
+            // 4. Si el chat nativo no es visible, comprobar si el usuario está usando ChatTwo
+            // ChatTwo oculta el chat nativo pero se muestra a sí mismo.
+            bool chatTwoPresent = PluginInterface.InstalledPlugins.Any(p => p.InternalName == "ChatTwo" && p.IsLoaded);
+            
+            // Si ChatTwo está presente y no estamos en carga/cutscene (puntos 1 y 2), 
+            // asumimos que el usuario tiene un chat visible a través de ChatTwo.
+            return chatTwoPresent;
         }
     }
 }

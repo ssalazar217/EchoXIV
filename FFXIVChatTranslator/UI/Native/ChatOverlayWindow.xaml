@@ -13,47 +13,64 @@
         ShowInTaskbar="False"
         ResizeMode="CanResizeWithGrip">
     
-    <Border x:Name="MainBorder" BorderBrush="#44FFFFFF" BorderThickness="1" CornerRadius="5" Background="#AA000000">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+    <Grid x:Name="RootGrid" Background="Transparent">
+        <Border x:Name="MainBorder" BorderBrush="#44FFFFFF" BorderThickness="1" CornerRadius="5" Background="#AA000000">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-            <!-- Toolbar / Drag Handle -->
-            <Border Grid.Row="0" Background="#33FFFFFF" CornerRadius="5,5,0,0" MouseLeftButtonDown="DragWindow" Cursor="SizeAll">
-                <Grid Margin="5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <!-- Toolbar / Drag Handle -->
+                <Border x:Name="HeaderBorder" Grid.Row="0" Background="#33FFFFFF" CornerRadius="5,5,0,0" MouseLeftButtonDown="DragWindow" Cursor="SizeAll">
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <TextBlock Text="Traductor Chat" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
-                    
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <Button x:Name="BtnLock" Content="🔓" Click="Lock_Click" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0" ToolTip="Bloquear/Compactar (Click-Through)"/>
-                        <Button Content="Limpiar" Click="Clear_Click" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0"/>
-                        <Button Content="X" Click="Hide_Click" Padding="5,2" Background="#88FF0000" Foreground="White" BorderThickness="0"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                        <TextBlock Text="Traductor Chat" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+                        
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button x:Name="BtnLock" Content="🔓" Click="Lock_Click" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0" ToolTip="Bloquear/Compactar (Click-Through)"/>
+                            <Button Content="Limpiar" Click="Clear_Click" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0"/>
+                            <Button Content="X" Click="Hide_Click" Padding="5,2" Background="#88FF0000" Foreground="White" BorderThickness="0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
 
-            <!-- Chat Content -->
-            <RichTextBox x:Name="ChatOutput" Grid.Row="1" 
-                         Background="Transparent" 
-                         Foreground="White" 
-                         BorderThickness="0" 
-                         IsReadOnly="True" 
-                         IsDocumentEnabled="True"
-                         VerticalScrollBarVisibility="Auto"
-                         Padding="5">
-                <FlowDocument FontSize="14" FontFamily="Segoe UI, Tahoma">
-                    <Paragraph>
-                        <Run Text="Traductor iniciado..." Foreground="Gray"/>
-                    </Paragraph>
-                </FlowDocument>
-            </RichTextBox>
-        </Grid>
-    </Border>
+                <!-- Chat Content -->
+                <RichTextBox x:Name="ChatOutput" Grid.Row="1" 
+                             Background="Transparent" 
+                             Foreground="White" 
+                             BorderThickness="0" 
+                             IsReadOnly="True" 
+                             IsDocumentEnabled="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Padding="5">
+                    <FlowDocument FontSize="14" FontFamily="Segoe UI, Tahoma">
+                        <Paragraph>
+                            <Run Text="Traductor iniciado..." Foreground="Gray"/>
+                        </Paragraph>
+                    </FlowDocument>
+                </RichTextBox>
+            </Grid>
+        </Border>
+
+        <!-- Floating Unlock Button (Visible only when locked) -->
+        <Button x:Name="BtnUnlockOverlay" 
+                Content="🔒" 
+                Click="UnlockOverlay_Click"
+                Width="30" Height="30"
+                HorizontalAlignment="Right" VerticalAlignment="Top"
+                Margin="0,5,5,0"
+                Background="#66000000" 
+                Foreground="White"
+                BorderBrush="White"
+                BorderThickness="1"
+                Visibility="Collapsed"
+                ToolTip="Desbloquear ventana"
+                Cursor="Hand"/>
+    </Grid>
 </Window>
