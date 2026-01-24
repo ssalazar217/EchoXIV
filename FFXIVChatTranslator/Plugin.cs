@@ -24,6 +24,8 @@ namespace FFXIVChatTranslator
         [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
         [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
         [PluginService] internal static IChatGui ChatGui { get;  private set; } = null!;
+        [PluginService] internal static IFramework Framework { get; private set; } = null!;
+        [PluginService] internal static IClientState ClientState { get; private set; } = null!;
         [PluginService] internal static IPluginLog PluginLog { get; private set; } = null!;
         [PluginService] internal static IGameInteropProvider GameInteropProvider { get; private set; } = null!;
         
@@ -52,7 +54,10 @@ namespace FFXIVChatTranslator
                     _translatorService, 
                     PluginLog,
                     PluginInterface,
-                    ChatGui
+                    ChatGui,
+                    CommandManager,
+                    Framework,
+                    ClientState
                 );
                 _chat2Integration.Enable();
                 
@@ -98,6 +103,8 @@ namespace FFXIVChatTranslator
                     HelpMessage = "Atajo para /translate"
                 });
                 
+                // Registrar UI callback principal (requerido por Dalamud)
+                PluginInterface.UiBuilder.OpenMainUi += ToggleConfigUI;
                 
                 PluginLog.Info($"{Name} cargado correctamente.");
             }
@@ -124,6 +131,7 @@ namespace FFXIVChatTranslator
             // Limpiar eventos
             PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
             PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
+            PluginInterface.UiBuilder.OpenMainUi -= ToggleConfigUI;
         }
         
         private void OnCommand(string command, string args)

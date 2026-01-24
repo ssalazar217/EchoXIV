@@ -46,6 +46,9 @@ namespace FFXIVChatTranslator.Integrations
         private readonly IPluginLog _pluginLog;
         private readonly IDalamudPluginInterface _pluginInterface;
         private readonly IChatGui _chatGui;
+        private readonly ICommandManager _commandManager;
+        private readonly IFramework _framework;
+        private readonly IClientState _clientState;
         
         // IPC Subscribers para Chat2
         private ICallGateSubscriber<object?>? _chat2Available;
@@ -55,6 +58,12 @@ namespace FFXIVChatTranslator.Integrations
         // Caché de traducciones para respuestas instantáneas
         private readonly Dictionary<string, string> _translationCache = new();
         private const int MaxCacheSize = 1000;
+        
+        // Contador de mensajes siendo reenviados (prevención de bucle)
+        // Cuando > 0, significa que hay mensajes traducidos siendo enviados
+        // En OnCheckMessageHandled, si > 0, decrementamos y NO procesamos (es nuestro reenvío)
+        private int _pendingResends = 0;
+        private readonly object _resendLock = new();
         
         // Cola de traducción asíncrona
         private readonly ConcurrentQueue<TranslationRequest> _translationQueue = new();
@@ -72,13 +81,19 @@ namespace FFXIVChatTranslator.Integrations
             GoogleTranslatorService translatorService,
             IPluginLog pluginLog,
             IDalamudPluginInterface pluginInterface,
-            IChatGui chatGui)
+            IChatGui chatGui,
+            ICommandManager commandManager,
+            IFramework framework,
+            IClientState clientState)
         {
             _configuration = configuration;
             _translatorService = translatorService;
             _pluginLog = pluginLog;
             _pluginInterface = pluginInterface;
             _chatGui = chatGui;
+            _commandManager = commandManager;
+            _framework = framework;
+            _clientState = clientState;
         }
         
         /// <summary>
@@ -112,9 +127,9 @@ namespace FFXIVChatTranslator.Integrations
             _workerTask = Task.Run(TranslationWorker, _cancellationTokenSource.Token);
             _pluginLog.Info("✅ Worker thread de traducción iniciado");
             
-            // Interceptar mensajes salientes usando ChatGui (funciona con o sin Chat2)
+            // Interceptar mensajes usando ChatGui con verificación de jugador local
             _chatGui.CheckMessageHandled += OnCheckMessageHandled;
-            _pluginLog.Info("✅ Interceptor de mensajes habilitado mediante ChatGui");
+            _pluginLog.Info("✅ Interceptor de mensajes habilitado con verificación de jugador local");
         }
         
         /// <summary>
@@ -195,6 +210,37 @@ namespace FFXIVChatTranslator.Integrations
                 if (isHandled)
                     return;
                 
+                // *** CRÍTICO: Verificar que el mensaje es del JUGADOR LOCAL ***
+                // CheckMessageHandled intercepta TODOS los mensajes (de cualquier jugador)
+                // Debemos verificar que el sender es el jugador local
+                var localPlayerName = _clientState.LocalPlayer?.Name.TextValue;
+                var senderName = sender.TextValue;
+                
+                if (string.IsNullOrEmpty(localPlayerName))
+                {
+                    _pluginLog.Warning("⚠️ No se pudo obtener nombre del jugador local");
+                    return;
+                }
+                
+                // Si el sender NO es el jugador local, ignorar (es mensaje de otro jugador)
+                if (senderName != localPlayerName && !string.IsNullOrEmpty(senderName))
+                {
+                    _pluginLog.Info($"⏭️ Mensaje de otro jugador ignorado: '{senderName}'");
+                    return;
+                }
+                
+                // *** CRÍTICO: Evitar bucle infinito con contador ***
+                // Si hay mensajes siendo reenviados, este es uno de ellos
+                lock (_resendLock)
+                {
+                    if (_pendingResends > 0)
+                    {
+                        _pendingResends--;
+                        _pluginLog.Info($"⏭️ Mensaje reenviado detectado (pendientes: {_pendingResends})");
+                        return;
+                    }
+                }
+                
                 // *** VERIFICAR LISTA DE EXCLUSIÓN ***
                 // No traducir expresiones universales/emoticonos (lol, o/, uwu, etc.)
                 if (_configuration.ExcludedMessages.Contains(messageText))
@@ -220,69 +266,154 @@ namespace FFXIVChatTranslator.Integrations
                     }
                 }
                 
-                // Crear solicitud de traducción asíncrona
-                var request = new TranslationRequest
-                {
-                    OriginalText = messageText,
-                    ChatType = type,
-                    CompletionSource = new TaskCompletionSource<string>(),
-                    RequestedAt = DateTime.Now
-                };
+                // CANCELAR el mensaje original
+                isHandled = true;
                 
-                // Encolar para procesamiento en background
-                _translationQueue.Enqueue(request);
-                _queueSemaphore.Release();
-                
-                // ESPERAR resultado con timeout de 3 SEGUNDOS
-                // El mensaje NO se envía hasta que la traducción esté completa
-                if (request.CompletionSource.Task.Wait(3000))
+                // Traducir en background y reenviar cuando esté listo (SIN BLOQUEAR)
+                _ = Task.Run(async () =>
                 {
-                    translatedText = request.CompletionSource.Task.Result;
-                }
-                else
-                {
-                    // Si tarda más de 3 segundos, enviar mensaje original
-                    // (la traducción seguirá procesándose en background para caché)
-                    _pluginLog.Warning($"⚠️ Traducción de '{messageText}' tomó >3s, enviando original");
-                    
-                    // Continuar procesando en background para cachear
-                    _ = Task.Run(async () =>
+                    try
                     {
-                        try
+                        _pluginLog.Info($"🔄 Traduciendo '{messageText}'...");
+                        
+                        var translatedText = await _translatorService.TranslateAsync(
+                            messageText,
+                            _configuration.SourceLanguage,
+                            _configuration.TargetLanguage
+                        );
+                        
+                        if (!string.IsNullOrWhiteSpace(translatedText) && translatedText != messageText)
                         {
-                            var result = await request.CompletionSource.Task;
+                            _pluginLog.Info($"✅ '{messageText}' → '{translatedText}'");
+                            
+                            // Cachear si cumple con límite
                             if (_configuration.CacheEnabled && messageText.Length <= _configuration.CacheMaxMessageLength)
                             {
                                 var cacheKey = $"{messageText}|{_configuration.SourceLanguage}|{_configuration.TargetLanguage}";
-                                AddToCache(cacheKey, result);
-                                _pluginLog.Info($"📦 Cacheado '{messageText}' → '{result}' para próxima vez");
+                                AddToCache(cacheKey, translatedText);
                             }
+                            
+                            // Re-enviar el mensaje traducido
+                            ReSendMessage(translatedText, type);
                         }
-                        catch { }
-                    });
-                    
-                    return; // Enviar original sin bloquear
-                }
-                
-                if (!string.IsNullOrWhiteSpace(translatedText) && translatedText != messageText)
-                {
-                    _pluginLog.Info($"📝 '{messageText}' → '{translatedText}'");
-                    
-                    // Guardar en caché SOLO si está habilitado y el mensaje es corto
-                    if (_configuration.CacheEnabled && messageText.Length <= _configuration.CacheMaxMessageLength)
-                    {
-                        var cacheKey = $"{messageText}|{_configuration.SourceLanguage}|{_configuration.TargetLanguage}";
-                        AddToCache(cacheKey, translatedText);
+                        else
+                        {
+                            // Si falla traducción, reenviar original
+                            ReSendMessage(messageText, type);
+                        }
                     }
-                    
-                    // Reemplazar el mensaje con la traducción
-                    message = new SeString(new Dalamud.Game.Text.SeStringHandling.Payloads.TextPayload(translatedText));
-                }
+                    catch (Exception ex)
+                    {
+                        _pluginLog.Error(ex, "❌ Error al traducir en background");
+                        // Reenviar original si hay error
+                        ReSendMessage(messageText, type);
+                    }
+                });
+                
+                return; // Salir inmediatamente sin bloquear
             }
             catch (Exception ex)
             {
-                _pluginLog.Error(ex, "❌ Error al traducir mensaje");
+            _pluginLog.Error(ex, "❌ Error al procesar mensaje");
             }
+        }
+        
+        /// <summary>
+        /// Re-envía un mensaje traducido al chat usando UIModule directamente
+        /// IMPORTANTE: Ejecuta en el main thread del juego para evitar crashes
+        /// </summary>
+        private unsafe void ReSendMessage(string text, XivChatType chatType)
+        {
+            try
+            {
+                // Obtener el comando del canal según el tipo
+                var channelCommand = GetChannelCommand(chatType);
+                var fullMessage = $"{channelCommand}{text}";
+                
+                _pluginLog.Info($"📤 Reenviando: {fullMessage}");
+                
+                // Convertir a bytes UTF-8
+                var bytes = System.Text.Encoding.UTF8.GetBytes(fullMessage);
+                
+                if (bytes.Length == 0)
+                {
+                    _pluginLog.Warning("⚠️ Mensaje vacío, no se envía");
+                    return;
+                }
+                
+                if (bytes.Length > 500)
+                {
+                    _pluginLog.Warning("⚠️ Mensaje muy largo (>500 bytes), truncando");
+                    Array.Resize(ref bytes, 500);
+                }
+                
+                // CRÍTICO: Incrementar contador ANTES de reenviar
+                // Esto previene que el callback intercepte el reenvío como nuevo mensaje
+                lock (_resendLock)
+                {
+                    _pendingResends++;
+                    _pluginLog.Info($"🔖 Incrementando contador de reenvíos: {_pendingResends}");
+                }
+                
+                // CRÍTICO: Ejecutar en el MAIN THREAD del juego
+                // UIModule NO es thread-safe y crashea si se llama desde background
+                _framework.RunOnFrameworkThread(() =>
+                {
+                    try
+                    {
+                        // Usar el método directo de FFXIV para enviar mensaje
+                        // Exactamente como ChatTwo lo hace
+                        var mes = FFXIVClientStructs.FFXIV.Client.System.String.Utf8String.FromSequence(bytes);
+                        FFXIVClientStructs.FFXIV.Client.UI.UIModule.Instance()->ProcessChatBoxEntry(mes);
+                        mes->Dtor(true);
+                        
+                        _pluginLog.Info("✅ Mensaje enviado correctamente");
+                    }
+                    catch (Exception ex)
+                    {
+                        _pluginLog.Error(ex, "❌ Error al enviar mensaje en main thread");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _pluginLog.Error(ex, $"❌ Error al reenviar mensaje: {text}");
+            }
+        }
+        
+        /// <summary>
+        /// Obtiene el comando del canal según el tipo de chat
+        /// </summary>
+        private string GetChannelCommand(XivChatType chatType)
+        {
+            return chatType switch
+            {
+                XivChatType.Say => "/s ",
+                XivChatType.Yell => "/y ",
+                XivChatType.Shout => "/sh ",
+                XivChatType.Party => "/p ",
+                XivChatType.Alliance => "/a ",
+                XivChatType.FreeCompany => "/fc ",
+                XivChatType.TellOutgoing => "", // Los tells requieren manejo especial  
+                XivChatType.Ls1 => "/l1 ",
+                XivChatType.Ls2 => "/l2 ",
+                XivChatType.Ls3 => "/l3 ",
+                XivChatType.Ls4 => "/l4 ",
+                XivChatType.Ls5 => "/l5 ",
+                XivChatType.Ls6 => "/l6 ",
+                XivChatType.Ls7 => "/l7 ",
+                XivChatType.Ls8 => "/l8 ",
+                XivChatType.CrossLinkShell1 => "/cwl1 ",
+                XivChatType.CrossLinkShell2 => "/cwl2 ",
+                XivChatType.CrossLinkShell3 => "/cwl3 ",
+                XivChatType.CrossLinkShell4 => "/cwl4 ",
+                XivChatType.CrossLinkShell5 => "/cwl5 ",
+                XivChatType.CrossLinkShell6 => "/cwl6 ",
+                XivChatType.CrossLinkShell7 => "/cwl7 ",
+                XivChatType.CrossLinkShell8 => "/cwl8 ",
+                XivChatType.NoviceNetwork => "/n ",
+                _ => "/s "
+            };
         }
         
         /// <summary>
