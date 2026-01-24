@@ -1,0 +1,28 @@
+[
+  {
+    "Author": "ssalazar217 (SteSE)",
+    "Name": "EchoXIV",
+    "InternalName": "EchoXIV",
+    "AssemblyVersion": "0.0.67",
+    "Description": "Automatically translates your outgoing messages (to the party language) and incoming messages (to your local language) using Google Translate. Overlay window included. No API Key required.",
+    "ApplicableVersion": "any",
+    "RepoUrl": "https://github.com/ssalazar217/EchoXIV",
+    "Tags": [
+      "chat",
+      "translation",
+      "translator",
+      "language",
+      "echoxiv"
+    ],
+    "DalamudApiLevel": 14,
+    "LoadRequiredState": 2,
+    "LoadSync": false,
+    "CanUnloadAsync": false,
+    "LoadPriority": 0,
+    "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
+    "Punchline": "Tu mensaje en cualquier idioma. Traducción de chat bidireccional enfocada en la comunicación activa.",
+    "DownloadLinkInstall": "https://github.com/ssalazar217/EchoXIV/releases/download/v0.0.67/EchoXIV.zip",
+    "IsHide": false,
+    "IsTestingExclusive": false
+  }
+]
