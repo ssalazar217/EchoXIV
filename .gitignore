@@ -17,7 +17,8 @@ build_*.txt
 .vs/
 .vscode/
 
-# Temporary Scripts
+# TempEchoXIV/scripts/
+install-plugin.ps1
 *_test.ps1
 Decrypt*.ps1
 Test*.ps1
