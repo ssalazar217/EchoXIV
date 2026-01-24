@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 
-namespace FFXIVChatTranslator.Models
+namespace EchoXIV.Models
 {
     public class Language
     {

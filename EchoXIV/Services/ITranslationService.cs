@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace FFXIVChatTranslator.Services
+namespace EchoXIV.Services
 {
     public interface ITranslationService
     {

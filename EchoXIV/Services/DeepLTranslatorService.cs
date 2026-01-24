@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace FFXIVChatTranslator.Services
+namespace EchoXIV.Services
 {
     public class DeepLTranslatorService : ITranslationService, IDisposable
     {

@@ -6,9 +6,9 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVChatTranslator.Services;
+using EchoXIV.Services;
 
-namespace FFXIVChatTranslator.GameFunctions
+namespace EchoXIV.GameFunctions
 {
     /// <summary>
     /// Hook nativo para interceptar mensajes ANTES del envío

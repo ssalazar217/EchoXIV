@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
-using FFXIVChatTranslator.Services;
+using EchoXIV.Services;
 
-namespace FFXIVChatTranslator
+namespace EchoXIV
 {
     /// <summary>
     /// Modelo de mensaje traducido para la ventana de chat
@@ -149,6 +149,11 @@ namespace FFXIVChatTranslator
                 message.IsTranslating = false;
                 OnMessageTranslated?.Invoke(message);
             }
+        }
+
+        public void InjectMessage(TranslatedChatMessage message)
+        {
+            OnMessageTranslated?.Invoke(message);
         }
 
         public void Dispose()

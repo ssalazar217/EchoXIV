@@ -4,19 +4,20 @@ using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Interface.Windowing;
+using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
-using FFXIVChatTranslator.Services;
-using FFXIVChatTranslator.UI;
+using EchoXIV.Services;
+using EchoXIV.UI;
 using Newtonsoft.Json;
 
-namespace FFXIVChatTranslator
+namespace EchoXIV
 {
     /// <summary>
     /// Plugin principal de traducción de chat
     /// </summary>
     public sealed class Plugin : IDalamudPlugin
     {
-        public string Name => "FFXIV Chat Translator";
+        public string Name => "EchoXIV";
         
         private const string CommandName = "/translate";
         private const string CommandNameShort = "/tl";
@@ -55,7 +56,7 @@ namespace FFXIVChatTranslator
                 UpdateTranslationService();
                 
                 // Inicializar sistema de ventanas
-                _windowSystem = new WindowSystem("Chat2Translator");
+                _windowSystem = new WindowSystem("EchoXIV");
                 
                 // NOTA: Integración con Chat2 eliminada por redundancia.
                 // Usamos ChatBoxHook para traducciones y DefaultChannel para comandos.
@@ -244,24 +245,24 @@ namespace FFXIVChatTranslator
                 case "on":
                     _configuration.TranslationEnabled = true;
                     _configuration.Save();
-                    ChatGui.Print($"[Chat2 Translator] Traducción activada. {_configuration.SourceLanguage.ToUpper()} → {_configuration.TargetLanguage.ToUpper()}");
+                    ChatGui.Print($"[EchoXIV] Traducción activada. {_configuration.SourceLanguage.ToUpper()} → {_configuration.TargetLanguage.ToUpper()}");
                     break;
                 
                 case "off":
                     _configuration.TranslationEnabled = false;
                     _configuration.Save();
-                    ChatGui.Print("[Chat2 Translator] Traducción desactivada");
+                    ChatGui.Print("[EchoXIV] Traducción desactivada");
                     break;
                 
                 case "lock":
                     if (_configuration.UseNativeWindow && _wpfHost != null)
                     {
                         _wpfHost.SetLock(true);
-                        ChatGui.Print("[Chat2 Translator] Ventana nativa BLOQUEADA (Click-Through activado). Usa '/tl unlock' para desbloquear.");
+                        ChatGui.Print("[EchoXIV] Ventana nativa BLOQUEADA (Click-Through activado). Usa '/tl unlock' para desbloquear.");
                     }
                     else
                     {
-                        ChatGui.Print("[Chat2 Translator] La ventana nativa no está activa.");
+                        ChatGui.Print("[EchoXIV] La ventana nativa no está activa.");
                     }
                     break;
 
@@ -269,11 +270,11 @@ namespace FFXIVChatTranslator
                     if (_configuration.UseNativeWindow && _wpfHost != null)
                     {
                          _wpfHost.SetLock(false);
-                         ChatGui.Print("[Chat2 Translator] Ventana nativa DESBLOQUEADA.");
+                         ChatGui.Print("[EchoXIV] Ventana nativa DESBLOQUEADA.");
                     }
                     else
                     {
-                         ChatGui.Print("[Chat2 Translator] La ventana nativa no está activa.");
+                         ChatGui.Print("[EchoXIV] La ventana nativa no está activa.");
                     }
                     break;
                 
@@ -294,7 +295,7 @@ namespace FFXIVChatTranslator
                 case "input":
                 case "i":
                      // Legacy, no hace nada o abre config
-                     ChatGui.Print("[Traductor] La ventana de input ha sido reemplazada. Usa /tl mensaje");
+                     ChatGui.Print("[EchoXIV] La ventana de input ha sido reemplazada. Usa /tl mensaje");
                      break;
                 
                 default:
@@ -321,20 +322,20 @@ namespace FFXIVChatTranslator
             {
                 if (_wpfHost == null)
                 {
-                     ChatGui.PrintError("[Traductor] ⚠️ La ventana nativa está activada pero no iniciada. Por favor reinicia el plugin.");
+                     ChatGui.PrintError("[EchoXIV] ⚠️ La ventana nativa está activada pero no iniciada. Por favor reinicia el plugin.");
                      return;
                 }
 
                 _wpfHost.ToggleWindow();
-                ChatGui.Print("[Traductor] 👁️ Alternando visibilidad de ventana nativa.");
+                ChatGui.Print("[EchoXIV] 👁️ Alternando visibilidad de ventana nativa.");
             }
             else if (_translatedChatWindow != null)
             {
                 _translatedChatWindow.IsOpen = !_translatedChatWindow.IsOpen;
                  if (_translatedChatWindow.IsOpen)
-                    ChatGui.Print("[Traductor] 💬 Ventana de traducciones abierta. Usa /tl reset si no la ves.");
+                    ChatGui.Print("[EchoXIV] 💬 Ventana de traducciones abierta. Usa /tl reset si no la ves.");
                 else
-                    ChatGui.Print("[Traductor] 💬 Ventana de traducciones cerrada.");
+                    ChatGui.Print("[EchoXIV] 💬 Ventana de traducciones cerrada.");
             }
         }
         
@@ -346,13 +347,13 @@ namespace FFXIVChatTranslator
             if (_configuration.UseNativeWindow)
             {
                  _wpfHost?.ResetWindow();
-                 ChatGui.Print("[Traductor] 📍 Posición de ventana nativa reseteada a (100, 100).");
+                 ChatGui.Print("[EchoXIV] 📍 Posición de ventana nativa reseteada a (100, 100).");
             }
             else if (_translatedChatWindow != null)
             {
                 _translatedChatWindow.Position = new System.Numerics.Vector2(100, 100);
                 _translatedChatWindow.IsOpen = true;
-                ChatGui.Print("[Traductor] 📍 Posición de ventana reseteada a (100, 100). Ya debería ser visible.");
+                ChatGui.Print("[EchoXIV] 📍 Posición de ventana reseteada a (100, 100). Ya debería ser visible.");
             }
         }
 
@@ -363,12 +364,9 @@ namespace FFXIVChatTranslator
             
             if (string.IsNullOrWhiteSpace(message))
             {
-                ChatGui.Print("[Traductor] ⚠️ No hay mensaje para traducir");
+                ChatGui.Print("[EchoXIV] ⚠️ No hay mensaje para traducir");
                 return;
             }
-            
-            // Mostrar indicador (SILENT: Eliminado por solicitud)
-            // ChatGui.Print("[Traductor] 🔄 Traduciendo...");
             
             // Traducir async
             Task.Run(async () =>
@@ -385,7 +383,20 @@ namespace FFXIVChatTranslator
                     Framework.RunOnFrameworkThread(() =>
                     {
                         SendToChannel(translated, channel);
-                        PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}' al canal {channel}");
+                        
+                        // Mostrar también en nuestra ventana de chat traducido
+                        var displayChannel = channel ?? "(Actual)";
+                        _incomingMessageHandler?.InjectMessage(new TranslatedChatMessage
+                        {
+                            Timestamp = DateTime.Now,
+                            ChatType = XivChatType.Debug, // Usamos Debug o un tipo neutro para mis propios envíos
+                            Sender = ClientState.LocalPlayer?.Name.TextValue ?? "Yo",
+                            OriginalText = message,
+                            TranslatedText = translated,
+                            IsTranslating = false
+                        });
+
+                        PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}' al canal {displayChannel}");
                     });
                 }
                 catch (Exception ex)
@@ -393,7 +404,7 @@ namespace FFXIVChatTranslator
                     PluginLog.Error(ex, "Error al traducir mensaje");
                     Framework.RunOnFrameworkThread(() =>
                     {
-                        ChatGui.PrintError("[Traductor] ❌ Error al traducir");
+                        ChatGui.PrintError("[EchoXIV] ❌ Error al traducir");
                     });
                 }
             });
@@ -430,13 +441,15 @@ namespace FFXIVChatTranslator
                 }
             }
             
-            // Si no hay canal explícito, usar el Default Channel
-            return (_configuration.DefaultChannel, input);
+            // Si no hay canal explícito, retornar null para que el juego use el canal activo naturalmente
+            return (null, input);
         }
 
-        private unsafe void SendToChannel(string message, string channel)
+        private unsafe void SendToChannel(string message, string? channel)
         {
-            var fullMessage = $"{channel} {message}";
+            // Si el canal es null, enviamos solo el mensaje (el juego usará el canal activo)
+            // Si tiene canal (ej: /p), lo concatenamos
+            var fullMessage = string.IsNullOrEmpty(channel) ? message : $"{channel} {message}";
             
             try
             {
@@ -444,7 +457,7 @@ namespace FFXIVChatTranslator
                 
                 if (bytes.Length > 500)
                 {
-                    ChatGui.PrintError("[Traductor] ⚠️ Mensaje muy largo");
+                    ChatGui.PrintError("[EchoXIV] ⚠️ Mensaje muy largo");
                     return;
                 }
                 
@@ -455,7 +468,7 @@ namespace FFXIVChatTranslator
             catch (Exception ex)
             {
                 PluginLog.Error(ex, "Error al enviar mensaje");
-                ChatGui.PrintError("[Traductor] ❌ Error al enviar mensaje");
+                ChatGui.PrintError("[EchoXIV] ❌ Error al enviar mensaje");
             }
         }
         

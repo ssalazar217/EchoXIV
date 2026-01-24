@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace FFXIVChatTranslator.Services
+namespace EchoXIV.Services
 {
     /// <summary>
     /// Servicio de traducción usando Google Translate móvil sin API key.

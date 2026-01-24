@@ -4,10 +4,10 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
-using FFXIVChatTranslator.Models;
+using EchoXIV.Models;
 using Dalamud.Bindings.ImGui;
 
-namespace FFXIVChatTranslator.Integrations
+namespace EchoXIV.Integrations
 {
     /// <summary>
     /// Integra un selector de idioma en el menú contextual de Chat2

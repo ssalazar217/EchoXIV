@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 using Dalamud.Game.Text;
 
-namespace FFXIVChatTranslator.UI.Native
+namespace EchoXIV.UI.Native
 {
     public partial class ChatOverlayWindow : Window
     {
