@@ -1,6 +1,6 @@
 <Project Sdk="Dalamud.NET.Sdk/14.0.1">
   <PropertyGroup>
-    <Version>0.0.67</Version>
+    <Version>0.0.100</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DalamudPackager" Version="2.1.13" />
+
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
@@ -21,9 +21,9 @@
     <None Update="Resources\Languages.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="images\icon.png">
+    <EmbeddedResource Include="images\icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </EmbeddedResource>
   </ItemGroup>
   
   <ItemGroup>
@@ -36,8 +36,5 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <Target Name="AutoIncrementVersion" BeforeTargets="BeforeBuild">
-    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)scripts\UpdateVersion.ps1&quot; -ProjectFile &quot;$(ProjectPath)&quot; -ManifestFile &quot;$(ProjectDir)EchoXIV.json&quot;" />
-  </Target>
 
 </Project>

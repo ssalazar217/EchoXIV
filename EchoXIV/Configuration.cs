@@ -12,7 +12,7 @@ namespace EchoXIV
     public enum TranslationEngine
     {
         Google,
-        DeepL
+        Papago
     }
 
     [Serializable]
@@ -36,7 +36,7 @@ namespace EchoXIV
         public string TargetLanguage { get; set; } = "en"; // English
         
         // Lista de mensajes que NO se traducen (expresiones universales, emoticonos, etc.)
-        public HashSet<string> ExcludedMessages { get; set; } = new()
+        public HashSet<string> ExcludedMessages { get; set; } = new(StringComparer.OrdinalIgnoreCase)
         {
             "lol", "LOL",
             "o/", "o7", 
@@ -59,10 +59,6 @@ namespace EchoXIV
         
 
 
-        /// <summary>
-        /// Canal por defecto para enviar mensajes si no se detecta el canal actual
-        /// </summary>
-        public string DefaultChannel { get; set; } = "/s";
 
         // === Configuración de Traducciones Entrantes ===
         
@@ -110,11 +106,15 @@ namespace EchoXIV
 
 
 
-        // --- Geometría de la Ventana (Persistencia) ---
+        // --- Geometría de la Ventana WPF (Nativa) ---
         public double WindowLeft { get; set; } = 100.0;
         public double WindowTop { get; set; } = 100.0;
         public double WindowWidth { get; set; } = 400.0;
         public double WindowHeight { get; set; } = 300.0;
+        
+        // --- Geometría de la Ventana ImGui (Interna) ---
+        public Vector2 ImGuiPosition { get; set; } = new(100, 100);
+        public Vector2 ImGuiSize { get; set; } = new(400, 300);
         
         // --- Visuales ---
         public int FontSize { get; set; } = 16;
@@ -126,7 +126,9 @@ namespace EchoXIV
         /// </summary>
         public bool SmartVisibility { get; set; } = true;
 
-        public TranslationEngine SelectedEngine { get; set; } = TranslationEngine.Google;
+        public TranslationEngine SelectedEngine { get; set; } = TranslationEngine.Papago;
+        public string PapagoVersionKey { get; set; } = Constants.DefaultPapagoVersionKey;
+        public bool VerboseLogging { get; set; } = false; // Logs detallados (off por defecto)
         public bool OverlayVisible { get; set; } = true;
 
         /// <summary>

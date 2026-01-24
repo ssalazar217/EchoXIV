@@ -18,11 +18,12 @@ public class ConfigWindow : Window, IDisposable
     public Action? OnUnlockNativeRequested;
     public Action? OnVisualsChanged;
     public Action<TranslationEngine>? OnTranslationEngineChanged;
+    public Action<bool>? OnWindowModeChanged;
     
     private string _newExcludedMessage = string.Empty;
     
     public ConfigWindow(Configuration configuration) 
-        : base("Chat2 Translator - Configuración###ConfigWindow")
+        : base("EchoXIV - Configuración###ConfigWindow")
     {
         _configuration = configuration;
         
@@ -109,8 +110,8 @@ public class ConfigWindow : Window, IDisposable
 
             ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), 
                 _configuration.SelectedEngine == TranslationEngine.Google 
-                ? "Motor clásico de Google Translate (Móvil)" 
-                : "DeepL Web Translator (Sin API Key)");
+                ? "Motor clásico de Google Translate (GTx JSON API)" 
+                : "Naver Papago Translator (Coreano/Japonés)");
 
             ImGui.Spacing();
             ImGui.Separator();
@@ -151,26 +152,6 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
 
-            // Selector de Canal por Defecto
-            ImGui.Text(Loc.General_DefaultChannel);
-            ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), Loc.General_DefaultChannelTip);
-            
-            var channels = new[] { "/s", "/p", "/fc", "/sh", "/y", "/a", "/n", "/l1", "/cwl1" };
-            var channelNames = new[] { "Say (/s)", "Party (/p)", "Free Company (/fc)", "Shout (/sh)", "Yell (/y)", "Alliance (/a)", "Novice (/n)", "Linkshell 1", "CWLS 1" };
-            
-            var currentChannelIdx = Array.IndexOf(channels, _configuration.DefaultChannel);
-            if (currentChannelIdx == -1) currentChannelIdx = 0; // Default Say
-            
-            ImGui.SetNextItemWidth(200);
-            if (ImGui.Combo("##DefaultChannel", ref currentChannelIdx, channelNames, channelNames.Length))
-            {
-                _configuration.DefaultChannel = channels[currentChannelIdx];
-                _configuration.Save();
-            }
-            
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
             
             ImGui.TextWrapped(Loc.General_ChangesAppliedImmediately);
             
@@ -183,8 +164,13 @@ public class ConfigWindow : Window, IDisposable
             var useNative = _configuration.UseNativeWindow;
             if (ImGui.Checkbox(Loc.Incoming_NativeWindow, ref useNative))
             {
+                var oldMode = _configuration.UseNativeWindow;
                 _configuration.UseNativeWindow = useNative;
                 _configuration.Save();
+                if (oldMode != useNative)
+                {
+                    OnWindowModeChanged?.Invoke(useNative);
+                }
             }
             if (ImGui.IsItemHovered())
             {
@@ -193,16 +179,6 @@ public class ConfigWindow : Window, IDisposable
             
             if (useNative)
             {
-                // Smart Visibility Option
-                var smartVis = _configuration.SmartVisibility;
-                if (ImGui.Checkbox("Smart Visibility (Ocultar al perder foco)", ref smartVis))
-                {
-                    _configuration.SmartVisibility = smartVis;
-                    _configuration.Save();
-                    OnSmartVisibilityChanged?.Invoke(smartVis);
-                }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Oculta automáticamente la ventana cuando el juego no está en primer plano.");
-
                 var windowOpacity = _configuration.WindowOpacity;
                 ImGui.SetNextItemWidth(150);
                 if (ImGui.SliderFloat(Loc.Incoming_WindowOpacity, ref windowOpacity, 0.0f, 1.0f, "%.2f"))
@@ -225,6 +201,31 @@ public class ConfigWindow : Window, IDisposable
                 }
             }
             
+            ImGui.Spacing();
+            
+            // Smart Visibility Option (Ahora disponible para ambos modos)
+            var smartVis = _configuration.SmartVisibility;
+            if (ImGui.Checkbox("Smart Visibility (Ocultar al perder foco)", ref smartVis))
+            {
+                _configuration.SmartVisibility = smartVis;
+                _configuration.Save();
+                OnSmartVisibilityChanged?.Invoke(smartVis);
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Oculta automáticamente la ventana cuando el juego no está en primer plano.");
+            
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            // Opción de Logs Detallados
+            var verboseLogs = _configuration.VerboseLogging;
+            if (ImGui.Checkbox("Registro de Logs Detallados", ref verboseLogs))
+            {
+                _configuration.VerboseLogging = verboseLogs;
+                _configuration.Save();
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Activa información técnica adicional en el log de Dalamud. Útil para depuración.");
+
             if (useNative != _configuration.UseNativeWindow) 
             {
                 ImGui.TextColored(new Vector4(1f, 0.5f, 0f, 1f), Loc.Incoming_RestartNote);

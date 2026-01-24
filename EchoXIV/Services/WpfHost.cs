@@ -12,7 +12,6 @@ namespace EchoXIV.Services
     {
         private Thread? _wpfThread;
         private Application? _wpfApp;
-        private bool _weOwnTheApp; // Flag para saber si nosotros creamos la App
         private ChatOverlayWindow? _chatWindow;
         private readonly Configuration _configuration;
         private bool _isRunning;
@@ -28,11 +27,13 @@ namespace EchoXIV.Services
         private static extern IntPtr GetForegroundWindow();
 
         private readonly Dalamud.Plugin.Services.IPluginLog _logger;
+        private readonly MessageHistoryManager _historyManager;
 
-        public WpfHost(Configuration configuration, Dalamud.Plugin.Services.IPluginLog logger)
+        public WpfHost(Configuration configuration, Dalamud.Plugin.Services.IPluginLog logger, MessageHistoryManager historyManager)
         {
             _configuration = configuration;
             _logger = logger;
+            _historyManager = historyManager;
         }
 
         public bool IsInitialized { get; private set; } = false;
@@ -66,20 +67,17 @@ namespace EchoXIV.Services
                 {
                     _wpfApp = new Application();
                     _wpfApp.ShutdownMode = ShutdownMode.OnExplicitShutdown; 
-                    _weOwnTheApp = true;
                     _logger.Info("Nueva Application creada.");
                 }
                 catch (Exception ex)
                 {
                     _logger.Error(ex, "Error creando App (¿AppDomain ocupado?)");
                     _wpfApp = Application.Current;
-                    _weOwnTheApp = false;
                 }
             }
             else
             {
                 _wpfApp = Application.Current;
-                _weOwnTheApp = false;
                 _logger.Info("Usando Application existente.");
             }
 
@@ -87,7 +85,7 @@ namespace EchoXIV.Services
             try
             {
                 _logger.Info("Instanciando ChatOverlayWindow...");
-                _chatWindow = new ChatOverlayWindow(_configuration);
+                _chatWindow = new ChatOverlayWindow(_configuration, _historyManager);
                 _chatWindow.Closed += (s, e) => 
                 {
                     _chatWindow = null;
@@ -144,7 +142,7 @@ namespace EchoXIV.Services
             // Si el usuario cerró la ventana manualmente, no hacer nada aquí
             if (!_configuration.OverlayVisible) return;
             
-            // Lógica de visibilidad MANDATORIA: Solo visible si el chat del juego (o ChatTwo) es visible
+            // Lógica de visibilidad MANDATORIA: Solo visible si el chat de juego es visible
             bool isChatVisible = Plugin.IsChatVisible();
             bool shouldBeVisible = isChatVisible;
 
@@ -173,21 +171,7 @@ namespace EchoXIV.Services
             }
         }
 
-        public void AddMessage(TranslatedChatMessage message)
-        {
-            if (_chatWindow != null && _isRunning)
-            {
-                _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.AddMessage(message));
-            }
-        }
 
-        public void UpdateMessage(TranslatedChatMessage message)
-        {
-            if (_chatWindow != null && _isRunning)
-            {
-                _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.UpdateMessage(message));
-            }
-        }
         
         public void ToggleWindow()
         {

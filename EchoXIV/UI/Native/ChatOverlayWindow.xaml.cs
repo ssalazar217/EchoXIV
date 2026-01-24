@@ -7,26 +7,34 @@ using System.Windows.Media;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using Dalamud.Game.Text;
+using EchoXIV.Services;
 
 namespace EchoXIV.UI.Native
 {
     public partial class ChatOverlayWindow : Window
     {
         private readonly Configuration _configuration;
+        private readonly MessageHistoryManager _historyManager;
         private bool _autoScroll = true;
         private bool _isLocked = false;
+        public event Action<bool>? OnVisibilityChanged;
         
-        // P/Invoke - Ya no necesarios para Click-Through (usamos IsHitTestVisible)
-        // private const int GWL_EXSTYLE = -20;
-        // private const int WS_EX_TRANSPARENT = 0x00000020;
-
-
-        public Action<bool>? OnVisibilityChanged;
-
-        public ChatOverlayWindow(Configuration configuration)
+        public ChatOverlayWindow(Configuration configuration, MessageHistoryManager historyManager)
         {
             InitializeComponent();
             _configuration = configuration;
+            _historyManager = historyManager;
+
+            // Sincronizar historial existente
+            foreach (var msg in _historyManager.GetHistory())
+            {
+                AddMessage(msg);
+            }
+
+            // Suscribirse a eventos
+            _historyManager.OnMessageAdded += m => Dispatcher.InvokeAsync(() => AddMessage(m));
+            _historyManager.OnMessageUpdated += m => Dispatcher.InvokeAsync(() => UpdateMessage(m));
+            _historyManager.OnHistoryCleared += () => Dispatcher.InvokeAsync(() => ChatOutput.Document.Blocks.Clear());
             
             // Estado inicial de visibilidad
             if (!_configuration.OverlayVisible)
@@ -43,7 +51,20 @@ namespace EchoXIV.UI.Native
             this.Height = _configuration.WindowHeight;
 
             // Guardar al cerrar
+            // Guardar al cerrar
             this.Closed += (s, e) => SaveGeometry();
+            
+            UpdateTitle();
+        }
+
+        private void UpdateTitle()
+        {
+            if (TitleText != null)
+            {
+                var count = ChatOutput.Document.Blocks.Count;
+                var engine = _configuration.SelectedEngine;
+                TitleText.Text = $"EchoXIV [{engine}] ({count})";
+            }
         }
 
         public void SetOpacity(float opacity)
@@ -64,6 +85,7 @@ namespace EchoXIV.UI.Native
             ChatOutput.Document.Blocks.Add(paragraph);
             PruneMessages();
             ScrollToEnd();
+            UpdateTitle();
         }
 
         public void UpdateMessage(TranslatedChatMessage message)
@@ -164,11 +186,24 @@ namespace EchoXIV.UI.Native
                 p.Inlines.Add(new Run($"[{message.Timestamp.ToString(fmt)}] ") { Foreground = Brushes.Gray });
             }
 
-            // Channel
-            p.Inlines.Add(new Run($"[{GetChannelName(message.ChatType)}] ") { Foreground = brush });
+            // Prefix (Channel + Direction + Name)
+            if (message.ChatType == XivChatType.TellOutgoing)
+            {
+                var name = string.IsNullOrEmpty(message.Recipient) ? message.Sender : message.Recipient;
+                p.Inlines.Add(new Run($"[Tell] >> {name}: ") { Foreground = brush });
+            }
+            else if (message.ChatType == XivChatType.TellIncoming)
+            {
+                p.Inlines.Add(new Run($"[Tell] << {message.Sender}: ") { Foreground = brush });
+            }
+            else
+            {
+                // Channel
+                p.Inlines.Add(new Run($"[{GetChannelName(message.ChatType)}] ") { Foreground = brush });
 
-            // Sender
-            p.Inlines.Add(new Run($"{message.Sender}: ") { Foreground = brush });
+                // Sender
+                p.Inlines.Add(new Run($"{message.Sender}: ") { Foreground = brush });
+            }
 
             // Message
             if (message.IsTranslating)
@@ -195,6 +230,7 @@ namespace EchoXIV.UI.Native
             {
                 ChatOutput.Document.Blocks.Remove(ChatOutput.Document.Blocks.FirstBlock);
             }
+            UpdateTitle();
         }
 
         private void ScrollToEnd()
@@ -214,6 +250,7 @@ namespace EchoXIV.UI.Native
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
             ChatOutput.Document.Blocks.Clear();
+            UpdateTitle();
         }
 
         private void Hide_Click(object sender, RoutedEventArgs e)
@@ -370,7 +407,7 @@ namespace EchoXIV.UI.Native
 
         private Color GetChannelColor(XivChatType type)
         {
-             // Usando los colores definidos previamente (Chat2 style)
+             // Usando los colores definidos previamente
              // Nota: WPF Color usa bytes 0-255
             return type switch
             {
@@ -420,6 +457,9 @@ namespace EchoXIV.UI.Native
                 XivChatType.CrossLinkShell7 => "CWLS7",
                 XivChatType.CrossLinkShell8 => "CWLS8",
                 XivChatType.NoviceNetwork => "NN",
+                XivChatType.TellOutgoing => "Tell",
+                XivChatType.TellIncoming => "Tell",
+                XivChatType.Debug => "Echo",
                 _ => type.ToString()
             };
         }

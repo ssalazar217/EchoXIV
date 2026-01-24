@@ -9,6 +9,11 @@ using Dalamud.Plugin.Services;
 using EchoXIV.Services;
 using EchoXIV.UI;
 using Newtonsoft.Json;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.UI.Shell;
+using FFXIVClientStructs.FFXIV.Client.System.String;
+using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace EchoXIV
 {
@@ -21,6 +26,7 @@ namespace EchoXIV
         
         private const string CommandName = "/translate";
         private const string CommandNameShort = "/tl";
+        private const string ConfigCommandName = "/echoxiv";
         
         [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
         [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
@@ -31,6 +37,8 @@ namespace EchoXIV
         [PluginService] internal static ICondition Condition { get; private set; } = null!;
         [PluginService] internal static IGameInteropProvider GameInteropProvider { get; private set; } = null!;
         [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
+        [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+        [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
         
         private Configuration _configuration = null!;
         private ITranslationService _translatorService = null!;
@@ -39,6 +47,7 @@ namespace EchoXIV
         private TranslatedChatWindow? _translatedChatWindow = null;
         private WpfHost? _wpfHost = null; // Host para ventana WPF nativa
         private IncomingMessageHandler? _incomingMessageHandler = null;
+        private readonly MessageHistoryManager _historyManager;
         private GameFunctions.ChatBoxHook? _chatBoxHook = null!;
         private static bool _chatVisible = false;
         
@@ -48,6 +57,7 @@ namespace EchoXIV
             {
                 // Cargar configuración
                 _configuration = LoadConfiguration();
+                _historyManager = new MessageHistoryManager(_configuration);
                 
                 // Inicializar localización basada en idioma del usuario
                 Resources.Loc.SetCulture(_configuration.SourceLanguage);
@@ -58,8 +68,6 @@ namespace EchoXIV
                 // Inicializar sistema de ventanas
                 _windowSystem = new WindowSystem("EchoXIV");
                 
-                // NOTA: Integración con Chat2 eliminada por redundancia.
-                // Usamos ChatBoxHook para traducciones y DefaultChannel para comandos.
 
                 // Crear ventana de configuración (SIEMPRE)
                 _configWindow = new ConfigWindow(_configuration);
@@ -71,6 +79,7 @@ namespace EchoXIV
                 _configWindow.OnVisualsChanged += () => _wpfHost?.UpdateVisuals();
                 _configWindow.OnUnlockNativeRequested += () => _wpfHost?.SetLock(false);
                 _configWindow.OnTranslationEngineChanged += (engine) => UpdateTranslationService();
+                _configWindow.OnWindowModeChanged += OnWindowModeChangedHandler;
                 
                 // Inicializar sistema de ventanas
                 // NOTA: No iniciamos WpfHost aquí para evitar que aparezca en la pantalla de título.
@@ -85,9 +94,9 @@ namespace EchoXIV
                 if (!_configuration.UseNativeWindow)
                 {
                     // Crear ventana interna (ImGui/Dalamud)
-                    _translatedChatWindow = new TranslatedChatWindow(_configuration);
+                    _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
                     _windowSystem.AddWindow(_translatedChatWindow);
-                    PluginLog.Info("🖥️ Ventana interna Dalamud iniciada");
+                    if (_configuration.VerboseLogging) PluginLog.Info("🖥️ Ventana interna Dalamud iniciada");
                 }
                 
                 // Crear manejador de mensajes entrantes
@@ -96,12 +105,14 @@ namespace EchoXIV
                     _translatorService,
                     ChatGui,
                     ClientState,
+                    ObjectTable,
                     PluginLog
                 );
                 
                 // Conectar eventos
-                _incomingMessageHandler.OnTranslationStarted += OnIncomingTranslationStarted;
-                _incomingMessageHandler.OnMessageTranslated += OnIncomingMessageTranslated;
+                _incomingMessageHandler.OnTranslationStarted += m => _historyManager.AddMessage(m);
+                _incomingMessageHandler.OnMessageTranslated += m => _historyManager.UpdateMessage(m);
+                _incomingMessageHandler.OnRequestEngineFailover += SwitchToGoogleFailover;
                 
                 // Inicializar Hook Nativo (para traducción saliente segura)
                 try
@@ -113,6 +124,7 @@ namespace EchoXIV
                          ClientState,
                          GameInteropProvider
                     );
+                    _chatBoxHook.OnRequestEngineFailover += SwitchToGoogleFailover;
                     _chatBoxHook.Enable();
                 }
                 catch (Exception ex)
@@ -128,17 +140,17 @@ namespace EchoXIV
                 // Registrar comandos
                 CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
                 {
-                    HelpMessage = "Traduce y envía mensajes al chat.\n" +
-                                  "/translate Hola → Traduce al canal actual\n" +
-                                  "/translate /p Hola → Traduce y envía a Party\n" +
-                                  "/translate on → Activa traducción automática\n" +
-                                  "/translate off → Desactiva traducción\n" +
-                                  "/translate config → Abre configuración"
+                    HelpMessage = "Traduce y envía: /translate [mensaje/on/off/config/help]"
                 });
-                
+
                 CommandManager.AddHandler(CommandNameShort, new CommandInfo(OnCommand)
                 {
-                    HelpMessage = "Atajo para /translate"
+                    HelpMessage = "Atajo corto de /translate"
+                });
+
+                CommandManager.AddHandler(ConfigCommandName, new CommandInfo(OnCommand)
+                {
+                    HelpMessage = "Configuración de EchoXIV"
                 });
                 
                 // Registrar UI callback principal (botón "Abrir" abre configuración)
@@ -173,8 +185,8 @@ namespace EchoXIV
             // se encargarán de ocultar la ventana dinámicamente según el estado del juego.
             if (_configuration.UseNativeWindow && _wpfHost == null)
             {
-                PluginLog.Info("Jugador logueado. Iniciando host de ventana nativa...");
-                _wpfHost = new WpfHost(_configuration, PluginLog);
+                if (_configuration.VerboseLogging) PluginLog.Info("Jugador logueado. Iniciando host de ventana nativa...");
+                _wpfHost = new WpfHost(_configuration, PluginLog, _historyManager);
                 _wpfHost.Start();
             }
         }
@@ -183,7 +195,7 @@ namespace EchoXIV
         {
             if (_wpfHost != null)
             {
-                PluginLog.Info("Jugador deslogueado. Cerrando ventana nativa...");
+                if (_configuration.VerboseLogging) PluginLog.Info("Jugador deslogueado. Cerrando ventana nativa...");
                 _wpfHost.Dispose();
                 _wpfHost = null;
             }
@@ -194,8 +206,6 @@ namespace EchoXIV
             // Detener manejador de mensajes entrantes
             if (_incomingMessageHandler != null)
             {
-                _incomingMessageHandler.OnTranslationStarted -= OnIncomingTranslationStarted;
-                _incomingMessageHandler.OnMessageTranslated -= OnIncomingMessageTranslated;
                 _incomingMessageHandler.Dispose();
             }
             
@@ -222,10 +232,14 @@ namespace EchoXIV
             // Limpiar comandos
             CommandManager.RemoveHandler(CommandName);
             CommandManager.RemoveHandler(CommandNameShort);
+            CommandManager.RemoveHandler(ConfigCommandName);
             
             // Limpiar eventos
-                Framework.Update -= OnFrameworkUpdate;
+            Framework.Update -= OnFrameworkUpdate;
+            if (_windowSystem != null)
+            {
                 PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
+            }
             PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
             PluginInterface.UiBuilder.OpenMainUi -= ToggleConfigUI;
         }
@@ -292,9 +306,19 @@ namespace EchoXIV
                     ResetTranslatedChatWindowPosition();
                     break;
                 
+                case "help":
+                case "?":
+                    ChatGui.Print("[EchoXIV] Comandos disponibles:");
+                    ChatGui.Print("/translate <mensaje> - Traduce al canal activo.");
+                    ChatGui.Print("/translate on/off - Activa/desactiva traducción auto.");
+                    ChatGui.Print("/translate config - Abre los ajustes.");
+                    ChatGui.Print("/translate chat - Muestra/oculta ventana de chat.");
+                    ChatGui.Print("/translate reset - Restaura posición de ventana.");
+                    break;
+                
                 case "input":
                 case "i":
-                     // Legacy, no hace nada o abre config
+                     // Legacy
                      ChatGui.Print("[EchoXIV] La ventana de input ha sido reemplazada. Usa /tl mensaje");
                      break;
                 
@@ -351,28 +375,46 @@ namespace EchoXIV
             }
             else if (_translatedChatWindow != null)
             {
-                _translatedChatWindow.Position = new System.Numerics.Vector2(100, 100);
-                _translatedChatWindow.IsOpen = true;
+                _translatedChatWindow.ResetPosition();
                 ChatGui.Print("[EchoXIV] 📍 Posición de ventana reseteada a (100, 100). Ya debería ser visible.");
             }
         }
 
         private void TranslateAndSend(string input)
         {
-            // Parsear canal explícito o usar actual
-            var (channel, message) = ParseChannelAndMessage(input);
-            
-            if (string.IsNullOrWhiteSpace(message))
-            {
-                ChatGui.Print("[EchoXIV] ⚠️ No hay mensaje para traducir");
-                return;
-            }
-            
             // Traducir async
-            Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 try
                 {
+                    var (prefix, message, type, recipient) = ParseChannelAndMessage(input);
+
+                    if (string.IsNullOrWhiteSpace(message))
+                    {
+                         _ = Framework.RunOnFrameworkThread(() => ChatGui.Print("[EchoXIV] ⚠️ No hay mensaje para traducir"));
+                         return;
+                    }
+
+                    // Verificar lista de exclusión antes de traducir
+                    if (_configuration.ExcludedMessages.Contains(message))
+                    {
+                        _ = Framework.RunOnFrameworkThread(() =>
+                        {
+                            SendToChannel(message, prefix);
+                            _historyManager.AddMessage(new TranslatedChatMessage
+                            {
+                                Timestamp = DateTime.Now,
+                                ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
+                                Recipient = recipient,
+                                Sender = (ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter)?.Name.TextValue ?? "Yo",
+                                OriginalText = message,
+                                TranslatedText = message,
+                                IsTranslating = false
+                            });
+                        });
+                        return;
+                    }
+
                     var translated = await _translatorService.TranslateAsync(
                         message,
                         _configuration.SourceLanguage,
@@ -380,29 +422,39 @@ namespace EchoXIV
                     );
                     
                     // Enviar en main thread
-                    Framework.RunOnFrameworkThread(() =>
+                    _ = Framework.RunOnFrameworkThread(() =>
                     {
-                        SendToChannel(translated, channel);
+                        SendToChannel(translated, prefix);
                         
                         // Mostrar también en nuestra ventana de chat traducido
-                        var displayChannel = channel ?? "(Actual)";
-                        _incomingMessageHandler?.InjectMessage(new TranslatedChatMessage
+                        _historyManager.AddMessage(new TranslatedChatMessage
                         {
                             Timestamp = DateTime.Now,
-                            ChatType = XivChatType.Debug, // Usamos Debug o un tipo neutro para mis propios envíos
-                            Sender = ClientState.LocalPlayer?.Name.TextValue ?? "Yo",
+                            ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
+                            Recipient = recipient,
+                            Sender = (ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter)?.Name.TextValue ?? "Yo",
                             OriginalText = message,
                             TranslatedText = translated,
                             IsTranslating = false
                         });
 
-                        PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}' al canal {displayChannel}");
+                        if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}' al canal {type}");
+                    });
+                }
+                catch (TranslationRateLimitException ex)
+                {
+                    PluginLog.Warning($"⚠️ {ex.Message}. Activando conmutación automática a Google...");
+                    _ = Framework.RunOnFrameworkThread(() =>
+                    {
+                        SwitchToGoogleFailover();
+                        // Re-intentar la traducción una vez con el nuevo motor para el comando actual
+                        TranslateAndSend(input);
                     });
                 }
                 catch (Exception ex)
                 {
                     PluginLog.Error(ex, "Error al traducir mensaje");
-                    Framework.RunOnFrameworkThread(() =>
+                    _ = Framework.RunOnFrameworkThread(() =>
                     {
                         ChatGui.PrintError("[EchoXIV] ❌ Error al traducir");
                     });
@@ -410,39 +462,125 @@ namespace EchoXIV
             });
         }
 
-        private (string channel, string message) ParseChannelAndMessage(string input)
+        private unsafe (string? prefix, string message, XivChatType type, string recipient) ParseChannelAndMessage(string input)
         {
-            input = input.Trim();
+            var trimmed = input.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed)) return (null, string.Empty, XivChatType.Debug, string.Empty);
+
+            // Intentar detectar prefijo de comando (ej: /p, /t, /r)
+            var match = Regex.Match(trimmed, @"^(/[a-z]+)\s*(.*)$", RegexOptions.IgnoreCase);
             
-            // Detectar canal explícito al inicio
-            if (input.StartsWith("/"))
+            if (match.Success)
             {
-                var parts = input.Split(new[] { ' ' }, 2);
-                if (parts.Length == 2)
+                var command = match.Groups[1].Value.ToLower();
+                var remaining = match.Groups[2].Value.Trim();
+                
+                switch (command)
                 {
-                    var explicitChannel = parts[0]; // ej: /p, /fc, /s
-                    // Validar si parece un canal válido (empieza con /)
-                    if (explicitChannel.Length > 1) 
+                    case "/p": case "/party": 
+                        return (command, remaining, XivChatType.Party, string.Empty);
+                    case "/fc": case "/freecompany": 
+                        return (command, remaining, XivChatType.FreeCompany, string.Empty);
+                    case "/sh": case "/shout": 
+                        return (command, remaining, XivChatType.Shout, string.Empty);
+                    case "/y": case "/yell": 
+                        return (command, remaining, XivChatType.Yell, string.Empty);
+                    case "/s": case "/say": 
+                        return (command, remaining, XivChatType.Say, string.Empty);
+                    case "/a": case "/alliance": 
+                        return (command, remaining, XivChatType.Alliance, string.Empty);
+                    
+                    case "/r": case "/reply":
                     {
-                         var message = parts[1];
-                         
-                         // STICKY CHANNEL: Si el usuario especifica un canal, actualizar el default
-                         // para que los siguientes mensajes vayan al mismo lugar automáticamente.
-                         if (_configuration.DefaultChannel != explicitChannel)
-                         {
-                             _configuration.DefaultChannel = explicitChannel;
-                             _configuration.Save();
-                             // Opcional: Notificar visualmente o por log
-                             PluginLog.Info($"[Sticky] Canal por defecto actualizado a: {explicitChannel}");
-                         }
-                         
-                         return (explicitChannel, message);
+                        var agent = AgentChatLog.Instance();
+                        if (agent != null)
+                        {
+                            var recipient = agent->TellPlayerName.ToString();
+                            if (!string.IsNullOrEmpty(recipient))
+                            {
+                                return (command, remaining, XivChatType.TellOutgoing, recipient);
+                            }
+                        }
+                        return (command, remaining, XivChatType.TellOutgoing, "Destinatario");
+                    }
+
+                    case "/t": case "/tell":
+                    {
+                        // Manejar /t "Nombre Apellido@Mundo" Mensaje
+                        if (remaining.StartsWith("\""))
+                        {
+                            var endQuoteIndex = remaining.IndexOf("\"", 1);
+                            if (endQuoteIndex != -1)
+                            {
+                                var recipient = remaining.Substring(1, endQuoteIndex - 1);
+                                var message = remaining.Substring(endQuoteIndex + 1).Trim();
+                                return ($"{command} \"{recipient}\"", message, XivChatType.TellOutgoing, recipient);
+                            }
+                        }
+                        
+                        // Manejar /t Nombre@Mundo Mensaje o /t Nombre Apellido Mensaje
+                        var parts = remaining.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length >= 2)
+                        {
+                            // Si la primera palabra contiene @, es un nombre simple Nombre@Mundo
+                            if (parts[0].Contains("@"))
+                            {
+                                var recipient = parts[0];
+                                var message = string.Join(" ", parts.Skip(1));
+                                return ($"{command} {recipient}", message, XivChatType.TellOutgoing, recipient);
+                            }
+                            
+                            // Si no, asumimos que puede ser Nombre Apellido (formato FFXIV)
+                            // En FFXIV, los nombres siempre tienen dos partes.
+                            if (parts.Length >= 3)
+                            {
+                                var recipient = $"{parts[0]} {parts[1]}";
+                                var message = string.Join(" ", parts.Skip(2));
+                                return ($"{command} {recipient}", message, XivChatType.TellOutgoing, recipient);
+                            }
+                            
+                            // Fallback para nombres de una sola palabra
+                            var fallbackRecipient = parts[0];
+                            var fallbackMessage = string.Join(" ", parts.Skip(1));
+                            return ($"{command} {fallbackRecipient}", fallbackMessage, XivChatType.TellOutgoing, fallbackRecipient);
+                        }
+                        break;
                     }
                 }
+                
+                // Si es un comando no reconocido por nosotros, pero es un comando (/...),
+                // dejamos que el juego lo maneje, pero lo marcamos como Debug para el historial.
+                return (null, trimmed, XivChatType.Debug, string.Empty);
             }
+
+            // --- Canal Implícito (Sin prefijo /) ---
+            var activeType = XivChatType.Debug;
+            var activeRecipient = string.Empty;
             
-            // Si no hay canal explícito, retornar null para que el juego use el canal activo naturalmente
-            return (null, input);
+            var shell = RaptureShellModule.Instance();
+            var agentChat = AgentChatLog.Instance();
+            
+            if (shell != null)
+            {
+                // Mapear el tipo de chat actual del shell del juego
+                var gameChatType = (uint)shell->ChatType;
+                
+                // 17 y 18 suelen ser Tell (Incoming/Outgoing)
+                if (gameChatType == 17 || gameChatType == 18)
+                {
+                    activeType = XivChatType.TellOutgoing;
+                    if (agentChat != null)
+                    {
+                        activeRecipient = agentChat->TellPlayerName.ToString();
+                    }
+                }
+                else
+                {
+                    activeType = (XivChatType)gameChatType;
+                }
+            }
+
+            return (null, trimmed, activeType, activeRecipient);
         }
 
         private unsafe void SendToChannel(string message, string? channel)
@@ -475,7 +613,7 @@ namespace EchoXIV
         private void OnConfigurationChanged()
         {
             _configuration.Save();
-            PluginLog.Info($"Idioma destino cambiado a: {_configuration.TargetLanguage}");
+            if (_configuration.VerboseLogging) PluginLog.Info($"Idioma destino cambiado a: {_configuration.TargetLanguage}");
         }
         
         private Configuration LoadConfiguration()
@@ -485,28 +623,44 @@ namespace EchoXIV
             return config;
         }
         
-        /// <summary>
-        /// Callback cuando se inicia traducción de un mensaje entrante
-        /// </summary>
-        private void OnIncomingTranslationStarted(TranslatedChatMessage message)
-        {
-            _translatedChatWindow?.AddPendingMessage(message);
-            _wpfHost?.AddMessage(message);
-        }
-        
-        /// <summary>
-        /// Callback cuando se completa la traducción de un mensaje entrante
-        /// </summary>
-        private void OnIncomingMessageTranslated(TranslatedChatMessage message)
-        {
-            _translatedChatWindow?.UpdateMessage(message);
-            _wpfHost?.UpdateMessage(message);
-        }
+
 
 
         private void OnOpacityChangedHandler(float opacity)
         {
             _wpfHost?.SetOpacity(opacity);
+        }
+
+        private void OnWindowModeChangedHandler(bool useNative)
+        {
+            if (useNative)
+            {
+                // Destruir ventana ImGui
+                if (_translatedChatWindow != null)
+                {
+                    _windowSystem.RemoveWindow(_translatedChatWindow);
+                    _translatedChatWindow.Dispose();
+                    _translatedChatWindow = null;
+                }
+
+                // Iniciar WPF si estamos logueados
+                if (ClientState.IsLoggedIn && _wpfHost == null)
+                {
+                    OnLogin();
+                }
+            }
+            else
+            {
+                // Destruir WPF
+                OnLogout();
+
+                // Crear ImGui
+                if (_translatedChatWindow == null)
+                {
+                    _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
+                    _windowSystem.AddWindow(_translatedChatWindow);
+                }
+            }
         }
 
         private void UpdateTranslationService()
@@ -519,14 +673,14 @@ namespace EchoXIV
 
             switch (_configuration.SelectedEngine)
             {
-                case TranslationEngine.DeepL:
-                    _translatorService = new DeepLTranslatorService();
-                    PluginLog.Info("Motor de traducción cambiado a: DeepL (Web)");
+                case TranslationEngine.Papago:
+                    _translatorService = new PapagoTranslatorService(_configuration);
+                    if (_configuration.VerboseLogging) PluginLog.Info("Motor de traducción cambiado a: Papago (Naver)");
                     break;
                 case TranslationEngine.Google:
                 default:
                     _translatorService = new GoogleTranslatorService();
-                    PluginLog.Info("Motor de traducción cambiado a: Google");
+                    if (_configuration.VerboseLogging) PluginLog.Info("Motor de traducción cambiado a: Google");
                     break;
             }
             
@@ -543,8 +697,27 @@ namespace EchoXIV
             if (_chatBoxHook != null)
             {
                 _chatBoxHook.UpdateTranslator(_translatorService);
-                PluginLog.Info("ChatBoxHook: Motor actualizado.");
+                if (_configuration.VerboseLogging) PluginLog.Info("ChatBoxHook: Motor actualizado.");
             }
+        }
+
+        private void SwitchToGoogleFailover()
+        {
+            // Solo cambiar si no estamos ya en Google
+            if (_configuration.SelectedEngine == TranslationEngine.Google) return;
+
+            PluginLog.Warning("🔄 [EchoXIV] Cambiando automáticamente a Google Translate (Límite de Papago alcanzado).");
+            _configuration.SelectedEngine = TranslationEngine.Google;
+            _configuration.Save();
+            
+            // Actualizar todos los servicios
+            UpdateTranslationService();
+
+            // Notificar al usuario por el chat del juego
+            _ = Framework.RunOnFrameworkThread(() => 
+            {
+                ChatGui.Print("[EchoXIV] 🔄 Se ha alcanzado el límite de Papago. Cambiando automáticamente a Google Translate.");
+            });
         }
 
         private void OnFrameworkUpdate(IFramework framework)
@@ -563,7 +736,8 @@ namespace EchoXIV
         private static unsafe bool UpdateChatVisibilityInternal()
         {
             // 1. Verificar login básico y presencia real de un personaje en el mundo
-            if (!ClientState.IsLoggedIn || ClientState.LocalPlayer == null || ClientState.LocalContentId == 0) 
+            var localPlayer = ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter;
+            if (!ClientState.IsLoggedIn || localPlayer == null || PlayerState.ContentId == 0) 
                 return false;
 
             // 2. Verificar estados que impiden ver el chat (Carga, Cutscenes, GPose)
@@ -581,9 +755,9 @@ namespace EchoXIV
 
             if (nativeChatVisible) return true;
 
-            // 4. Si el chat nativo no es visible, comprobar si el usuario está usando ChatTwo
-            bool chatTwoPresent = PluginInterface.InstalledPlugins.Any(p => p.InternalName == "ChatTwo" && p.IsLoaded);
-            return chatTwoPresent;
+            // 4. Si el chat nativo no es visible, retornamos true si estamos logueados 
+            // (esto permite que el overlay sea visible con cualquier interfaz de chat externa)
+            return true;
         }
     }
 }

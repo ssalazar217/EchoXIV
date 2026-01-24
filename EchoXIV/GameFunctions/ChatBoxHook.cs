@@ -23,9 +23,13 @@ namespace EchoXIV.GameFunctions
         private readonly IGameInteropProvider _gameInteropProvider;
         
         // Hook de ProcessChatBoxEntry - función que procesa mensajes del chat box
-        // Signature de ChatTwo como referencia
         private Hook<ProcessChatBoxDelegate>? _processChatBoxHook;
         private delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, IntPtr unused, byte a4);
+        
+        /// <summary>
+        /// Evento emitido cuando se solicita un cambio de motor por fallo (failover)
+        /// </summary>
+        public event Action? OnRequestEngineFailover;
         
         public ChatBoxHook(
             Configuration configuration,
@@ -84,14 +88,14 @@ namespace EchoXIV.GameFunctions
                 
                 var originalText = message->ToString();
                 
-                // No traducir si está vacío o es comando
-                if (string.IsNullOrWhiteSpace(originalText) || originalText.StartsWith("/"))
+                // No traducir si está vacío, es comando o está en la lista de exclusión
+                if (string.IsNullOrWhiteSpace(originalText) || originalText.StartsWith("/") || _configuration.ExcludedMessages.Contains(originalText))
                 {
                     _processChatBoxHook!.Original(uiModule, message, unused, a4);
                     return;
                 }
                 
-                _pluginLog.Info($"🎯 Hook interceptó: '{originalText}'");
+                if (_configuration.VerboseLogging) _pluginLog.Info($"🎯 Hook interceptó: '{originalText}'");
                 
                 // Verificar si ya está en caché
                 var cacheKey = $"{originalText}|{_configuration.SourceLanguage}|{_configuration.TargetLanguage}";
@@ -111,7 +115,7 @@ namespace EchoXIV.GameFunctions
                     return;
                 }
                 
-                _pluginLog.Info($"✅ Traducido: '{originalText}' → '{translatedText}'");
+                if (_configuration.VerboseLogging) _pluginLog.Info($"✅ Traducido: '{originalText}' → '{translatedText}'");
                 
                 // Crear nuevo Utf8String con el texto traducido
                 var translatedUtf8 = Utf8String.FromString(translatedText);
@@ -126,6 +130,13 @@ namespace EchoXIV.GameFunctions
                     // Limpiar Utf8String creado
                     translatedUtf8->Dtor(true);
                 }
+            }
+            catch (AggregateException aggEx) when (aggEx.InnerException is TranslationRateLimitException)
+            {
+                _pluginLog.Warning("⚠️ Límite de DeepL alcanzado durante interceptación. Activando conmutación...");
+                OnRequestEngineFailover?.Invoke();
+                // Enviar mensaje original
+                _processChatBoxHook!.Original(uiModule, message, unused, a4);
             }
             catch (Exception ex)
             {
