@@ -36,7 +36,6 @@ namespace FFXIVChatTranslator
         private TranslatedChatWindow? _translatedChatWindow = null;
         private WpfHost? _wpfHost = null; // Host para ventana WPF nativa
         private IncomingMessageHandler? _incomingMessageHandler = null;
-        private Integrations.Chat2Integration? _chat2Integration = null;
         private GameFunctions.ChatBoxHook? _chatBoxHook = null;
         
         public Plugin()
@@ -55,36 +54,20 @@ namespace FFXIVChatTranslator
                 // Inicializar sistema de ventanas
                 _windowSystem = new WindowSystem("Chat2Translator");
                 
-                // Intentar integración con Chat2
-                _chat2Integration = new Integrations.Chat2Integration(
-                    _configuration, 
-                    _translatorService, 
-                    PluginLog,
-                    PluginInterface,
-                    ChatGui,
-                    CommandManager,
-                    Framework,
-                    ClientState
-                );
-                _chat2Integration.Enable();
-                
-                if (_chat2Integration.IsChat2Installed && _configuration.PreferChat2Integration)
-                {
-                    // Modo: Integración con Chat2
-                    PluginLog.Info("🔗 Modo: Integración con Chat2");
-                }
-                else
-                {
-                    // Modo fallback (sin Chat2) - para futuro
-                    PluginLog.Warning("⚠️ Chat2 no detectado - Funcionalidad limitada pero operativa");
-                }
+                // NOTA: Integración con Chat2 eliminada por redundancia.
+                // Usamos ChatBoxHook para traducciones y DefaultChannel para comandos.
 
                 // Crear ventana de configuración (SIEMPRE)
-                _configWindow = new ConfigWindow(_configuration, _chat2Integration);
+                _configWindow = new ConfigWindow(_configuration);
                 _windowSystem.AddWindow(_configWindow);
                 
                 // Suscribirse a cambios de opacidad
                 _configWindow.OnOpacityChanged += OnOpacityChangedHandler;
+                _configWindow.OnSmartVisibilityChanged += (enabled) => _wpfHost?.SetSmartVisibility(enabled);
+                _configWindow.OnVisualsChanged += () => _wpfHost?.UpdateVisuals();
+                _configWindow.OnUnlockNativeRequested += () => _wpfHost?.SetLock(false);
+                
+                // Inicializar sistema de ventanas
                 
                 // Inicializar sistema de ventanas
                 // Inicializar sistema de ventanas
@@ -175,8 +158,7 @@ namespace FFXIVChatTranslator
                 _incomingMessageHandler.Dispose();
             }
             
-            // Detener integración
-            _chat2Integration?.Dispose();
+
             
             // Detener hook nativo
             _chatBoxHook?.Dispose();
@@ -187,6 +169,7 @@ namespace FFXIVChatTranslator
             if (_configWindow != null)
             {
                 _configWindow.OnOpacityChanged -= OnOpacityChangedHandler;
+                // lambda: _configWindow.OnUnlockNativeRequested -= ... (Not possible for anon lambda)
                 _configWindow.Dispose();
             }
             // _translatedChatWindow?.Dispose();
@@ -224,6 +207,30 @@ namespace FFXIVChatTranslator
                     _configuration.TranslationEnabled = false;
                     _configuration.Save();
                     ChatGui.Print("[Chat2 Translator] Traducción desactivada");
+                    break;
+                
+                case "lock":
+                    if (_configuration.UseNativeWindow && _wpfHost != null)
+                    {
+                        _wpfHost.SetLock(true);
+                        ChatGui.Print("[Chat2 Translator] Ventana nativa BLOQUEADA (Click-Through activado). Usa '/tl unlock' para desbloquear.");
+                    }
+                    else
+                    {
+                        ChatGui.Print("[Chat2 Translator] La ventana nativa no está activa.");
+                    }
+                    break;
+
+                case "unlock":
+                    if (_configuration.UseNativeWindow && _wpfHost != null)
+                    {
+                         _wpfHost.SetLock(false);
+                         ChatGui.Print("[Chat2 Translator] Ventana nativa DESBLOQUEADA.");
+                    }
+                    else
+                    {
+                         ChatGui.Print("[Chat2 Translator] La ventana nativa no está activa.");
+                    }
                     break;
                 
                 case "config":
@@ -379,103 +386,8 @@ namespace FFXIVChatTranslator
                 }
             }
             
-            // Si no hay canal explícito, obtener el actual de Chat2
-            var currentChannel = GetCurrentChannelFromChat2();
-            return (currentChannel, input);
-        }
-
-        private string GetCurrentChannelFromChat2()
-        {
-            try
-            {
-                PluginLog.Info($"[DEBUG] Intentando obtener canal. Chat2 instalado: {_chat2Integration?.IsChat2Installed}");
-                
-                if (_chat2Integration?.IsChat2Installed == true)
-                {
-                    // Usar IPC para obtener canal actual
-                    object stateObj = _chat2Integration.GetChatInputState();
-                    dynamic state = stateObj;
-                    int channelId = 0;
-                    
-                    // Solo usar el estado actual si la caja de chat está VISIBLE
-                    // Si presionaste Enter, probablemente InputVisible ya es false, así que ignoramos
-                    // el ChannelType actual (que podría haberse reseteado a Say) y vamos al else.
-                    try 
-                    {
-                        if (state != null && (int)state.ChannelType != 0 && (bool)state.InputVisible)
-                        {
-                            channelId = (int)state.ChannelType;
-                        }
-                    }
-                    catch { }
-
-                    if (channelId == 0)
-                    {
-                        // Si el estado actual es nulo, vacío O CERRADO, usar el último conocido
-                        channelId = _chat2Integration.GetLastActiveChannel();
-                        PluginLog.Info($"[DEBUG] Input cerrado o inválido. Usando último canal conocido: {channelId}");
-                    }
-
-                    if (channelId != 0)
-                    {
-                        var command = ConvertChatTypeToCommand(channelId);
-                        PluginLog.Info($"[DEBUG] Chat2 ChannelType ID: {channelId} -> Mapped to: {command}");
-                        return command;
-                    }
-                    else
-                    {
-                         PluginLog.Warning("[DEBUG] Chat2 state is null or channel 0");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                PluginLog.Warning(ex, "No se pudo obtener canal de Chat2");
-            }
-            
-            // Fallback: Canal por defecto configurado por el usuario
-            return _configuration.DefaultChannel;
-        }
-
-        private string ConvertChatTypeToCommand(int channelType)
-        {
-            // Mapear ChatType de Chat2 a comando de canal
-            // Valores basados en XivChatType estándar
-            return channelType switch
-            {
-                10 => "/s",    // Say (0xA)
-                11 => "/sh",   // Shout (0xB)
-                12 => "/y",    // Yell (0xC)
-                13 => "/t",    // Tell (0xD) - Requiere manejo especial de target
-                14 => "/p",    // Party (0xE)
-                15 => "/a",    // Alliance (0xF)
-                
-                // Linkshells
-                16 => "/l1",
-                17 => "/l2",
-                18 => "/l3",
-                19 => "/l4",
-                20 => "/l5",
-                21 => "/l6",
-                22 => "/l7",
-                23 => "/l8",
-                
-                24 => "/fc",   // FreeCompany (0x18)
-                
-                27 => "/n",    // Novice Network (0x1B)
-                
-                // CrossWorld Linkshells
-                37 => "/cwl1",
-                38 => "/cwl2",
-                39 => "/cwl3",
-                40 => "/cwl4",
-                41 => "/cwl5",
-                42 => "/cwl6",
-                43 => "/cwl7",
-                44 => "/cwl8",
-                
-                _ => "/s"      // Default fallback
-            };
+            // Si no hay canal explícito, usar el Default Channel
+            return (_configuration.DefaultChannel, input);
         }
 
         private unsafe void SendToChannel(string message, string channel)

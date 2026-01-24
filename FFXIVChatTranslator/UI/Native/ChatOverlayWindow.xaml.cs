@@ -12,12 +12,33 @@ namespace FFXIVChatTranslator.UI.Native
     {
         private readonly Configuration _configuration;
         private bool _autoScroll = true;
+        private bool _isLocked = false;
+        
+        // P/Invoke
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_TRANSPARENT = 0x00000020;
+        private const int WS_EX_TOOLWINDOW = 0x00000080; // Ocultar de Alt-Tab
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hwnd, int index);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
 
         public ChatOverlayWindow(Configuration configuration)
         {
             InitializeComponent();
             _configuration = configuration;
             SetOpacity(_configuration.WindowOpacity);
+            
+            // Restaurar geometría
+            this.Left = _configuration.WindowLeft;
+            this.Top = _configuration.WindowTop;
+            this.Width = _configuration.WindowWidth;
+            this.Height = _configuration.WindowHeight;
+
+            // Guardar al cerrar
+            this.Closed += (s, e) => SaveGeometry();
         }
 
         public void SetOpacity(float opacity)
@@ -88,6 +109,19 @@ namespace FFXIVChatTranslator.UI.Native
             base.OnDeactivated(e);
             // Re-forzar Topmost cuando perdemos foco (ej: click en el juego)
             this.Topmost = true;
+            SaveGeometry();
+        }
+
+        private void SaveGeometry()
+        {
+            if (this.WindowState == WindowState.Normal)
+            {
+                _configuration.WindowLeft = this.Left;
+                _configuration.WindowTop = this.Top;
+                _configuration.WindowWidth = this.Width;
+                _configuration.WindowHeight = this.Height;
+                _configuration.Save();
+            }
         }
 
         private Paragraph CreateMessageParagraph(TranslatedChatMessage message)
@@ -99,8 +133,9 @@ namespace FFXIVChatTranslator.UI.Native
             // Margen izquierdo mueve todo el bloque a la derecha
             // TextIndent negativo mueve la primera línea a la izquierda (recuperando el espacio)
             // Resultado: 1ra línea al borde, siguientes líneas indentadas 24px (aprox bajo el timestamp)
-            p.Margin = new Thickness(24, 0, 0, 4); 
+            p.Margin = new Thickness(24, 0, 0, _configuration.ChatMessageSpacing); 
             p.TextIndent = -24;
+            // Aplicar FontSize localmente si se desea, o heredar de FlowDocument
             
             PopulateMessageInlines(p, message);
             return p;
@@ -114,7 +149,9 @@ namespace FFXIVChatTranslator.UI.Native
             // Timestamp
             if (_configuration.ShowTimestamps)
             {
-                p.Inlines.Add(new Run($"[{message.Timestamp:HH:mm}] ") { Foreground = Brushes.Gray });
+                // Usar formato configurado
+                var fmt = _configuration.TimestampFormat;
+                p.Inlines.Add(new Run($"[{message.Timestamp.ToString(fmt)}] ") { Foreground = Brushes.Gray });
             }
 
             // Channel
@@ -172,6 +209,85 @@ namespace FFXIVChatTranslator.UI.Native
         private void Hide_Click(object sender, RoutedEventArgs e)
         {
             this.Hide();
+        }
+
+        private void Lock_Click(object sender, RoutedEventArgs e)
+        {
+            SetLock(!_isLocked);
+        }
+
+        public void SetLock(bool state)
+        {
+            _isLocked = state;
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            
+            if (_isLocked)
+            {
+                // MODO COMPACTO / CLICK-THROUGH
+                // 1. Ocultar header y bordes
+                // (Necesitamos acceso a los elementos por nombre, asegúrate de añadirlos en XAML si no existen)
+                // Asumimos que el border principal es MainBorder
+                MainBorder.BorderThickness = new Thickness(0);
+                MainBorder.Background = Brushes.Transparent; // Transparente pero... ¿clickeable? No si WS_EX_TRANSPARENT
+                
+                // Ocultar Header (Asumiendo que el border header es el child 0 del grid)
+                // Mejor asignar x:Name="HeaderBorder" al border del header en XAML para ser seguro
+                // Por ahora usamos la estructura visual conocida:
+                if (MainBorder.Child is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Border header)
+                {
+                    header.Visibility = Visibility.Collapsed;
+                }
+
+                // 2. Hacer click-through
+                int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+                SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT);
+                
+                // 3. Bloquear resize
+                this.ResizeMode = ResizeMode.NoResize;
+                
+                BtnLock.Content = "🔒";
+            }
+            else
+            {
+                // MODO NORMAL
+                // 1. Restaurar estilos visuales
+                SetOpacity(_configuration.WindowOpacity); // Restaura color de fondo
+                MainBorder.BorderThickness = new Thickness(1);
+
+                if (MainBorder.Child is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Border header)
+                {
+                    header.Visibility = Visibility.Visible;
+                }
+
+                // 2. Quitar click-through
+                int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+                SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_TRANSPARENT);
+                
+                // 3. Restaurar resize
+                this.ResizeMode = ResizeMode.CanResizeWithGrip;
+                
+                 BtnLock.Content = "🔓";
+            }
+        }
+        
+        public void UpdateVisuals()
+        {
+            // Actualizar estilo global del documento
+            if (ChatOutput.Document != null)
+            {
+                ChatOutput.Document.FontSize = _configuration.FontSize;
+                
+                // Actualizar bloques existentes (spacing, timestamps format si cambió)
+                // Nota: Cambiar formato de timestamp en mensajes ya recibidos requiere reconstruir Inlines
+                // Por simplicidad, solo actualizamos Spacing y FontSize aquí.
+                foreach (var block in ChatOutput.Document.Blocks)
+                {
+                    if (block is Paragraph p)
+                    {
+                        p.Margin = new Thickness(24, 0, 0, _configuration.ChatMessageSpacing);
+                    }
+                }
+            }
         }
 
         // --- Helpers de Colores y Nombres (Copia adaptada de TranslatedChatWindow) ---

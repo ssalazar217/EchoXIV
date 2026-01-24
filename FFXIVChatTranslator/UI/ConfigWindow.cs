@@ -11,18 +11,19 @@ namespace FFXIVChatTranslator.UI;
 public class ConfigWindow : Window, IDisposable
 {
     private Configuration _configuration;
-    private Integrations.Chat2Integration _chat2Integration;
     
     // Callback para actualizaciones en tiempo real
     public Action<float>? OnOpacityChanged;
+    public Action<bool>? OnSmartVisibilityChanged;
+    public Action? OnUnlockNativeRequested;
+    public Action? OnVisualsChanged;
     
     private string _newExcludedMessage = string.Empty;
     
-    public ConfigWindow(Configuration configuration, Integrations.Chat2Integration chat2Integration) 
+    public ConfigWindow(Configuration configuration) 
         : base("Chat2 Translator - Configuración###ConfigWindow")
     {
         _configuration = configuration;
-        _chat2Integration = chat2Integration;
         
         Size = new Vector2(600, 500);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -41,6 +42,12 @@ public class ConfigWindow : Window, IDisposable
                 DrawGeneralTab();
                 ImGui.EndTabItem();
             }
+
+            if (ImGui.BeginTabItem("Visuales"))
+            {
+                DrawVisualsTab();
+                ImGui.EndTabItem();
+            }
             
             if (ImGui.BeginTabItem(Loc.Tab_ExcludedMessages))
             {
@@ -48,11 +55,7 @@ public class ConfigWindow : Window, IDisposable
                 ImGui.EndTabItem();
             }
             
-            if (ImGui.BeginTabItem(Loc.Tab_Cache))
-            {
-                DrawCacheTab();
-                ImGui.EndTabItem();
-            }
+
             
             if (ImGui.BeginTabItem(Loc.Tab_IncomingChannels))
             {
@@ -159,6 +162,16 @@ public class ConfigWindow : Window, IDisposable
         
         if (useNative)
         {
+             // Smart Visibility Option
+             var smartVis = _configuration.SmartVisibility;
+             if (ImGui.Checkbox("Smart Visibility (Ocultar al perder foco)", ref smartVis))
+             {
+                 _configuration.SmartVisibility = smartVis;
+                 _configuration.Save();
+                 OnSmartVisibilityChanged?.Invoke(smartVis);
+             }
+             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Oculta automáticamente la ventana cuando el juego no está en primer plano.");
+
              var windowOpacity = _configuration.WindowOpacity;
             ImGui.SetNextItemWidth(150);
             if (ImGui.SliderFloat(Loc.Incoming_WindowOpacity, ref windowOpacity, 0.0f, 1.0f, "%.2f"))
@@ -168,6 +181,16 @@ public class ConfigWindow : Window, IDisposable
                 
                 // Notificar cambio
                 OnOpacityChanged?.Invoke(windowOpacity);
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("Restaurar/Desbloquear Ventana"))
+            {
+                OnUnlockNativeRequested?.Invoke();
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Úsalo si la ventana nativa está bloqueada o perdida.");
             }
         }
         
@@ -260,69 +283,49 @@ public class ConfigWindow : Window, IDisposable
         }
     }
     
-    private void DrawCacheTab()
+
+
+
+    private void DrawVisualsTab()
     {
-        ImGui.TextWrapped(Loc.Cache_Description);
+        ImGui.TextWrapped("Personaliza la apariencia de la ventana de chat traducido.");
         ImGui.Separator();
         ImGui.Spacing();
-        
-        var cacheEnabled = _configuration.CacheEnabled;
-        if (ImGui.Checkbox(Loc.Cache_Enable, ref cacheEnabled))
+
+        // Font Size
+        int fontSize = _configuration.FontSize;
+        if (ImGui.SliderInt("Tamaño de Fuente", ref fontSize, 10, 32))
         {
-            _configuration.CacheEnabled = cacheEnabled;
+            _configuration.FontSize = fontSize;
             _configuration.Save();
+            OnVisualsChanged?.Invoke();
         }
         
-        if (!cacheEnabled)
+        // Spacing
+        int spacing = _configuration.ChatMessageSpacing;
+        if (ImGui.SliderInt("Espaciado entre Mensajes", ref spacing, 0, 20))
         {
-            ImGui.TextColored(new Vector4(1f, 0.5f, 0f, 1f), Loc.Cache_DisabledWarning);
-        }
-        
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-        
-        ImGui.Text(Loc.Cache_MaxLength);
-        ImGui.TextWrapped(Loc.Cache_Description_Long);
-        
-        var maxLength = _configuration.CacheMaxMessageLength;
-        ImGui.SetNextItemWidth(200);
-        if (ImGui.SliderInt("##CacheMaxLength", ref maxLength, 5, 50, string.Format(Loc.Cache_CharLimit, maxLength)))
-        {
-            _configuration.CacheMaxMessageLength = maxLength;
+            _configuration.ChatMessageSpacing = spacing;
             _configuration.Save();
+            OnVisualsChanged?.Invoke();
         }
-        
-        ImGui.Spacing();
-        ImGui.Separator();
+
         ImGui.Spacing();
         
-        var cacheSize = _chat2Integration.GetCacheSize();
-        ImGui.Text(Loc.Cache_Stats);
-        ImGui.BulletText($"{Loc.Cache_Entries} {cacheSize}");
-        ImGui.BulletText("Limite maximo: 1000 entradas");
+        // Timestamp Format
+        ImGui.Text("Formato de Hora");
+        string[] formats = { "HH:mm", "HH:mm:ss", "h:mm tt" };
+        string[] formatNames = { "Corto (13:30)", "Largo (13:30:45)", "AM/PM (1:30 PM)" };
         
-        if (cacheSize > 0)
+        int currentFmt = Array.IndexOf(formats, _configuration.TimestampFormat);
+        if (currentFmt == -1) currentFmt = 0;
+        
+        if (ImGui.Combo("##TimestampFmt", ref currentFmt, formatNames, formatNames.Length))
         {
-            var percentage = (cacheSize / 1000.0f) * 100f;
-            ImGui.ProgressBar(percentage / 100f, new Vector2(-1, 0), string.Format(Loc.Cache_PercentUsed, percentage.ToString("F1")));
+            _configuration.TimestampFormat = formats[currentFmt];
+            _configuration.Save();
+            OnVisualsChanged?.Invoke();
         }
-        
-        ImGui.Spacing();
-        ImGui.Spacing();
-        
-        if (ImGui.Button(Loc.Cache_Clear, new Vector2(-1, 30)))
-        {
-            _chat2Integration.ClearCache();
-        }
-        
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip(Loc.Cache_ClearTooltip);
-        }
-        
-        ImGui.Spacing();
-        ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), Loc.Cache_Tip);
     }
     
     private void DrawIncomingChannelsTab()
@@ -392,6 +395,13 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.InputInt(Loc.Incoming_MaxMessages, ref maxMessages))
         {
             _configuration.MaxDisplayedMessages = Math.Clamp(maxMessages, 10, 200);
+            _configuration.Save();
+        }
+        
+        var showOutgoing = _configuration.ShowOutgoingMessages;
+        if (ImGui.Checkbox("Mostrar mis mensajes", ref showOutgoing))
+        {
+            _configuration.ShowOutgoingMessages = showOutgoing;
             _configuration.Save();
         }
         

@@ -82,9 +82,11 @@ namespace FFXIVChatTranslator
             if (messageText.StartsWith("/"))
                 return;
 
-            // Verificar que NO sea del jugador local (solo traducimos mensajes de otros)
+            // Verificar si es del jugador local
             var localPlayerName = _clientState.LocalPlayer?.Name.TextValue;
-            if (!string.IsNullOrEmpty(localPlayerName) && senderName == localPlayerName)
+            var isLocalPlayer = !string.IsNullOrEmpty(localPlayerName) && senderName == localPlayerName;
+            
+            if (isLocalPlayer && !_configuration.ShowOutgoingMessages)
                 return;
 
             // Verificar lista de exclusión

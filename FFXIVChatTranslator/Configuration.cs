@@ -49,16 +49,9 @@ namespace FFXIVChatTranslator
             "<3"
         };
         
-        // Límite de caracteres para cachear (mensajes más largos no se cachean)
-        public int CacheMaxMessageLength { get; set; } = 10;
+
         
-        // Habilitar/deshabilitar caché completamente
-        public bool CacheEnabled { get; set; } = true;
-        
-        /// <summary>
-        /// Preferir integración con Chat2 si está instalado
-        /// </summary>
-        public bool PreferChat2Integration { get; set; } = true;
+
 
         /// <summary>
         /// Canal por defecto para enviar mensajes si no se detecta el canal actual
@@ -88,6 +81,11 @@ namespace FFXIVChatTranslator
         public bool ShowTimestamps { get; set; } = true;
         
         /// <summary>
+        /// Mostrar mis propios mensajes en la ventana de chat
+        /// </summary>
+        public bool ShowOutgoingMessages { get; set; } = true;
+
+        /// <summary>
         /// Idioma destino para traducciones entrantes (el idioma AL QUE se traduce)
         /// El idioma origen siempre es auto-detectado
         /// Si está vacío, se usa SourceLanguage por defecto
@@ -103,6 +101,24 @@ namespace FFXIVChatTranslator
         /// Opacidad de fondo de la ventana (0.0 a 1.0)
         /// </summary>
         public float WindowOpacity { get; set; } = 0.6f;
+
+
+
+        // --- Geometría de la Ventana (Persistencia) ---
+        public double WindowLeft { get; set; } = 100.0;
+        public double WindowTop { get; set; } = 100.0;
+        public double WindowWidth { get; set; } = 400.0;
+        public double WindowHeight { get; set; } = 300.0;
+        
+        // --- Visuales ---
+        public int FontSize { get; set; } = 16;
+        public int ChatMessageSpacing { get; set; } = 5;
+        public string TimestampFormat { get; set; } = "HH:mm"; // "HH:mm:ss", "Short"
+
+        /// <summary>
+        /// Ocultar ventana automáticamente cuando el juego pierde el foco
+        /// </summary>
+        public bool SmartVisibility { get; set; } = true;
 
         /// <summary>
         /// Usar ventana nativa (WPF) en lugar de ventana interna de Dalamud
