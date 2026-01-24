@@ -20,5 +20,5 @@
   "LoadPriority": 0,
   "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
   "Changelog": "0.0.1: Initial dev version",
-  "AssemblyVersion": "0.0.100"
+  "AssemblyVersion": "0.1.0.0"
 }

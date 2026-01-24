@@ -3,7 +3,8 @@
     "Author": "ssalazar217 (SteSE)",
     "Name": "EchoXIV",
     "InternalName": "EchoXIV",
-    "AssemblyVersion": "0.0.100",
+    "AssemblyVersion": "0.1.0.0",
+    "DownloadLinkInstall": "https://github.com/ssalazar217/EchoXIV/releases/download/v0.1.0.0/EchoXIV.zip",
     "Description": "Automatically translates your outgoing messages (to the party language) and incoming messages (to your local language) using Google Translate. Overlay window included. No API Key required.",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/ssalazar217/EchoXIV",
@@ -21,7 +22,7 @@
     "LoadPriority": 0,
     "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
     "Punchline": "Your message in any language. Bidirectional chat translation focused on active communication.",
-    "DownloadLinkInstall": "https://github.com/ssalazar217/EchoXIV/releases/download/v0.0.100/EchoXIV.zip",
+
     "IsHide": false,
     "IsTestingExclusive": false
   }
