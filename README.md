@@ -6,11 +6,11 @@
 
 - **Tu Mensaje en Cualquier Idioma (Outgoing Translation)**: Usa el comando `/tl <mensaje>` para enviar una traducción instantánea al canal activo.
 - **Traducción Bidireccional**: Entiende lo que dicen y asegúrate de que te entiendan.
-- **Detección Dinámica de Canales**: El sistema "No-Prefix" detecta automáticamente si estás en Party, FC, Say o en un Tell privado.
+- **Detección Dinámica de Canales**: El sistema detecta automáticamente si estás en Party, FC, Say o en un Tell privado.
 - **Superposición Nativa (WPF)**: Una ventana elegante y fluida que se integra perfectamente con el juego.
-- **Visibilidad Inteligente (Smart Visibility)**: El plugin se oculta automáticamente durante cinemáticas, pantallas de carga y cuando el juego pierde el foco.
-- **Privacidad y Simplicidad**: Soporte para **Google Translate** (sin API key) y **DeepL** (usado por profesionales) para una traducción de alta fidelidad.
-- **Diferentes Modos de Ventana**: Elige el que mejor se adapte a tu setup técnico.
+- **Visibilidad Inteligente (Smart Visibility)**: El plugin se oculta automáticamente basándose en el foco del proceso del juego, cinemáticas y pantallas de carga.
+- **Experiencia Inicial**: Configuración automática basada en el idioma de tu Dalamud y una pantalla de bienvenida guiada.
+- **Privacidad y Simplicidad**: Soporte para **Google Translate** (sin API key) y **Papago** para una traducción rápida y confiable.
 
 ### 🖥️ Comparativa de Modos de Ventana
 
@@ -23,24 +23,26 @@
 
 ## 📷 Capturas de Pantalla
 
-|              Ventana Nativa (WPF)              |           Ventana Interna (ImGui)            |
-| :--------------------------------------------: | :------------------------------------------: |
-| ![Native Chat](EchoXIV/images/native_chat.png) | ![ImGui Chat](EchoXIV/images/imgui_chat.png) |
+|           Ventana Interna (ImGui)            |              Ventana Nativa (WPF)              |
+| :------------------------------------------: | :--------------------------------------------: |
+| ![ImGui Chat](EchoXIV/images/imgui_chat.png) | ![Native Chat](EchoXIV/images/native_chat.png) |
 
 |            Configuración             |
 | :----------------------------------: |
 | ![Config](EchoXIV/images/config.png) |
 
-## 🚀 Instalación Rápida
+## 🚀 Instalación
 
-1. Abre **XIVLauncher** (o el menú `/xlsettings` dentro del juego).
-2. Ve a la pestaña **Experimental** -> **Custom Plugin Repositories**.
-3. Añade la siguiente URL:
-   ```
-   https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/repo.json
-   ```
-4. Guarda los cambios.
-5. Busca **EchoXIV** en la lista de plugins disponibles e instálalo.
+Actualmente EchoXIV se encuentra en proceso de revisión para el repositorio oficial de Dalamud.
+
+### Instalación vía Testing (Pronto)
+
+Una vez sea aceptado en el canal de pruebas:
+
+1. Abre el instalador de plugins de **Dalamud** (`/xlplugins`).
+2. Ve a **Settings**.
+3. Asegúrate de tener activa la opción **"Get plugin testing updates"**.
+4. Busca **EchoXIV** en la lista e instálalo.
 
 ## 📖 Comandos
 
@@ -54,13 +56,15 @@
 
 Accede al menú con `/echoxiv`:
 
+- **Bienvenida**: Pantalla inicial para configurar tus idiomas en segundos.
 - **General**: Configura tus idiomas de origen y destino.
 - **Visuales**: Ajusta la opacidad, el bloqueo de ventana y el modo "Smart Visibility".
-- **Filtros**: Excluye mensajes o canales que no desees traducir.
+- **Filtros**: Excluye mensajes o canales que no desees traducir. Incluye una lista maestra de jerga de juego (P1-P4, Job names, etc.).
 
 ## 🙏 Agradecimientos
 
 - **TataruHelper**: Por la inspiración técnica en el método de traducción.
+- **Echoglossian**: Por las referencias en la integración con Dalamud.
 - **Dalamud/XIVLauncher**: Por el increíble ecosistema de desarrollo.
 
 ---
