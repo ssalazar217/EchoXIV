@@ -45,6 +45,7 @@ namespace EchoXIV
         private WindowSystem _windowSystem = null!;
         private ConfigWindow? _configWindow = null;
         private TranslatedChatWindow? _translatedChatWindow = null;
+        private WelcomeWindow? _welcomeWindow = null;
         private WpfHost? _wpfHost = null; // Host para ventana WPF nativa
         private IncomingMessageHandler? _incomingMessageHandler = null;
         private readonly MessageHistoryManager _historyManager;
@@ -58,7 +59,22 @@ namespace EchoXIV
                 // Cargar configuración
                 _configuration = LoadConfiguration();
                 _historyManager = new MessageHistoryManager(_configuration);
-                
+
+                // Borrar si existiera para evitar configs corruptas si el usuario borró el JSON
+                if (_configuration.FirstRun)
+                {
+                    var uiLang = PluginInterface.UiLanguage;
+                    if (uiLang != "en")
+                    {
+                        PluginLog.Info($"[EchoXIV] Primera ejecución detectada. Auto-configurando idioma base desde Dalamud: {uiLang}");
+                        _configuration.SourceLanguage = uiLang;
+                        _configuration.TargetLanguage = "en";
+                        _configuration.IncomingTargetLanguage = uiLang;
+                        _configuration.FirstRun = false;
+                        _configuration.Save();
+                    }
+                }
+
                 // Inicializar localización basada en idioma del usuario
                 Resources.Loc.SetCulture(_configuration.SourceLanguage);
                 
@@ -72,6 +88,19 @@ namespace EchoXIV
                 // Crear ventana de configuración (SIEMPRE)
                 _configWindow = new ConfigWindow(_configuration);
                 _windowSystem.AddWindow(_configWindow);
+
+                // Manejar pantalla de bienvenida si sigue siendo FirstRun (ej: Dalamud está en Inglés)
+                if (_configuration.FirstRun)
+                {
+                    _welcomeWindow = new WelcomeWindow(_configuration);
+                    _welcomeWindow.OnConfigurationComplete += () => 
+                    {
+                        Resources.Loc.SetCulture(_configuration.SourceLanguage);
+                        UpdateTranslationService();
+                    };
+                    _windowSystem.AddWindow(_welcomeWindow);
+                    _welcomeWindow.IsOpen = true;
+                }
                 
                 // Suscribirse a cambios de opacidad
                 _configWindow.OnOpacityChanged += OnOpacityChangedHandler;
@@ -426,19 +455,26 @@ namespace EchoXIV
                     {
                         SendToChannel(translated, prefix);
                         
-                        // Mostrar también en nuestra ventana de chat traducido
-                        _historyManager.AddMessage(new TranslatedChatMessage
+                        // Mostrar también en nuestra ventana de chat traducido, si la configuración lo permite
+                        if (_configuration.ShowOutgoingMessages)
                         {
-                            Timestamp = DateTime.Now,
-                            ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
-                            Recipient = recipient,
-                            Sender = (ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter)?.Name.TextValue ?? "Yo",
-                            OriginalText = message,
-                            TranslatedText = translated,
-                            IsTranslating = false
-                        });
-
-                        if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}' al canal {type}");
+                            _historyManager.AddMessage(new TranslatedChatMessage
+                            {
+                                Timestamp = DateTime.Now,
+                                ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
+                                Recipient = recipient,
+                                Sender = (ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter)?.Name.TextValue ?? "Yo",
+                                OriginalText = message,
+                                TranslatedText = translated,
+                                IsTranslating = false
+                            });
+                            
+                            if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido, enviado y registrado: '{message}' → '{translated}'");
+                        }
+                        else
+                        {
+                            if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido y enviado (sin registro UI): '{message}' → '{translated}'");
+                        }
                     });
                 }
                 catch (TranslationRateLimitException ex)

@@ -10,6 +10,8 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>EchoXIV</AssemblyName>
     <RootNamespace>EchoXIV</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <PackageIcon>images/icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,10 +37,4 @@
       <DependentUpon>Strings.resx</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
-
-
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Copy SourceFiles="$(ProjectDir)images\icon.png" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-  </Target>
 </Project>

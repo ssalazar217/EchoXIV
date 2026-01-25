@@ -1,24 +1,26 @@
 {
   "Author": "ssalazar217 (SteSE)",
   "Name": "EchoXIV",
-  "Punchline": "Your message in any language. Bidirectional chat translation focused on active communication.",
-  "Description": "Automatically translates your outgoing messages (to the party language) and incoming messages (to your local language) using Google Translate. Overlay window included. No API Key required.",
   "InternalName": "EchoXIV",
-  "RepoUrl": "https://github.com/ssalazar217/EchoXIV",
-  "Homepage": "https://github.com/ssalazar217/EchoXIV",
   "ApplicableVersion": "any",
-    "Tags": [
-      "chat",
-      "translation",
-      "translator",
-      "language"
-    ],
+  "Description": "EchoXIV is a chat translation tool designed for FFXIV. It supports translating both incoming and outgoing chat messages, helping you communicate with players in different languages.\nKey Features:\n- Active Chat Translation: Supports translating messages sent to your currently active chat channel.\n- Smart Failover: Reliability with automatic switching between Papago and Google.\n- Native Overlay: Performance-focused interface.\n\n[Español]\nEchoXIV es una herramienta de traducción de chat para FFXIV. Soporta la traducción de mensajes de chat entrantes y salientes, ayudándote a comunicarte con jugadores de otros idiomas.\nCaracterísticas:\n- Traducción de Chat Activo: Soporta la traducción de mensajes enviados a tu canal de chat activo.\n- Failover Inteligente: Fiabilidad con cambio automático entre Papago y Google.\n- Overlay Nativo: Interfaz enfocada en el rendimiento.",
+  "RepoUrl": "https://github.com/ssalazar217/EchoXIV",
+  "Tags": [ "chat", "translation", "translator", "language", "Dalamud", "plugin" ],
+  "Disabled": false,
+  "Testing": false,
+  "Punchline": "Bidirectional (Outgoing+Incoming) chat translation with Auto-Failover. / Traducción de chat bidireccional con Failover automático.",
+  "IsHide": false,
+  "IsTestingExclusive": false,
+  "LoadPriority": 0,
+  "ImageUrls": [
+    ""
+  ],
+  "Changelog": "0.0.1: Initial dev version",
+  "DevSupportState": "ACTIVE",
+  "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
+  "AcceptsFeedback": true,
   "DalamudApiLevel": 14,
   "LoadRequiredState": 2,
   "LoadSync": false,
-  "CanUnloadAsync": false,
-  "LoadPriority": 0,
-  "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
-  "Changelog": "0.0.1: Initial dev version",
-  "AssemblyVersion": "0.1.0.2"
+  "CanUnloadAsync": false
 }

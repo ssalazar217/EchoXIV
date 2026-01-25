@@ -298,23 +298,14 @@ public class ConfigWindow : Window, IDisposable
             
             if (ImGui.Button(Loc.Excluded_RestoreDefault))
             {
-                _configuration.ExcludedMessages = new()
+                _configuration.ExcludedMessages = new(StringComparer.OrdinalIgnoreCase)
                 {
-                    "lol", "LOL",
-                    "o/", "o7", 
-                    "uwu", "UwU", 
-                    "gg", "GG",
-                    "ty", "TY", "thx", "THX",
-                    "xd", "XD", "xD",
-                    "omg", "OMG",
-                    "wtf", "WTF",
-                    "afk", "AFK",
-                    "brb", "BRB",
-                    "gn", "GN",
-                    "gm", "GM",
-                    "\\o/", "\\(^o^)/", "^_^", "^^",
-                    ":)", ":(", ":D", ";)",
-                    "<3"
+                    "lol", "o/", "o7", "uwu", "gg", "ty", "thx", "xd", "omg", "wtf", 
+                    "afk", "brb", "gn", "gm", "\\o/", "\\(^o^)/", "^_^", "^^", 
+                    ":)", ":(", ":D", ";)", "<3", 
+                    "P1", "P2", "P3", "P4", "dc", "PLD", "MCH", "DNC",
+                    "m1s", "m2s", "m3s", "m4s", "m5s", "m6s", "m7s", "m8s", "m9s", "m10s", "m11s", "m12s",
+                    "PF", "ilvl", "lb", "mb", "tyfp", "c:"
                 };
                 _configuration.Save();
             }

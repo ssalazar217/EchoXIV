@@ -21,6 +21,11 @@ namespace EchoXIV
         public int Version { get; set; } = 0;
         
         /// <summary>
+        /// Indica si es la primera vez que se ejecuta el plugin
+        /// </summary>
+        public bool FirstRun { get; set; } = true;
+        
+        /// <summary>
         /// Activa o desactiva la traducción automática
         /// </summary>
         public bool TranslationEnabled { get; set; } = true;
@@ -38,21 +43,12 @@ namespace EchoXIV
         // Lista de mensajes que NO se traducen (expresiones universales, emoticonos, etc.)
         public HashSet<string> ExcludedMessages { get; set; } = new(StringComparer.OrdinalIgnoreCase)
         {
-            "lol", "LOL",
-            "o/", "o7", 
-            "uwu", "UwU", 
-            "gg", "GG",
-            "ty", "TY", "thx", "THX",
-            "xd", "XD", "xD",
-            "omg", "OMG",
-            "wtf", "WTF",
-            "afk", "AFK",
-            "brb", "BRB",
-            "gn", "GN",
-            "gm", "GM",
-            "\\o/", "\\(^o^)/", "^_^", "^^",
-            ":)", ":(", ":D", ";)",
-            "<3"
+            "lol", "o/", "o7", "uwu", "gg", "ty", "thx", "xd", "omg", "wtf", 
+            "afk", "brb", "gn", "gm", "\\o/", "\\(^o^)/", "^_^", "^^", 
+            ":)", ":(", ":D", ";)", "<3", 
+            "P1", "P2", "P3", "P4", "dc", "PLD", "MCH", "DNC",
+            "m1s", "m2s", "m3s", "m4s", "m5s", "m6s", "m7s", "m8s", "m9s", "m10s", "m11s", "m12s",
+            "PF", "ilvl", "lb", "mb", "tyfp", "c:"
         };
         
 
