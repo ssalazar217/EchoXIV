@@ -26,8 +26,16 @@ namespace EchoXIV.Services
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
         private readonly Dalamud.Plugin.Services.IPluginLog _logger;
         private readonly MessageHistoryManager _historyManager;
+        private IntPtr _chatWindowHandle = IntPtr.Zero;
+        private uint _currentPid;
 
         public WpfHost(Configuration configuration, Dalamud.Plugin.Services.IPluginLog logger, MessageHistoryManager historyManager)
         {
@@ -97,11 +105,17 @@ namespace EchoXIV.Services
                 IsInitialized = true; // SUCCESS
                 
                 // Inicializar Smart Visibility Timer
-                _gameWindowHandle = Process.GetCurrentProcess().MainWindowHandle;
+                _currentPid = (uint)Process.GetCurrentProcess().Id;
+                _gameWindowHandle = GetGameWindowHandle();
+                
+                _chatWindowHandle = new System.Windows.Interop.WindowInteropHelper(_chatWindow).Handle;
+
                 _visibilityTimer = new DispatcherTimer();
                 _visibilityTimer.Interval = TimeSpan.FromMilliseconds(500);
                 _visibilityTimer.Tick += VisibilityTimer_Tick;
                 _visibilityTimer.Start();
+                
+                if (_configuration.VerboseLogging) _logger.Info($"[WpfHost] PID: {_currentPid}, GameHandle: {_gameWindowHandle}, ChatHandle: {_chatWindowHandle}");
             }
             catch (Exception ex)
             {
@@ -146,18 +160,32 @@ namespace EchoXIV.Services
             bool isChatVisible = Plugin.IsChatVisible();
             bool shouldBeVisible = isChatVisible;
 
+            // Estado actual de la ventana
+            bool isVisible = _chatWindow.Visibility == Visibility.Visible;
+
             // Lógica de visibilidad OPCIONAL (Smart Visibility): Ocultar si el juego no tiene el foco
             if (_configuration.SmartVisibility && isChatVisible)
             {
                 var foreground = GetForegroundWindow();
-                var windowHandle = new System.Windows.Interop.WindowInteropHelper(_chatWindow).Handle;
+                
+                if (foreground == IntPtr.Zero)
+                {
+                    shouldBeVisible = false;
+                }
+                else
+                {
+                    GetWindowThreadProcessId(foreground, out uint foregroundPid);
+                    
+                    // Visible si el proceso en primer plano es el mismo que el del juego
+                    shouldBeVisible = (foregroundPid == _currentPid);
 
-                // Visible si el foco está en el juego O en nuestra propia ventana
-                shouldBeVisible = (foreground == _gameWindowHandle || foreground == windowHandle);
+                    if (_configuration.VerboseLogging && isVisible != shouldBeVisible)
+                    {
+                        _logger.Info($"[WpfHost] SmartVis Change: ForegroundHandle={foreground}, ForegroundPID={foregroundPid}, OurPID={_currentPid}, ShouldBeVisible={shouldBeVisible}");
+                    }
+                }
             }
 
-            // Estado actual de la ventana
-            bool isVisible = _chatWindow.Visibility == Visibility.Visible;
             
             // Solo actuar si cambia el estado deseado
             if (shouldBeVisible && !isVisible)
@@ -224,6 +252,23 @@ namespace EchoXIV.Services
             if (_chatWindow != null && _isRunning)
             {
                  _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.UpdateVisuals());
+            }
+        }
+
+        private IntPtr GetGameWindowHandle()
+        {
+            try
+            {
+                var mainHandle = Process.GetCurrentProcess().MainWindowHandle;
+                if (mainHandle != IntPtr.Zero) return mainHandle;
+
+                // Fallback a buscar por clase si MainWindowHandle falla
+                return FindWindow("FFXIVGAME", null);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error obteniendo handle de la ventana del juego");
+                return IntPtr.Zero;
             }
         }
 
