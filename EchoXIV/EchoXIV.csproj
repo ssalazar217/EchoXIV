@@ -7,7 +7,8 @@
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <LangVersion>latest</LangVersion>
-    <UseWPF>true</UseWPF>
+    <UseWPF Condition="'$(OS)' == 'Windows_NT'">true</UseWPF>
+    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">$(DefineConstants);WINDOWS</DefineConstants>
     <AssemblyName>EchoXIV</AssemblyName>
     <RootNamespace>EchoXIV</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -28,6 +29,12 @@
     </Content>
   </ItemGroup>
   
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+    <Compile Remove="Services\WpfHost.cs" />
+    <Compile Remove="UI\Native\**\*.cs" />
+    <Page Remove="UI\Native\**\*.xaml" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Update="Resources\Strings.resx">
       <Generator>ResXFileCodeGenerator</Generator>
