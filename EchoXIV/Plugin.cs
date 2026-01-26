@@ -46,9 +46,7 @@ namespace EchoXIV
         private ConfigWindow? _configWindow = null;
         private TranslatedChatWindow? _translatedChatWindow = null;
         private WelcomeWindow? _welcomeWindow = null;
-#if WINDOWS
         private WpfHost? _wpfHost = null; // Host para ventana WPF nativa
-#endif
         private IncomingMessageHandler? _incomingMessageHandler = null;
         private readonly MessageHistoryManager _historyManager;
         private GameFunctions.ChatBoxHook? _chatBoxHook = null!;
@@ -106,11 +104,9 @@ namespace EchoXIV
                 
                 // Suscribirse a cambios de opacidad
                 _configWindow.OnOpacityChanged += OnOpacityChangedHandler;
-#if WINDOWS
                 _configWindow.OnSmartVisibilityChanged += (enabled) => _wpfHost?.SetSmartVisibility(enabled);
                 _configWindow.OnVisualsChanged += () => _wpfHost?.UpdateVisuals();
                 _configWindow.OnUnlockNativeRequested += () => _wpfHost?.SetLock(false);
-#endif
                 _configWindow.OnTranslationEngineChanged += (engine) => UpdateTranslationService();
                 _configWindow.OnWindowModeChanged += OnWindowModeChangedHandler;
                 
@@ -216,30 +212,24 @@ namespace EchoXIV
         {
             // Ya no es necesaria la validación aquí, el timer de WPF y DrawConditions de ImGui 
             // se encargarán de ocultar la ventana dinámicamente según el estado del juego.
-            if (_configuration.UseNativeWindow)
+            if (_configuration.UseNativeWindow && _wpfHost == null)
             {
-#if WINDOWS
-                if (_wpfHost == null)
-                {
-                    if (_configuration.VerboseLogging) PluginLog.Info("Jugador logueado. Iniciando host de ventana nativa...");
-                    _wpfHost = new WpfHost(_configuration, PluginLog, _historyManager);
-                    _wpfHost.Start();
-                }
-#endif
+                if (_configuration.VerboseLogging) PluginLog.Info("Jugador logueado. Iniciando host de ventana nativa...");
+                _wpfHost = new WpfHost(_configuration, PluginLog, _historyManager);
+                _wpfHost.Start();
             }
         }
 
         private void OnLogout()
         {
-#if WINDOWS
             if (_wpfHost != null)
             {
                 if (_configuration.VerboseLogging) PluginLog.Info("Jugador deslogueado. Cerrando ventana nativa...");
                 _wpfHost.Dispose();
                 _wpfHost = null;
             }
-#endif
         }
+    
         
         public void Dispose()
         {
@@ -267,9 +257,7 @@ namespace EchoXIV
             // Limpiar eventos de login (desuscripción manual no es posible con delegados anónimos, 
             // pero Dalamud maneja la limpieza al descargar el plugin en la mayoría de casos)
 
-#if WINDOWS
             _wpfHost?.Dispose();
-#endif
             
             // Limpiar comandos
             CommandManager.RemoveHandler(CommandName);
@@ -311,28 +299,24 @@ namespace EchoXIV
                     break;
                 
                 case "lock":
-#if WINDOWS
                     if (_configuration.UseNativeWindow && _wpfHost != null)
                     {
                         _wpfHost.SetLock(true);
                         ChatGui.Print("[EchoXIV] Ventana nativa BLOQUEADA (Click-Through activado). Usa '/tl unlock' para desbloquear.");
                     }
                     else
-#endif
                     {
                         ChatGui.Print("[EchoXIV] La ventana nativa no está activa.");
                     }
                     break;
 
                 case "unlock":
-#if WINDOWS
                     if (_configuration.UseNativeWindow && _wpfHost != null)
                     {
                          _wpfHost.SetLock(false);
                          ChatGui.Print("[EchoXIV] Ventana nativa DESBLOQUEADA.");
                     }
                     else
-#endif
                     {
                          ChatGui.Print("[EchoXIV] La ventana nativa no está activa.");
                     }
@@ -390,7 +374,6 @@ namespace EchoXIV
         {
             if (_configuration.UseNativeWindow)
             {
-#if WINDOWS
                 if (_wpfHost == null)
                 {
                      ChatGui.PrintError("[EchoXIV] ⚠️ La ventana nativa está activada pero no iniciada. Por favor reinicia el plugin.");
@@ -399,9 +382,6 @@ namespace EchoXIV
 
                 _wpfHost.ToggleWindow();
                 ChatGui.Print("[EchoXIV] 👁️ Alternando visibilidad de ventana nativa.");
-#else
-                ChatGui.PrintError("[EchoXIV] ⚠️ La ventana nativa no está disponible en esta plataforma.");
-#endif
             }
             else if (_translatedChatWindow != null)
             {
@@ -420,12 +400,8 @@ namespace EchoXIV
         {
             if (_configuration.UseNativeWindow)
             {
-#if WINDOWS
                  _wpfHost?.ResetWindow();
                  ChatGui.Print("[EchoXIV] 📍 Posición de ventana nativa reseteada a (100, 100).");
-#else
-                 ChatGui.PrintError("[EchoXIV] ⚠️ La ventana nativa no está disponible en esta plataforma.");
-#endif
             }
             else if (_translatedChatWindow != null)
             {
@@ -689,9 +665,7 @@ namespace EchoXIV
 
         private void OnOpacityChangedHandler(float opacity)
         {
-#if WINDOWS
             _wpfHost?.SetOpacity(opacity);
-#endif
         }
 
         private void OnWindowModeChangedHandler(bool useNative)

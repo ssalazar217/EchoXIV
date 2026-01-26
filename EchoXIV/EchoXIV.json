@@ -15,7 +15,7 @@
   "ImageUrls": [
     ""
   ],
-  "Changelog": "v0.1.0.4:\n- Pantalla de bienvenida para configuración inicial.\n- Auto-configuración basada en idioma de Dalamud.\n- Mejoras en Smart Visibility (PID detection).\n- Nueva lista maestra de mensajes excluidos.",
+  "Changelog": "v0.1.0.5:\n- Neutral Hybrid Bridge para compatibilidad con Linux CI (Plogon).\n- Solución de errores en tiempo de ejecución del DLR.\n- Restauración de interactividad (Drag/Move) dinámica.\n- Limpieza total de advertencias de compilación.",
   "DevSupportState": "ACTIVE",
   "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
   "AcceptsFeedback": true,

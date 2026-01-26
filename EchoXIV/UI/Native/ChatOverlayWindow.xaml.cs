@@ -1,88 +1,154 @@
 using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using System.Linq.Expressions;
 using Dalamud.Game.Text;
 using EchoXIV.Services;
 
 namespace EchoXIV.UI.Native
 {
-    public partial class ChatOverlayWindow : Window
+    public class ChatOverlayWindow
     {
         private readonly Configuration _configuration;
         private readonly MessageHistoryManager _historyManager;
         private bool _autoScroll = true;
         private bool _isLocked = false;
-        public event Action<bool>? OnVisibilityChanged;
         
+        private dynamic _window = null!;
+        private dynamic _chatOutput = null!;
+        private dynamic _titleText = null!;
+        private dynamic _mainBorder = null!;
+        private dynamic _headerBorder = null!;
+        private dynamic _btnUnlockOverlay = null!;
+        private dynamic _btnLock = null!;
+
         public ChatOverlayWindow(Configuration configuration, MessageHistoryManager historyManager)
         {
-            InitializeComponent();
             _configuration = configuration;
             _historyManager = historyManager;
 
-            // Sincronizar historial existente
-            foreach (var msg in _historyManager.GetHistory())
+            if (NativeUiLoader.IsWindows)
             {
-                AddMessage(msg);
+                InitializeDynamicWindow();
+            }
+        }
+
+        private void InitializeDynamicWindow()
+        {
+            var xaml = NativeUiLoader.GetEmbeddedResource("EchoXIV.UI.Native.ChatOverlayWindow.xaml");
+            _window = NativeUiLoader.LoadXaml(xaml)!;
+
+            // Encontrar elementos por nombre
+            _chatOutput = _window.FindName("ChatOutput");
+            _titleText = _window.FindName("TitleText");
+            _mainBorder = _window.FindName("MainBorder");
+            _headerBorder = _window.FindName("HeaderBorder");
+            _btnUnlockOverlay = _window.FindName("BtnUnlockOverlay");
+            _btnLock = _window.FindName("BtnLock");
+
+            // Nota: Para evitar CS1977, usamos un truco de casting o reflexión para eventos en dynamic
+            // HookEvent(_headerBorder, "MouseLeftButtonDown", new Action<object, dynamic>((s, e) => { if (e.ChangedButton == 0) _window.DragMove(); }));
+            // HookEvent(_window.FindName("BtnLock"), "Click", new EventHandler((s, e) => Lock_Click(s, e)));
+            // HookEvent(_window.FindName("BtnUnlockOverlay"), "Click", new EventHandler((s, e) => UnlockOverlay_Click(s, e)));
+            
+            // Usaremos una forma robusta con Expression Trees para evitar problemas de tipos de delegados
+            HookEvent(_window.FindName("BtnLock"), "Click", (Action<object, dynamic>)((s, e) => Lock_Click(s, e)));
+            HookEvent(_window.FindName("BtnUnlockOverlay"), "Click", (Action<object, dynamic>)((s, e) => UnlockOverlay_Click(s, e)));
+            HookEvent(_window.FindName("BtnClear"), "Click", (Action<object, dynamic>)((s, e) => Clear_Click(s, e)));
+            HookEvent(_window.FindName("BtnHide"), "Click", (Action<object, dynamic>)((s, e) => Hide_Click(s, e)));
+            
+            if (_headerBorder != null) {
+                HookEvent(_headerBorder, "MouseLeftButtonDown", (Action<object, dynamic>)((s, e) => Header_MouseDown(s, e)));
             }
 
-            // Suscribirse a eventos
-            _historyManager.OnMessageAdded += m => Dispatcher.InvokeAsync(() => AddMessage(m));
-            _historyManager.OnMessageUpdated += m => Dispatcher.InvokeAsync(() => UpdateMessage(m));
-            _historyManager.OnHistoryCleared += () => Dispatcher.InvokeAsync(() => ChatOutput.Document.Blocks.Clear());
-            
-            // Estado inicial de visibilidad
-            if (!_configuration.OverlayVisible)
-            {
-                this.Visibility = Visibility.Collapsed;
-            }
+            // Suscribirse a historial
+            _historyManager.OnMessageAdded += m => _window.Dispatcher.InvokeAsync((Action)(() => AddMessage(m)));
+            _historyManager.OnMessageUpdated += m => _window.Dispatcher.InvokeAsync((Action)(() => UpdateMessage(m)));
+            _historyManager.OnHistoryCleared += () => _window.Dispatcher.InvokeAsync((Action)(() => _chatOutput.Document.Blocks.Clear()));
+
+            // Estado inicial
+            if (!_configuration.OverlayVisible) _window.Visibility = 2; // Collapsed
             
             SetOpacity(_configuration.WindowOpacity);
-            
-            // Restaurar geometría
-            this.Left = _configuration.WindowLeft;
-            this.Top = _configuration.WindowTop;
-            this.Width = _configuration.WindowWidth;
-            this.Height = _configuration.WindowHeight;
+            _window.Left = _configuration.WindowLeft;
+            _window.Top = _configuration.WindowTop;
+            _window.Width = _configuration.WindowWidth;
+            _window.Height = _configuration.WindowHeight;
 
-            // Guardar al cerrar
-            // Guardar al cerrar
-            this.Closed += (s, e) => SaveGeometry();
-            
+            _window.Closed += (EventHandler)((s, e) => SaveGeometry());
             UpdateTitle();
+
+            foreach (var msg in _historyManager.GetHistory()) AddMessage(msg);
         }
+
+        private void HookEvent(dynamic element, string eventName, Action<object, dynamic> action)
+        {
+            if (element == null) return;
+            try {
+                EventInfo? ev = element.GetType().GetEvent(eventName);
+                if (ev == null) return;
+                
+                var handlerType = ev.EventHandlerType!;
+                var methodInfo = handlerType.GetMethod("Invoke")!;
+                var parameterTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
+                
+                var parameters = parameterTypes.Select(t => Expression.Parameter(t)).ToArray();
+                var actionInvoke = typeof(Action<object, dynamic>).GetMethod("Invoke")!;
+                var callAction = Expression.Call(
+                    Expression.Constant(action),
+                    actionInvoke,
+                    Expression.Convert(parameters[0], typeof(object)),
+                    Expression.Convert(parameters[1], typeof(object))
+                );
+                
+                var lambda = Expression.Lambda(handlerType, callAction, parameters);
+                ev.AddEventHandler(element, lambda.Compile());
+            } catch { }
+        }
+
+
+        public IntPtr GetHandle()
+        {
+            if (!NativeUiLoader.IsWindows) return IntPtr.Zero;
+            var helperType = Type.GetType("System.Windows.Interop.WindowInteropHelper, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+            var helper = Activator.CreateInstance(helperType!, (object)_window);
+            return (IntPtr)helperType!.GetProperty("Handle")!.GetValue(helper)!;
+        }
+
+        public void Show() { if (NativeUiLoader.IsWindows) _window.Show(); }
+        public void Hide() { if (NativeUiLoader.IsWindows) _window.Hide(); }
+        public void Close() { if (NativeUiLoader.IsWindows) _window.Close(); }
+        public bool IsVisible() => NativeUiLoader.IsWindows && _window.Visibility == 0;
 
         private void UpdateTitle()
         {
-            if (TitleText != null)
+            if (_titleText != null)
             {
-                var count = ChatOutput.Document.Blocks.Count;
-                var engine = _configuration.SelectedEngine;
-                TitleText.Text = $"EchoXIV [{engine}] ({count})";
+                var count = _chatOutput.Document.Blocks.Count;
+                _titleText.Text = $"EchoXIV [{_configuration.SelectedEngine}] ({count})";
             }
         }
 
         public void SetOpacity(float opacity)
         {
-            // Ajustar solo la opacidad del fondo (MainBorder)
-            // opacity es 0.0 a 1.0. Color alpha es 0 a 255.
-            if (MainBorder != null)
-            {
-                byte alpha = (byte)(Math.Clamp(opacity, 0f, 1f) * 255);
-                // Usamos negro (#000000) como base, ajustando alpha
-                MainBorder.Background = new SolidColorBrush(Color.FromArgb(alpha, 0, 0, 0));
-            }
+            if (_mainBorder == null) return;
+            byte alpha = (byte)(Math.Clamp(opacity, 0f, 1f) * 255);
+            var colorType = Type.GetType("System.Windows.Media.Color, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+            var fromRgb = colorType!.GetMethod("FromArgb", new[] { typeof(byte), typeof(byte), typeof(byte), typeof(byte) });
+            var color = fromRgb!.Invoke(null, new object[] { alpha, (byte)0, (byte)0, (byte)0 });
+            
+            var brushType = Type.GetType("System.Windows.Media.SolidColorBrush, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+            dynamic brush = Activator.CreateInstance(brushType!, color)!;
+            _mainBorder.Background = brush;
         }
 
         public void AddMessage(TranslatedChatMessage message)
         {
-            var paragraph = CreateMessageParagraph(message);
-            ChatOutput.Document.Blocks.Add(paragraph);
+            if (!NativeUiLoader.IsWindows) return;
+            dynamic paragraph = CreateMessageParagraph(message);
+            _chatOutput.Document.Blocks.Add(paragraph);
             PruneMessages();
             ScrollToEnd();
             UpdateTitle();
@@ -90,19 +156,13 @@ namespace EchoXIV.UI.Native
 
         public void UpdateMessage(TranslatedChatMessage message)
         {
-            // En una implementación real más compleja, buscaríamos el bloque por ID.
-            // Por simplicidad, y como esto suele ser para el último mensaje,
-            // podemos simplemente eliminar el último "Traduciendo..." y agregar el nuevo.
-            // O mejor: redibujar si es costoso buscar.
-            
-            // BUSQUEDA SIMPLE: Buscar por Tag (guardaremos el ID en el Tag del parrafo)
-            foreach (var block in ChatOutput.Document.Blocks)
+            if (!NativeUiLoader.IsWindows) return;
+            foreach (dynamic block in _chatOutput.Document.Blocks)
             {
-                if (block is Paragraph p && p.Tag is Guid id && id == message.Id)
+                if (block.Tag is Guid id && id == message.Id)
                 {
-                    // Reconstruir contenido
-                    p.Inlines.Clear();
-                    PopulateMessageInlines(p, message);
+                    block.Inlines.Clear();
+                    PopulateMessageInlines(block, message);
                     break;
                 }
             }
@@ -110,115 +170,92 @@ namespace EchoXIV.UI.Native
         
         public void ToggleVisibility()
         {
-             if (this.Visibility == Visibility.Visible)
+             if (IsVisible())
              {
                 _configuration.OverlayVisible = false;
-                this.Hide();
-                OnVisibilityChanged?.Invoke(false);
+                Hide();
              }
              else
              {
                 _configuration.OverlayVisible = true;
-                this.Show();
-                this.Topmost = true; // Reforzar
-                this.Activate(); // Traer al frente
-                OnVisibilityChanged?.Invoke(true);
+                Show();
+                _window.Topmost = true;
+                _window.Activate();
              }
              _configuration.Save();
         }
         
         public void ResetPosition()
         {
-            this.Left = 100;
-            this.Top = 100;
-            this.Show();
-            this.Topmost = true; // Forzar Topmost al resetear
-            this.Activate();
-        }
-
-        protected override void OnDeactivated(EventArgs e)
-        {
-            base.OnDeactivated(e);
-            // Re-forzar Topmost cuando perdemos foco (ej: click en el juego)
-            this.Topmost = true;
-            SaveGeometry();
+            if (!NativeUiLoader.IsWindows) return;
+            _window.Left = 100;
+            _window.Top = 100;
+            Show();
+            _window.Topmost = true;
+            _window.Activate();
         }
 
         private void SaveGeometry()
         {
-            if (this.WindowState == WindowState.Normal)
+            if (_window.WindowState == 0) // Normal
             {
-                _configuration.WindowLeft = this.Left;
-                _configuration.WindowTop = this.Top;
-                _configuration.WindowWidth = this.Width;
-                _configuration.WindowHeight = this.Height;
+                _configuration.WindowLeft = _window.Left;
+                _configuration.WindowTop = _window.Top;
+                _configuration.WindowWidth = _window.Width;
+                _configuration.WindowHeight = _window.Height;
                 _configuration.Save();
             }
         }
 
-        private Paragraph CreateMessageParagraph(TranslatedChatMessage message)
+        private dynamic CreateMessageParagraph(TranslatedChatMessage message)
         {
-            var p = new Paragraph();
-            p.Tag = message.Id; // Guardar ID para actualizaciones
+            dynamic p = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Paragraph")!;
+            p.Tag = message.Id; 
             
-            // Sangría colgante (Hanging Indent)
-            // Margen izquierdo mueve todo el bloque a la derecha
-            // TextIndent negativo mueve la primera línea a la izquierda (recuperando el espacio)
-            // Resultado: 1ra línea al borde, siguientes líneas indentadas 24px (aprox bajo el timestamp)
-            p.Margin = new Thickness(24, 0, 0, _configuration.ChatMessageSpacing); 
-            p.TextIndent = -24;
-            // Aplicar FontSize localmente si se desea, o heredar de FlowDocument
+            var thicknessType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+            p.Margin = (dynamic)Activator.CreateInstance(thicknessType!, 24.0, 0.0, 0.0, (double)_configuration.ChatMessageSpacing)!;
+            p.TextIndent = -24.0;
             
             PopulateMessageInlines(p, message);
             return p;
         }
 
-        private void PopulateMessageInlines(Paragraph p, TranslatedChatMessage message)
+        private void PopulateMessageInlines(dynamic p, TranslatedChatMessage message)
         {
             var color = GetChannelColor(message.ChatType);
-            var brush = new SolidColorBrush(color);
+            var brushType = Type.GetType("System.Windows.Media.SolidColorBrush, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+            dynamic brush = Activator.CreateInstance(brushType!, color)!;
 
-            // Timestamp
             if (_configuration.ShowTimestamps)
             {
-                // Usar formato configurado
-                var fmt = _configuration.TimestampFormat;
-                p.Inlines.Add(new Run($"[{message.Timestamp.ToString(fmt)}] ") { Foreground = Brushes.Gray });
+                dynamic run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", $"[{message.Timestamp.ToString(_configuration.TimestampFormat)}] ")!;
+                run.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Gray");
+                p.Inlines.Add(run);
             }
 
-            // Prefix (Channel + Direction + Name)
-            if (message.ChatType == XivChatType.TellOutgoing)
-            {
-                var name = string.IsNullOrEmpty(message.Recipient) ? message.Sender : message.Recipient;
-                p.Inlines.Add(new Run($"[Tell] >> {name}: ") { Foreground = brush });
-            }
-            else if (message.ChatType == XivChatType.TellIncoming)
-            {
-                p.Inlines.Add(new Run($"[Tell] << {message.Sender}: ") { Foreground = brush });
-            }
-            else
-            {
-                // Channel
-                p.Inlines.Add(new Run($"[{GetChannelName(message.ChatType)}] ") { Foreground = brush });
+            string prefix = "";
+            if (message.ChatType == XivChatType.TellOutgoing) prefix = $"[Tell] >> {(string.IsNullOrEmpty(message.Recipient) ? message.Sender : message.Recipient)}: ";
+            else if (message.ChatType == XivChatType.TellIncoming) prefix = $"[Tell] << {message.Sender}: ";
+            else prefix = $"[{GetChannelName(message.ChatType)}] {message.Sender}: ";
 
-                // Sender
-                p.Inlines.Add(new Run($"{message.Sender}: ") { Foreground = brush });
-            }
+            dynamic prefixRun = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", prefix)!;
+            prefixRun.Foreground = (dynamic)brush;
+            p.Inlines.Add(prefixRun);
 
-            // Message
             if (message.IsTranslating)
             {
-                p.Inlines.Add(new Run("Traduciendo...") { Foreground = Brushes.Yellow });
+                dynamic run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", "Traduciendo...")!;
+                run.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Yellow");
+                p.Inlines.Add(run);
             }
             else
             {
-                AddTextWithUrls(p, message.TranslatedText, Brushes.White);
-
+                AddTextWithUrls(p, message.TranslatedText, (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "White"));
                 if (_configuration.ShowOriginalText)
                 {
-                    // Tooltip para original (simple approach: Run con ToolTip)
-                    // WPF Run.ToolTip soporta strings directos
-                    var originalRun = new Run(" [?]") { Foreground = Brushes.Gray, ToolTip = message.OriginalText, Cursor = Cursors.Help };
+                    dynamic originalRun = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", " [?]")!;
+                    originalRun.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Gray");
+                    originalRun.ToolTip = message.OriginalText;
                     p.Inlines.Add(originalRun);
                 }
             }
@@ -226,242 +263,145 @@ namespace EchoXIV.UI.Native
 
         private void PruneMessages()
         {
-            while (ChatOutput.Document.Blocks.Count > _configuration.MaxDisplayedMessages)
+            while ((int)_chatOutput.Document.Blocks.Count > _configuration.MaxDisplayedMessages)
             {
-                ChatOutput.Document.Blocks.Remove(ChatOutput.Document.Blocks.FirstBlock);
+                _chatOutput.Document.Blocks.Remove(_chatOutput.Document.Blocks.FirstBlock);
             }
             UpdateTitle();
         }
 
         private void ScrollToEnd()
         {
-            if (_autoScroll)
+            if (_autoScroll) _chatOutput?.ScrollToEnd();
+        }
+
+        private void Header_MouseDown(object sender, dynamic e)
+        {
+            if (NativeUiLoader.IsWindows && _window != null)
             {
-                ChatOutput.ScrollToEnd();
+                try {
+                    if (e.ChangedButton == 0) _window?.DragMove();
+                } catch { }
             }
         }
 
-        private void DragWindow(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-                this.DragMove();
-        }
-
-        private void Clear_Click(object sender, RoutedEventArgs e)
-        {
-            ChatOutput.Document.Blocks.Clear();
-            UpdateTitle();
-        }
-
-        private void Hide_Click(object sender, RoutedEventArgs e)
-        {
-            _configuration.OverlayVisible = false;
-            _configuration.Save();
-            this.Hide();
-            OnVisibilityChanged?.Invoke(false);
-        }
-
-        private void Lock_Click(object sender, RoutedEventArgs e)
-        {
-            SetLock(!_isLocked);
-        }
-
-        private void UnlockOverlay_Click(object sender, RoutedEventArgs e)
-        {
-            SetLock(false);
-        }
+        private void Lock_Click(object? sender, EventArgs e) => SetLock(!_isLocked);
+        private void UnlockOverlay_Click(object? sender, EventArgs e) => SetLock(false);
+        private void Clear_Click(object? sender, EventArgs e) { _chatOutput.Document.Blocks.Clear(); UpdateTitle(); }
+        private void Hide_Click(object? sender, EventArgs e) { _configuration.OverlayVisible = false; _configuration.Save(); Hide(); }
 
         public void SetLock(bool state)
         {
             _isLocked = state;
-            
             if (_isLocked)
             {
-                // MODO COMPACTO / CLICK-THROUGH SIMULADO
-                // 1. Desactivar HitTest en el contenedor principal (permite click-through a lo que hay detrás)
-                MainBorder.IsHitTestVisible = false;
+                _mainBorder.IsHitTestVisible = false;
+                _mainBorder.Background = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Transparent");
+                var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                var thickness = Activator.CreateInstance(thinType!, 0.0);
+                if (thickness != null) _mainBorder.BorderThickness = (dynamic)thickness;
                 
-                // 2. Ocultar fondo y bordes para que sea totalmente transparente
-                MainBorder.Background = Brushes.Transparent;
-                MainBorder.BorderThickness = new Thickness(0);
-
-                // 3. Ocultar Header
-                if (HeaderBorder != null)
-                {
-                    HeaderBorder.Visibility = Visibility.Collapsed;
-                }
-
-                // 4. Mostrar botón flotante de desbloqueo (que SÍ es HitTestVisible)
-                if (BtnUnlockOverlay != null)
-                {
-                    BtnUnlockOverlay.Visibility = Visibility.Visible;
-                }
-                
-                // 5. Bloquear resize y asegurar Topmost
-                this.ResizeMode = ResizeMode.NoResize;
-                this.Topmost = true;
-                
-                if (BtnLock != null) BtnLock.Content = "🔒";
+                if (_headerBorder != null) _headerBorder.Visibility = 2; // Collapsed
+                if (_btnUnlockOverlay != null) _btnUnlockOverlay.Visibility = 0; // Visible
+                _window.ResizeMode = 0; // NoResize
+                if (_btnLock != null) _btnLock.Content = "🔒";
             }
             else
             {
-                // MODO NORMAL
-                // 1. Activar HitTest
-                MainBorder.IsHitTestVisible = true;
-                
-                // 2. Restaurar estilos visuales
+                _mainBorder.IsHitTestVisible = true;
                 SetOpacity(_configuration.WindowOpacity);
-                MainBorder.BorderThickness = new Thickness(1);
-
-                // 3. Mostrar Header
-                if (HeaderBorder != null)
-                {
-                    HeaderBorder.Visibility = Visibility.Visible;
-                }
-
-                // 4. Ocultar botón flotante
-                if (BtnUnlockOverlay != null)
-                {
-                    BtnUnlockOverlay.Visibility = Visibility.Collapsed;
-                }
-                 
-                // 5. Restaurar resize
-                this.ResizeMode = ResizeMode.CanResizeWithGrip;
+                var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                var thickness = Activator.CreateInstance(thinType!, 1.0);
+                if (thickness != null) _mainBorder.BorderThickness = (dynamic)thickness;
                 
-                if (BtnLock != null) BtnLock.Content = "🔓";
+                if (_headerBorder != null) _headerBorder.Visibility = 0;
+                if (_btnUnlockOverlay != null) _btnUnlockOverlay.Visibility = 2;
+                _window.ResizeMode = 2; // CanResizeWithGrip
+                if (_btnLock != null) _btnLock.Content = "🔓";
             }
         }
         
         public void UpdateVisuals()
         {
-            // Actualizar estilo global del documento
-            if (ChatOutput.Document != null)
+            if (_chatOutput == null) return;
+            _chatOutput.Document.FontSize = (double)_configuration.FontSize;
+            var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+            foreach (dynamic block in _chatOutput.Document.Blocks)
             {
-                ChatOutput.Document.FontSize = _configuration.FontSize;
-                
-                // Actualizar bloques existentes (spacing, timestamps format si cambió)
-                // Nota: Cambiar formato de timestamp en mensajes ya recibidos requiere reconstruir Inlines
-                // Por simplicidad, solo actualizamos Spacing y FontSize aquí.
-                foreach (var block in ChatOutput.Document.Blocks)
-                {
-                    if (block is Paragraph p)
-                    {
-                        p.Margin = new Thickness(24, 0, 0, _configuration.ChatMessageSpacing);
-                    }
-                }
+                block.Margin = (dynamic)Activator.CreateInstance(thinType!, 24.0, 0.0, 0.0, (double)_configuration.ChatMessageSpacing)!;
             }
         }
 
-        // --- Helpers de Colores y Nombres (Copia adaptada de TranslatedChatWindow) ---
-
-        private void AddTextWithUrls(Paragraph p, string text, Brush foreground)
+        private void AddTextWithUrls(dynamic p, string text, dynamic foreground)
         {
-            if (string.IsNullOrEmpty(text)) return;
-
-            // Simple regex for URLs
             var regex = new Regex(@"(https?://[^\s]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             var matches = regex.Matches(text);
-            
             int lastIndex = 0;
             foreach (Match match in matches)
             {
-                // Text before match
-                if (match.Index > lastIndex)
-                {
-                    string segment = text.Substring(lastIndex, match.Index - lastIndex);
-                    p.Inlines.Add(new Run(segment) { Foreground = foreground });
+                if (match.Index > lastIndex) {
+                    dynamic? run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", text.Substring(lastIndex, match.Index - lastIndex));
+                    if (run != null)
+                    {
+                        run.Foreground = foreground;
+                        p.Inlines.Add(run);
+                    }
                 }
                 
-                // The Link
                 string url = match.Value;
                 try
                 {
-                    var link = new Hyperlink(new Run(url))
+                    dynamic? link = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Hyperlink", NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", url)!)!;
+                    if (link != null)
                     {
-                        NavigateUri = new Uri(url),
-                        Foreground = new SolidColorBrush(Color.FromRgb(0, 255, 255)), // Cian
-                        Cursor = Cursors.Hand
-                    };
-                    link.RequestNavigate += (s, e) => 
+                        link.NavigateUri = new Uri(url);
+                        p.Inlines.Add(link);
+                    }
+                }
+                catch { 
+                    dynamic? run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", url);
+                    if (run != null)
                     {
-                        try { Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); }
-                        catch { /* log? */ }
-                        e.Handled = true;
-                    };
-                    p.Inlines.Add(link);
+                        run.Foreground = foreground;
+                        p.Inlines.Add(run); 
+                    }
                 }
-                catch
-                {
-                   p.Inlines.Add(new Run(url) { Foreground = foreground });
-                }
-                
                 lastIndex = match.Index + match.Length;
             }
-            
-            // Remaining text
-            if (lastIndex < text.Length)
-            {
-                p.Inlines.Add(new Run(text.Substring(lastIndex)) { Foreground = foreground });
+            if (lastIndex < text.Length) {
+                dynamic? run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", text.Substring(lastIndex));
+                if (run != null)
+                {
+                    run.Foreground = foreground;
+                    p.Inlines.Add(run);
+                }
             }
         }
 
-        private Color GetChannelColor(XivChatType type)
+        private object GetChannelColor(XivChatType type)
         {
-             // Usando los colores definidos previamente
-             // Nota: WPF Color usa bytes 0-255
-            return type switch
-            {
-                XivChatType.Say => Color.FromRgb(247, 247, 247),
-                XivChatType.Shout => Color.FromRgb(255, 166, 102),
-                XivChatType.Yell => Color.FromRgb(255, 255, 0),
-                XivChatType.Party => Color.FromRgb(102, 229, 255),
-                XivChatType.Alliance => Color.FromRgb(255, 127, 0),
-                XivChatType.FreeCompany => Color.FromRgb(171, 219, 229),
-                XivChatType.TellIncoming or XivChatType.TellOutgoing => Color.FromRgb(255, 184, 222),
-                XivChatType.NoviceNetwork => Color.FromRgb(212, 255, 125),
-                // Linkshells
-                XivChatType.Ls1 or XivChatType.Ls2 or XivChatType.Ls3 or XivChatType.Ls4 or
-                XivChatType.Ls5 or XivChatType.Ls6 or XivChatType.Ls7 or XivChatType.Ls8 or
-                XivChatType.CrossLinkShell1 or XivChatType.CrossLinkShell2 or XivChatType.CrossLinkShell3 or
-                XivChatType.CrossLinkShell4 or XivChatType.CrossLinkShell5 or XivChatType.CrossLinkShell6 or
-                XivChatType.CrossLinkShell7 or XivChatType.CrossLinkShell8 
-                    => Color.FromRgb(212, 255, 125),
-                _ => Color.FromRgb(204, 204, 204)
+            var colorType = Type.GetType("System.Windows.Media.Color, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+            var fromRgb = colorType!.GetMethod("FromRgb", new[] { typeof(byte), typeof(byte), typeof(byte) });
+            
+            var (r, g, b) = type switch {
+                XivChatType.Say => (247, 247, 247),
+                XivChatType.Shout => (255, 166, 102),
+                XivChatType.Yell => (255, 255, 0),
+                XivChatType.Party => (102, 229, 255),
+                XivChatType.Alliance => (255, 127, 0),
+                XivChatType.FreeCompany => (171, 219, 229),
+                XivChatType.TellIncoming or XivChatType.TellOutgoing => (255, 184, 222),
+                _ => (204, 204, 204)
             };
+            return fromRgb!.Invoke(null, new object[] { (byte)r, (byte)g, (byte)b })!;
+        }
+
+        private dynamic GetStaticProperty(string typeName, string propName)
+        {
+            var type = Type.GetType(typeName);
+            return type!.GetProperty(propName)!.GetValue(null)!;
         }
         
-        private string GetChannelName(XivChatType type)
-        {
-             return type switch
-            {
-                XivChatType.Say => "Say",
-                XivChatType.Shout => "Shout",
-                XivChatType.Yell => "Yell",
-                XivChatType.Party => "Party",
-                XivChatType.Alliance => "Alliance",
-                XivChatType.FreeCompany => "FC",
-                XivChatType.Ls1 => "LS1",
-                XivChatType.Ls2 => "LS2",
-                XivChatType.Ls3 => "LS3",
-                XivChatType.Ls4 => "LS4",
-                XivChatType.Ls5 => "LS5",
-                XivChatType.Ls6 => "LS6",
-                XivChatType.Ls7 => "LS7",
-                XivChatType.Ls8 => "LS8",
-                XivChatType.CrossLinkShell1 => "CWLS1",
-                XivChatType.CrossLinkShell2 => "CWLS2",
-                XivChatType.CrossLinkShell3 => "CWLS3",
-                XivChatType.CrossLinkShell4 => "CWLS4",
-                XivChatType.CrossLinkShell5 => "CWLS5",
-                XivChatType.CrossLinkShell6 => "CWLS6",
-                XivChatType.CrossLinkShell7 => "CWLS7",
-                XivChatType.CrossLinkShell8 => "CWLS8",
-                XivChatType.NoviceNetwork => "NN",
-                XivChatType.TellOutgoing => "Tell",
-                XivChatType.TellIncoming => "Tell",
-                XivChatType.Debug => "Echo",
-                _ => type.ToString()
-            };
-        }
+        private string GetChannelName(XivChatType type) => type.ToString();
     }
 }

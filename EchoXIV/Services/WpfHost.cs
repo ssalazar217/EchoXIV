@@ -1,18 +1,16 @@
 using System;
 using System.Threading;
-using System.Windows;
-using System.Windows.Threading;
 using System.Runtime.InteropServices; 
 using System.Diagnostics;
-using EchoXIV.UI.Native;
+using System.Linq;
 
 namespace EchoXIV.Services
 {
     public class WpfHost : IDisposable
     {
         private Thread? _wpfThread;
-        private Application? _wpfApp;
-        private ChatOverlayWindow? _chatWindow;
+        private dynamic? _wpfApp;
+        private dynamic? _chatWindow;
         private readonly Configuration _configuration;
         private bool _isRunning;
 
@@ -20,7 +18,7 @@ namespace EchoXIV.Services
         private readonly ManualResetEvent _readyEvent = new(false);
         
         // Smart Visibility
-        private DispatcherTimer? _visibilityTimer;
+        private dynamic? _visibilityTimer;
         private IntPtr _gameWindowHandle;
 
         [DllImport("user32.dll")]
@@ -49,6 +47,12 @@ namespace EchoXIV.Services
         public void Start()
         {
             if (_isRunning) return;
+            if (!NativeUiLoader.IsWindows)
+            {
+                _logger.Warning("WpfHost: Intento de inicio en plataforma no compatible (No-Windows).");
+                return;
+            }
+
             _isRunning = true;
             _readyEvent.Reset();
 
@@ -64,82 +68,76 @@ namespace EchoXIV.Services
 
         private void WpfThreadEntryPoint()
         {
-             // Log de diagnóstico
-            _logger.Info("Iniciando hilo WPF...");
+            _logger.Info("Iniciando hilo WPF (Dynamic Bridge)...");
             
-            // Intentar obtener la App actual o crear una nueva
-            // ESTRATEGIA: Nunca matar la App. Solo usarla como contenedor.
-            if (Application.Current == null)
+            if (!NativeUiLoader.TryLoadWpf(_logger))
             {
-                try
-                {
-                    _wpfApp = new Application();
-                    _wpfApp.ShutdownMode = ShutdownMode.OnExplicitShutdown; 
-                    _logger.Info("Nueva Application creada.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(ex, "Error creando App (¿AppDomain ocupado?)");
-                    _wpfApp = Application.Current;
-                }
-            }
-            else
-            {
-                _wpfApp = Application.Current;
-                _logger.Info("Usando Application existente.");
+                _logger.Error("No se pudieron cargar las librerías de WPF necesarias.");
+                _readyEvent.Set();
+                return;
             }
 
-            // Crear la ventana
             try
             {
-                _logger.Info("Instanciando ChatOverlayWindow...");
-                _chatWindow = new ChatOverlayWindow(_configuration, _historyManager);
-                _chatWindow.Closed += (s, e) => 
+                // dynamic app = Application.Current
+                var appType = Type.GetType("System.Windows.Application, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                _wpfApp = appType?.GetProperty("Current")?.GetValue(null);
+
+                if (_wpfApp == null)
                 {
-                    _chatWindow = null;
-                    _logger.Info("Ventana cerrada. Terminando thread WPF.");
-                    Dispatcher.CurrentDispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
-                };
-                _chatWindow.Show();
-                _logger.Info("✅ Ventana WPF nativa inicializada correctamente.");
-                IsInitialized = true; // SUCCESS
+                    _wpfApp = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Application");
+                    if (_wpfApp != null) _wpfApp.ShutdownMode = 1; // ShutdownMode.OnExplicitShutdown
+                    _logger.Info("Nueva Dynamic Application creada.");
+                }
+                else
+                {
+                    _logger.Info("Usando Dynamic Application existente.");
+                }
+
+                _logger.Info("Instanciando ChatOverlayWindow (Dynamic)...");
+                _chatWindow = new EchoXIV.UI.Native.ChatOverlayWindow(_configuration, _historyManager);
                 
-                // Inicializar Smart Visibility Timer
+                // _chatWindow.Closed += ...
+                // Nota: Los eventos en dynamic requieren cuidado o usar delegados
+                
+                _chatWindow.Show();
+                _logger.Info("✅ Ventana WPF dinámica inicializada correctamente.");
+                IsInitialized = true;
+
                 _currentPid = (uint)Process.GetCurrentProcess().Id;
                 _gameWindowHandle = GetGameWindowHandle();
-                
-                _chatWindowHandle = new System.Windows.Interop.WindowInteropHelper(_chatWindow).Handle;
+                _chatWindowHandle = _chatWindow.GetHandle();
 
-                _visibilityTimer = new DispatcherTimer();
-                _visibilityTimer.Interval = TimeSpan.FromMilliseconds(500);
-                _visibilityTimer.Tick += VisibilityTimer_Tick;
-                _visibilityTimer.Start();
-                
-                if (_configuration.VerboseLogging) _logger.Info($"[WpfHost] PID: {_currentPid}, GameHandle: {_gameWindowHandle}, ChatHandle: {_chatWindowHandle}");
+                // DispatcherTimer
+                _visibilityTimer = NativeUiLoader.CreateInstance("WindowsBase", "System.Windows.Threading.DispatcherTimer");
+                if (_visibilityTimer != null)
+                {
+                    _visibilityTimer.Interval = TimeSpan.FromMilliseconds(500);
+                    _visibilityTimer.Tick += (EventHandler)((s, e) => VisibilityTimer_Tick(s, e));
+                    _visibilityTimer.Start();
+                }
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "CRITICAL: Error creando ventana WPF");
+                _logger.Error(ex, "CRITICAL: Error en WpfThreadEntryPoint dinámica");
                 IsInitialized = false;
             }
 
-            // Señalizar que estamos listos
             _readyEvent.Set();
 
-            // Iniciar dispatcher loop
             try 
             {
-                _logger.Info("Ejecutando Dispatcher.Run()...");
-                Dispatcher.Run();
+                // Dispatcher.Run()
+                var dispatcherType = Type.GetType("System.Windows.Threading.Dispatcher, WindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                dispatcherType?.GetMethod("Run", Array.Empty<Type>())?.Invoke(null, null);
             }
-            catch (ThreadAbortException) { }
             catch (Exception ex)
             {
-                 _logger.Error(ex, "Error en Dispatcher loop");
+                 _logger.Error(ex, "Error en Dispatcher loop dinámico");
             }
             finally
             {
-                _logger.Info("Dispatcher loop terminado. Limpiando hilo.");
+                _logger.Info("Dispatcher loop terminado.");
                 IsInitialized = false;
                 _chatWindow = null;
                 _visibilityTimer?.Stop();
@@ -147,27 +145,17 @@ namespace EchoXIV.Services
             }
         }
 
-        // ... (AddMessage, UpdateMessage, etc. unchanged) ...
-
         private void VisibilityTimer_Tick(object? sender, EventArgs e)
         {
             if (_chatWindow == null) return;
-            
-            // Si el usuario cerró la ventana manualmente, no hacer nada aquí
             if (!_configuration.OverlayVisible) return;
             
-            // Lógica de visibilidad MANDATORIA: Solo visible si el chat de juego es visible
             bool isChatVisible = Plugin.IsChatVisible();
             bool shouldBeVisible = isChatVisible;
 
-            // Estado actual de la ventana
-            bool isVisible = _chatWindow.Visibility == Visibility.Visible;
-
-            // Lógica de visibilidad OPCIONAL (Smart Visibility): Ocultar si el juego no tiene el foco
             if (_configuration.SmartVisibility && isChatVisible)
             {
                 var foreground = GetForegroundWindow();
-                
                 if (foreground == IntPtr.Zero)
                 {
                     shouldBeVisible = false;
@@ -175,23 +163,15 @@ namespace EchoXIV.Services
                 else
                 {
                     GetWindowThreadProcessId(foreground, out uint foregroundPid);
-                    
-                    // Visible si el proceso en primer plano es el mismo que el del juego
                     shouldBeVisible = (foregroundPid == _currentPid);
-
-                    if (_configuration.VerboseLogging && isVisible != shouldBeVisible)
-                    {
-                        _logger.Info($"[WpfHost] SmartVis Change: ForegroundHandle={foreground}, ForegroundPID={foregroundPid}, OurPID={_currentPid}, ShouldBeVisible={shouldBeVisible}");
-                    }
                 }
             }
 
-            
-            // Solo actuar si cambia el estado deseado
+            bool isVisible = _chatWindow.IsVisible();
+
             if (shouldBeVisible && !isVisible)
             {
                 _chatWindow.Show();
-                _chatWindow.Topmost = true; // Asegurar topmost al volver
             }
             else if (!shouldBeVisible && isVisible)
             {
@@ -199,61 +179,14 @@ namespace EchoXIV.Services
             }
         }
 
-
-        
-        public void ToggleWindow()
-        {
-            if (_chatWindow != null && _isRunning)
-            {
-                 _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.ToggleVisibility());
-            }
-        }
-        
-        public void ResetWindow()
-        {
-             if (_chatWindow != null && _isRunning)
-            {
-                 _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.ResetPosition());
-            }
-        }
-
-        public void SetOpacity(float opacity)
-        {
-            if (_chatWindow != null && _isRunning)
-            {
-                 _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.SetOpacity(opacity));
-            }
-        }
-
-        public void SetSmartVisibility(bool enabled)
-        {
-            // La configuración ya se actualizó (es referencia compartida).
-            // Forzamos un checkeo inmediato del timer si es posible, o simplemente esperamos el siguiente tick.
-            if (_chatWindow != null && _isRunning)
-            {
-                _chatWindow.Dispatcher.InvokeAsync(() => 
-                {
-                    // Forzar tick manual
-                    VisibilityTimer_Tick(null, EventArgs.Empty);
-                });
-            }
-        }
-
-        public void SetLock(bool locked)
-        {
-            if (_chatWindow != null && _isRunning)
-            {
-                 _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.SetLock(locked));
-            }
-        }
-
-        public void UpdateVisuals()
-        {
-            if (_chatWindow != null && _isRunning)
-            {
-                 _chatWindow.Dispatcher.InvokeAsync(() => _chatWindow.UpdateVisuals());
-            }
-        }
+        public void AddMessage(TranslatedChatMessage msg) => _chatWindow?.AddMessage(msg);
+        public void UpdateMessage(TranslatedChatMessage msg) => _chatWindow?.UpdateMessage(msg);
+        public void ToggleWindow() => _chatWindow?.ToggleVisibility();
+        public void ResetWindow() => _chatWindow?.ResetPosition();
+        public void SetOpacity(float opacity) => _chatWindow?.SetOpacity(opacity);
+        public void SetSmartVisibility(bool enabled) => VisibilityTimer_Tick(null, EventArgs.Empty);
+        public void SetLock(bool locked) => _chatWindow?.SetLock(locked);
+        public void UpdateVisuals() => _chatWindow?.UpdateVisuals();
 
         private IntPtr GetGameWindowHandle()
         {
@@ -261,13 +194,10 @@ namespace EchoXIV.Services
             {
                 var mainHandle = Process.GetCurrentProcess().MainWindowHandle;
                 if (mainHandle != IntPtr.Zero) return mainHandle;
-
-                // Fallback a buscar por clase si MainWindowHandle falla
                 return FindWindow("FFXIVGAME", null);
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.Error(ex, "Error obteniendo handle de la ventana del juego");
                 return IntPtr.Zero;
             }
         }
@@ -277,47 +207,30 @@ namespace EchoXIV.Services
             if (!_isRunning) return;
             _isRunning = false;
 
-            if (_visibilityTimer != null)
-            {
-                _visibilityTimer.Stop();
-                _visibilityTimer = null;
-            }
+            _visibilityTimer?.Stop();
+            _visibilityTimer = null;
 
             if (_chatWindow != null)
             {
-                try 
-                {
-                    // Cerrar ventana gracefully
-                    if (_chatWindow.Dispatcher.CheckAccess())
-                    {
-                        _chatWindow.Close();
-                    }
-                    else
-                    {
-                        _chatWindow.Dispatcher.Invoke(() => _chatWindow.Close(), DispatcherPriority.Send);
-                    }
-                }
-                catch { /* Ignorar errores al cerrar */ }
+                try { _chatWindow.Close(); } catch { }
             }
             
-            // Detener el Dispatcher Loop de ESTE hilo
             if (_wpfThread != null && _wpfThread.IsAlive)
             {
                 try
                 {
-                    var dispatcher = Dispatcher.FromThread(_wpfThread);
-                    if (dispatcher != null && !dispatcher.HasShutdownStarted)
+                    // dispatcher.InvokeShutdown() vía reflexión
+                    var dispatcherType = Type.GetType("System.Windows.Threading.Dispatcher, WindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                    var dispatcher = dispatcherType?.GetMethod("FromThread")?.Invoke(null, new object[] { _wpfThread });
+                    if (dispatcher != null)
                     {
-                        _logger.Info("Solicitando cierre de Dispatcher...");
-                        dispatcher.InvokeShutdown(); // Usar el síncrono para esperar
+                        var method = dispatcher.GetType().GetMethod("InvokeShutdown");
+                        method?.Invoke(dispatcher, null);
                     }
                 }
                 catch { }
 
-                if (!_wpfThread.Join(1500))
-                {
-                    _logger.Warning("El hilo WPF no terminó a tiempo.");
-                }
+                _wpfThread.Join(1000);
             }
             
             _wpfApp = null;

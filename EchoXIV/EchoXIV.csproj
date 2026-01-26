@@ -1,14 +1,12 @@
 <Project Sdk="Dalamud.NET.Sdk/14.0.1">
   <PropertyGroup>
-    <Version>0.1.0.4</Version>
+    <Version>0.1.0.5</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <LangVersion>latest</LangVersion>
-    <UseWPF Condition="'$(OS)' == 'Windows_NT'">true</UseWPF>
-    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">$(DefineConstants);WINDOWS</DefineConstants>
     <AssemblyName>EchoXIV</AssemblyName>
     <RootNamespace>EchoXIV</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -16,7 +14,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
@@ -27,14 +24,10 @@
     <Content Include="images\icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Los XAML se mueren como páginas y nacen como recursos incrustados para el Bridge -->
+    <EmbeddedResource Include="UI\Native\**\*.xaml" />
   </ItemGroup>
   
-  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
-    <Compile Remove="Services\WpfHost.cs" />
-    <Compile Remove="UI\Native\**\*.cs" />
-    <Page Remove="UI\Native\**\*.xaml" />
-  </ItemGroup>
-
   <ItemGroup>
     <EmbeddedResource Update="Resources\Strings.resx">
       <Generator>ResXFileCodeGenerator</Generator>
