@@ -72,6 +72,27 @@ namespace EchoXIV.Services
             return parseMethod?.Invoke(null, new object[] { xamlContent });
         }
         
+        public static object? GetEnumValue(string assemblyName, string typeName, object value)
+        {
+            try
+            {
+                if (!_loadedAssemblies.TryGetValue(assemblyName, out var assembly))
+                    assembly = Assembly.Load(assemblyName);
+
+                var type = assembly.GetType(typeName);
+                if (type == null || !type.IsEnum) return value;
+
+                if (value is string strValue)
+                    return Enum.Parse(type, strValue);
+                
+                return Enum.ToObject(type, value);
+            }
+            catch
+            {
+                return value;
+            }
+        }
+        
         public static string GetEmbeddedResource(string resourceName)
         {
             var assembly = Assembly.GetExecutingAssembly();

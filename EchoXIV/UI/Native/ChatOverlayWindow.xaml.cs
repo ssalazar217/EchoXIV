@@ -38,7 +38,8 @@ namespace EchoXIV.UI.Native
         private void InitializeDynamicWindow()
         {
             var xaml = NativeUiLoader.GetEmbeddedResource("EchoXIV.UI.Native.ChatOverlayWindow.xaml");
-            _window = NativeUiLoader.LoadXaml(xaml)!;
+            _window = NativeUiLoader.LoadXaml(xaml);
+            if (_window == null) return;
 
             // Encontrar elementos por nombre
             _chatOutput = _window.FindName("ChatOutput");
@@ -63,21 +64,31 @@ namespace EchoXIV.UI.Native
                 HookEvent(_headerBorder, "MouseLeftButtonDown", (Action<object, dynamic>)((s, e) => Header_MouseDown(s, e)));
             }
 
-            // Suscribirse a historial
-            _historyManager.OnMessageAdded += m => _window.Dispatcher.InvokeAsync((Action)(() => AddMessage(m)));
-            _historyManager.OnMessageUpdated += m => _window.Dispatcher.InvokeAsync((Action)(() => UpdateMessage(m)));
-            _historyManager.OnHistoryCleared += () => _window.Dispatcher.InvokeAsync((Action)(() => _chatOutput.Document.Blocks.Clear()));
+            if (_chatOutput != null)
+            {
+                // Suscribirse a historial
+                _historyManager.OnMessageAdded += m => _window?.Dispatcher.InvokeAsync((Action)(() => AddMessage(m)));
+                _historyManager.OnMessageUpdated += m => _window?.Dispatcher.InvokeAsync((Action)(() => UpdateMessage(m)));
+                _historyManager.OnHistoryCleared += () => _window?.Dispatcher.InvokeAsync((Action)(() => _chatOutput?.Document.Blocks.Clear()));
+            }
 
             // Estado inicial
-            if (!_configuration.OverlayVisible) _window.Visibility = 2; // Collapsed
+            if (!_configuration.OverlayVisible && _window != null) 
+            {
+                var collapsed = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 2);
+                if (collapsed != null) _window.Visibility = (dynamic)collapsed;
+            }
             
             SetOpacity(_configuration.WindowOpacity);
-            _window.Left = _configuration.WindowLeft;
-            _window.Top = _configuration.WindowTop;
-            _window.Width = _configuration.WindowWidth;
-            _window.Height = _configuration.WindowHeight;
+            if (_window != null)
+            {
+                _window.Left = _configuration.WindowLeft;
+                _window.Top = _configuration.WindowTop;
+                _window.Width = _configuration.WindowWidth;
+                _window.Height = _configuration.WindowHeight;
 
-            _window.Closed += (EventHandler)((s, e) => SaveGeometry());
+                _window.Closed += (EventHandler)((s, e) => SaveGeometry());
+            }
             UpdateTitle();
 
             foreach (var msg in _historyManager.GetHistory()) AddMessage(msg);
@@ -111,20 +122,26 @@ namespace EchoXIV.UI.Native
 
         public IntPtr GetHandle()
         {
-            if (!NativeUiLoader.IsWindows) return IntPtr.Zero;
+            if (!NativeUiLoader.IsWindows || _window == null) return IntPtr.Zero;
             var helperType = Type.GetType("System.Windows.Interop.WindowInteropHelper, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            var helper = Activator.CreateInstance(helperType!, (object)_window);
-            return (IntPtr)helperType!.GetProperty("Handle")!.GetValue(helper)!;
+            if (helperType == null) return IntPtr.Zero;
+            
+            var helper = Activator.CreateInstance(helperType, (object)_window);
+            var handleProp = helperType.GetProperty("Handle");
+            if (handleProp == null || helper == null) return IntPtr.Zero;
+            
+            var value = handleProp.GetValue(helper);
+            return value is IntPtr ptr ? ptr : IntPtr.Zero;
         }
 
-        public void Show() { if (NativeUiLoader.IsWindows) _window.Show(); }
-        public void Hide() { if (NativeUiLoader.IsWindows) _window.Hide(); }
-        public void Close() { if (NativeUiLoader.IsWindows) _window.Close(); }
-        public bool IsVisible() => NativeUiLoader.IsWindows && _window.Visibility == 0;
+        public void Show() { if (NativeUiLoader.IsWindows && _window != null) ((object)_window).GetType().GetMethod("Show")?.Invoke(_window, null); }
+        public void Hide() { if (NativeUiLoader.IsWindows && _window != null) ((object)_window).GetType().GetMethod("Hide")?.Invoke(_window, null); }
+        public void Close() { if (NativeUiLoader.IsWindows && _window != null) ((object)_window).GetType().GetMethod("Close")?.Invoke(_window, null); }
+        public bool IsVisible() => NativeUiLoader.IsWindows && _window != null && Equals(_window.Visibility, NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 0));
 
         private void UpdateTitle()
         {
-            if (_titleText != null)
+            if (_titleText != null && _chatOutput != null)
             {
                 var count = _chatOutput.Document.Blocks.Count;
                 _titleText.Text = $"EchoXIV [{_configuration.SelectedEngine}] ({count})";
@@ -133,30 +150,46 @@ namespace EchoXIV.UI.Native
 
         public void SetOpacity(float opacity)
         {
-            if (_mainBorder == null) return;
-            byte alpha = (byte)(Math.Clamp(opacity, 0f, 1f) * 255);
-            var colorType = Type.GetType("System.Windows.Media.Color, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            var fromRgb = colorType!.GetMethod("FromArgb", new[] { typeof(byte), typeof(byte), typeof(byte), typeof(byte) });
-            var color = fromRgb!.Invoke(null, new object[] { alpha, (byte)0, (byte)0, (byte)0 });
+            if (_window == null || _mainBorder == null) return;
             
-            var brushType = Type.GetType("System.Windows.Media.SolidColorBrush, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            dynamic brush = Activator.CreateInstance(brushType!, color)!;
-            _mainBorder.Background = brush;
+            _window.Dispatcher.Invoke((Action)(() => 
+            {
+                try {
+                    byte alpha = (byte)(Math.Clamp(opacity, 0f, 1f) * 255);
+                    var colorType = Type.GetType("System.Windows.Media.Color, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                    if (colorType == null) return;
+                    
+                    var fromRgb = colorType.GetMethod("FromArgb", new[] { typeof(byte), typeof(byte), typeof(byte), typeof(byte) });
+                    if (fromRgb == null) return;
+                    
+                    var color = fromRgb.Invoke(null, new object[] { alpha, (byte)0, (byte)0, (byte)0 });
+                    if (color == null) return;
+                    
+                    var brushType = Type.GetType("System.Windows.Media.SolidColorBrush, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                    if (brushType == null) return;
+                    
+                    dynamic? brush = Activator.CreateInstance(brushType, color);
+                    if (brush != null) _mainBorder.Background = brush;
+                } catch { }
+            }));
         }
 
         public void AddMessage(TranslatedChatMessage message)
         {
-            if (!NativeUiLoader.IsWindows) return;
-            dynamic paragraph = CreateMessageParagraph(message);
-            _chatOutput.Document.Blocks.Add(paragraph);
-            PruneMessages();
-            ScrollToEnd();
-            UpdateTitle();
+            if (!NativeUiLoader.IsWindows || _chatOutput == null) return;
+            dynamic? paragraph = CreateMessageParagraph(message);
+            if (paragraph != null)
+            {
+                _chatOutput.Document.Blocks.Add(paragraph);
+                PruneMessages();
+                ScrollToEnd();
+                UpdateTitle();
+            }
         }
 
         public void UpdateMessage(TranslatedChatMessage message)
         {
-            if (!NativeUiLoader.IsWindows) return;
+            if (!NativeUiLoader.IsWindows || _chatOutput == null) return;
             foreach (dynamic block in _chatOutput.Document.Blocks)
             {
                 if (block.Tag is Guid id && id == message.Id)
@@ -179,8 +212,11 @@ namespace EchoXIV.UI.Native
              {
                 _configuration.OverlayVisible = true;
                 Show();
-                _window.Topmost = true;
-                _window.Activate();
+                if (_window != null)
+                {
+                    _window.Topmost = true;
+                    _window.Activate();
+                }
              }
              _configuration.Save();
         }
@@ -207,13 +243,18 @@ namespace EchoXIV.UI.Native
             }
         }
 
-        private dynamic CreateMessageParagraph(TranslatedChatMessage message)
+        private dynamic? CreateMessageParagraph(TranslatedChatMessage message)
         {
-            dynamic p = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Paragraph")!;
+            dynamic? p = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Paragraph");
+            if (p == null) return null;
             p.Tag = message.Id; 
             
             var thicknessType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            p.Margin = (dynamic)Activator.CreateInstance(thicknessType!, 2.0, 0.0, 0.0, 0.0)!;
+            if (thicknessType != null)
+            {
+                var thickness = Activator.CreateInstance(thicknessType, 2.0, 0.0, 0.0, 0.0);
+                if (thickness != null) p.Margin = (dynamic)thickness;
+            }
             p.TextIndent = 0.0;
             
             // Ajustar altura de línea de forma segura para diseño denso
@@ -233,13 +274,18 @@ namespace EchoXIV.UI.Native
         {
             var color = GetChannelColor(message.ChatType);
             var brushType = Type.GetType("System.Windows.Media.SolidColorBrush, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            dynamic brush = Activator.CreateInstance(brushType!, color)!;
+            if (brushType == null) return;
+            dynamic? brush = Activator.CreateInstance(brushType, color);
+            if (brush == null) return;
 
             if (_configuration.ShowTimestamps)
             {
-                dynamic run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", $"[{message.Timestamp.ToString(_configuration.TimestampFormat)}] ")!;
-                run.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Gray");
-                p.Inlines.Add(run);
+                dynamic? run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", $"[{message.Timestamp.ToString(_configuration.TimestampFormat)}] ");
+                if (run != null)
+                {
+                    run.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Gray");
+                    p.Inlines.Add(run);
+                }
             }
 
             string prefix = "";
@@ -247,31 +293,41 @@ namespace EchoXIV.UI.Native
             else if (message.ChatType == XivChatType.TellIncoming) prefix = $"[Tell] << {message.Sender}: ";
             else prefix = $"[{GetChannelName(message.ChatType)}] {message.Sender}: ";
 
-            dynamic prefixRun = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", prefix)!;
-            prefixRun.Foreground = (dynamic)brush;
-            p.Inlines.Add(prefixRun);
+            dynamic? prefixRun = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", prefix);
+            if (prefixRun != null)
+            {
+                prefixRun.Foreground = (dynamic)brush;
+                p.Inlines.Add(prefixRun);
+            }
 
             if (message.IsTranslating)
             {
-                dynamic run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", "Traduciendo...")!;
-                run.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Yellow");
-                p.Inlines.Add(run);
+                dynamic? run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", "Traduciendo...");
+                if (run != null)
+                {
+                    run.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Yellow");
+                    p.Inlines.Add(run);
+                }
             }
             else
             {
                 AddTextWithUrls(p, message.TranslatedText, (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "White"));
                 if (_configuration.ShowOriginalText)
                 {
-                    dynamic originalRun = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", " [?]")!;
-                    originalRun.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Gray");
-                    originalRun.ToolTip = message.OriginalText;
-                    p.Inlines.Add(originalRun);
+                    dynamic? originalRun = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", " [?]");
+                    if (originalRun != null)
+                    {
+                        originalRun.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Gray");
+                        originalRun.ToolTip = message.OriginalText;
+                        p.Inlines.Add(originalRun);
+                    }
                 }
             }
         }
 
         private void PruneMessages()
         {
+            if (_chatOutput == null) return;
             while ((int)_chatOutput.Document.Blocks.Count > _configuration.MaxDisplayedMessages)
             {
                 _chatOutput.Document.Blocks.Remove(_chatOutput.Document.Blocks.FirstBlock);
@@ -310,9 +366,20 @@ namespace EchoXIV.UI.Native
                 var thickness = Activator.CreateInstance(thinType!, 0.0);
                 if (thickness != null) _mainBorder.BorderThickness = (dynamic)thickness;
                 
-                if (_headerBorder != null) _headerBorder.Visibility = 2; // Collapsed
-                if (_btnUnlockOverlay != null) _btnUnlockOverlay.Visibility = 0; // Visible
-                _window.ResizeMode = 0; // NoResize
+                if (_headerBorder != null) 
+                {
+                    var collapsed = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 2);
+                    if (collapsed != null) _headerBorder.Visibility = (dynamic)collapsed;
+                }
+                if (_btnUnlockOverlay != null)
+                {
+                    var visible = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 0);
+                    if (visible != null) _btnUnlockOverlay.Visibility = (dynamic)visible;
+                }
+                
+                var noResize = NativeUiLoader.GetEnumValue("PresentationFramework", "System.Windows.ResizeMode", 0);
+                if (noResize != null) _window.ResizeMode = (dynamic)noResize;
+
                 if (_btnLock != null) _btnLock.Content = "🔒";
             }
             else
@@ -323,22 +390,43 @@ namespace EchoXIV.UI.Native
                 var thickness = Activator.CreateInstance(thinType!, 1.0);
                 if (thickness != null) _mainBorder.BorderThickness = (dynamic)thickness;
                 
-                if (_headerBorder != null) _headerBorder.Visibility = 0;
-                if (_btnUnlockOverlay != null) _btnUnlockOverlay.Visibility = 2;
-                _window.ResizeMode = 2; // CanResizeWithGrip
+                if (_headerBorder != null)
+                {
+                    var visible = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 0);
+                    if (visible != null) _headerBorder.Visibility = (dynamic)visible;
+                }
+                if (_btnUnlockOverlay != null)
+                {
+                    var collapsed = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 2);
+                    if (collapsed != null) _btnUnlockOverlay.Visibility = (dynamic)collapsed;
+                }
+
+                var canResize = NativeUiLoader.GetEnumValue("PresentationFramework", "System.Windows.ResizeMode", 2);
+                if (canResize != null) _window.ResizeMode = (dynamic)canResize;
+
                 if (_btnLock != null) _btnLock.Content = "🔓";
             }
         }
         
         public void UpdateVisuals()
         {
-            if (_chatOutput == null) return;
-            _chatOutput.Document.FontSize = (double)_configuration.FontSize;
-            var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            foreach (dynamic block in _chatOutput.Document.Blocks)
+            if (_window == null || _chatOutput == null) return;
+
+            _window.Dispatcher.Invoke((Action)(() =>
             {
-                block.Margin = (dynamic)Activator.CreateInstance(thinType!, 2.0, 0.0, 0.0, (double)_configuration.ChatMessageSpacing)!;
-            }
+                try {
+                    _chatOutput.Document.FontSize = (double)_configuration.FontSize;
+                    var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                    if (thinType != null)
+                    {
+                        foreach (dynamic block in _chatOutput.Document.Blocks)
+                        {
+                            var thickness = Activator.CreateInstance(thinType, 2.0, 0.0, 0.0, (double)_configuration.ChatMessageSpacing);
+                            if (thickness != null) block.Margin = (dynamic)thickness;
+                        }
+                    }
+                } catch { }
+            }));
         }
 
         private void AddTextWithUrls(dynamic p, string text, dynamic foreground)
@@ -360,11 +448,15 @@ namespace EchoXIV.UI.Native
                 string url = match.Value;
                 try
                 {
-                    dynamic? link = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Hyperlink", NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", url)!)!;
-                    if (link != null)
+                    dynamic? runUrl = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", url);
+                    if (runUrl != null)
                     {
-                        link.NavigateUri = new Uri(url);
-                        p.Inlines.Add(link);
+                        dynamic? link = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Hyperlink", runUrl);
+                        if (link != null)
+                        {
+                            link.NavigateUri = new Uri(url);
+                            p.Inlines.Add(link);
+                        }
                     }
                 }
                 catch { 
@@ -390,7 +482,7 @@ namespace EchoXIV.UI.Native
         private object GetChannelColor(XivChatType type)
         {
             var colorType = Type.GetType("System.Windows.Media.Color, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            var fromRgb = colorType!.GetMethod("FromRgb", new[] { typeof(byte), typeof(byte), typeof(byte) });
+            var fromRgb = colorType?.GetMethod("FromRgb", new[] { typeof(byte), typeof(byte), typeof(byte) });
             
             var (r, g, b) = type switch {
                 XivChatType.Say => (247, 247, 247),
@@ -410,13 +502,13 @@ namespace EchoXIV.UI.Native
                     => (212, 255, 125),
                 _ => (204, 204, 204)
             };
-            return fromRgb!.Invoke(null, new object[] { (byte)r, (byte)g, (byte)b })!;
+            return fromRgb?.Invoke(null, new object[] { (byte)r, (byte)g, (byte)b }) ?? new object();
         }
 
         private dynamic GetStaticProperty(string typeName, string propName)
         {
             var type = Type.GetType(typeName);
-            return type!.GetProperty(propName)!.GetValue(null)!;
+            return type?.GetProperty(propName)?.GetValue(null) ?? new object();
         }
         
         private string GetChannelName(XivChatType type)
