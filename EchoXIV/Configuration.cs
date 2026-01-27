@@ -114,7 +114,7 @@ namespace EchoXIV
         
         // --- Visuales ---
         public int FontSize { get; set; } = 16;
-        public int ChatMessageSpacing { get; set; } = 5;
+        public int ChatMessageSpacing { get; set; } = 0;
         public string TimestampFormat { get; set; } = "HH:mm"; // "HH:mm:ss", "Short"
 
         /// <summary>

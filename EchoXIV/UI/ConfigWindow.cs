@@ -4,6 +4,7 @@ using System.Linq;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 using EchoXIV.Resources;
 
 namespace EchoXIV.UI;
@@ -37,41 +38,37 @@ public class ConfigWindow : Window, IDisposable
 
     public override void Draw()
     {
-        if (ImGui.BeginTabBar("ConfigTabs"))
+        using (var tabBar = ImRaii.TabBar("ConfigTabs"))
         {
-            if (ImGui.BeginTabItem(Loc.Tab_General))
+            if (tabBar)
             {
-                DrawGeneralTab();
-                ImGui.EndTabItem();
-            }
+                using (var tabItem = ImRaii.TabItem(Loc.Tab_General + "###GeneralTab"))
+                {
+                    if (tabItem) DrawGeneralTab();
+                }
 
-            if (ImGui.BeginTabItem("Visuales"))
-            {
-                DrawVisualsTab();
-                ImGui.EndTabItem();
-            }
-            
-            if (ImGui.BeginTabItem(Loc.Tab_ExcludedMessages))
-            {
-                DrawExcludedMessagesTab();
-                ImGui.EndTabItem();
-            }
-            
+                using (var tabItem = ImRaii.TabItem("Visuales###VisualsTab"))
+                {
+                    if (tabItem) DrawVisualsTab();
+                }
 
-            
-            if (ImGui.BeginTabItem(Loc.Tab_IncomingChannels))
-            {
-                DrawIncomingChannelsTab();
-                ImGui.EndTabItem();
+                using (var tabItem = ImRaii.TabItem(Loc.Tab_ExcludedMessages + "###ExcludedTab"))
+                {
+                    if (tabItem) DrawExcludedMessagesTab();
+                }
+
+                using (var tabItem = ImRaii.TabItem(Loc.Tab_IncomingChannels + "###IncomingTab"))
+                {
+                    if (tabItem) DrawIncomingChannelsTab();
+                }
             }
-            
-            ImGui.EndTabBar();
         }
     }
     
     private void DrawGeneralTab()
     {
-        if (ImGui.BeginChild("GeneralScroll", new Vector2(0, 0), false, ImGuiWindowFlags.None))
+        using var child = ImRaii.Child("GeneralScroll");
+        if (child)
         {
             ImGui.TextWrapped(Loc.General_Description);
             ImGui.Separator();
@@ -230,14 +227,12 @@ public class ConfigWindow : Window, IDisposable
             {
                 ImGui.TextColored(new Vector4(1f, 0.5f, 0f, 1f), Loc.Incoming_RestartNote);
             }
-
-            ImGui.EndChild();
         }
     }
-    
     private void DrawExcludedMessagesTab()
     {
-        if (ImGui.BeginChild("ExcludedScroll", new Vector2(0, 0), false, ImGuiWindowFlags.None))
+        using var child = ImRaii.Child("ExcludedScroll");
+        if (child)
         {
             ImGui.TextWrapped(Loc.Excluded_Description);
             ImGui.Separator();
@@ -247,22 +242,30 @@ public class ConfigWindow : Window, IDisposable
             ImGui.SetNextItemWidth(-100);
             if (ImGui.InputText("##NewExcluded", ref _newExcludedMessage, 100, ImGuiInputTextFlags.EnterReturnsTrue))
             {
-                if (!string.IsNullOrWhiteSpace(_newExcludedMessage))
+                var trimmed = _newExcludedMessage.Trim();
+                if (!string.IsNullOrWhiteSpace(trimmed))
                 {
-                    _configuration.ExcludedMessages.Add(_newExcludedMessage.Trim());
-                    _configuration.Save();
-                    _newExcludedMessage = string.Empty;
+                    if (!_configuration.ExcludedMessages.Contains(trimmed))
+                    {
+                        _configuration.ExcludedMessages.Add(trimmed);
+                        _configuration.Save();
+                        _newExcludedMessage = string.Empty;
+                    }
                 }
             }
             
             ImGui.SameLine();
             if (ImGui.Button(Loc.Excluded_Add + "##AddExcluded"))
             {
-                if (!string.IsNullOrWhiteSpace(_newExcludedMessage))
+                var trimmed = _newExcludedMessage.Trim();
+                if (!string.IsNullOrWhiteSpace(trimmed))
                 {
-                    _configuration.ExcludedMessages.Add(_newExcludedMessage.Trim());
-                    _configuration.Save();
-                    _newExcludedMessage = string.Empty;
+                    if (!_configuration.ExcludedMessages.Contains(trimmed))
+                    {
+                        _configuration.ExcludedMessages.Add(trimmed);
+                        _configuration.Save();
+                        _newExcludedMessage = string.Empty;
+                    }
                 }
             }
             
@@ -272,9 +275,11 @@ public class ConfigWindow : Window, IDisposable
             
             ImGui.Text($"{Loc.Excluded_CurrentList} ({_configuration.ExcludedMessages.Count}):");
             
-            ImGui.BeginChild("ExcludedList", new Vector2(0, 200), true);
-            
-            string? toRemove = null;
+            using (var innerChild = ImRaii.Child("ExcludedList", new Vector2(0, 200), true))
+            {
+                if (innerChild)
+                {
+                    string? toRemove = null;
             foreach (var msg in _configuration.ExcludedMessages.OrderBy(x => x))
             {
                 ImGui.Text(msg);
@@ -285,14 +290,13 @@ public class ConfigWindow : Window, IDisposable
                     toRemove = msg;
                 }
             }
-            
-            if (toRemove != null)
-            {
-                _configuration.ExcludedMessages.Remove(toRemove);
-                _configuration.Save();
+                if (toRemove != null)
+                {
+                    _configuration.ExcludedMessages.Remove(toRemove);
+                    _configuration.Save();
+                }
             }
-            
-            ImGui.EndChild();
+        }
             
             ImGui.Spacing();
             
@@ -309,8 +313,6 @@ public class ConfigWindow : Window, IDisposable
                 };
                 _configuration.Save();
             }
-
-            ImGui.EndChild();
         }
     }
     
@@ -319,7 +321,8 @@ public class ConfigWindow : Window, IDisposable
 
     private void DrawVisualsTab()
     {
-        if (ImGui.BeginChild("VisualsScroll", new Vector2(0, 0), false, ImGuiWindowFlags.None))
+        using var child = ImRaii.Child("VisualsScroll");
+        if (child)
         {
             ImGui.TextWrapped("Personaliza la apariencia de la ventana de chat traducido.");
             ImGui.Separator();
@@ -359,15 +362,14 @@ public class ConfigWindow : Window, IDisposable
                 _configuration.Save();
                 OnVisualsChanged?.Invoke();
             }
-
-            ImGui.EndChild();
         }
     }
     
     private void DrawIncomingChannelsTab()
     {
         // Añadir región desplazable para evitar corte de contenido
-        if (ImGui.BeginChild("IncomingScroll", new Vector2(0, 0), false, ImGuiWindowFlags.None))
+        using var child = ImRaii.Child("IncomingScroll");
+        if (child)
         {
             ImGui.TextWrapped(Loc.Incoming_Description);
         ImGui.Separator();
@@ -546,8 +548,6 @@ public class ConfigWindow : Window, IDisposable
         DrawChannelCheckbox("CWLS8", XivChatType.CrossLinkShell8);
         
         ImGui.Columns(1);
-        
-            ImGui.EndChild();
         }
     }
     

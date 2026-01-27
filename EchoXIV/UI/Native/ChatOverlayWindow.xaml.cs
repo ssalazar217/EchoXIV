@@ -213,8 +213,17 @@ namespace EchoXIV.UI.Native
             p.Tag = message.Id; 
             
             var thicknessType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            p.Margin = (dynamic)Activator.CreateInstance(thicknessType!, 24.0, 0.0, 0.0, (double)_configuration.ChatMessageSpacing)!;
-            p.TextIndent = -24.0;
+            p.Margin = (dynamic)Activator.CreateInstance(thicknessType!, 2.0, 0.0, 0.0, 0.0)!;
+            p.TextIndent = 0.0;
+            
+            // Ajustar altura de línea de forma segura para diseño denso
+            try {
+                p.LineHeight = 1.0; 
+                var stackType = Type.GetType("System.Windows.LineStackingStrategy, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                if (stackType != null) {
+                    p.LineStackingStrategy = Enum.Parse(stackType, "BlockLineHeight");
+                }
+            } catch { /* Ignorar si falla el bind dinámico */ }
             
             PopulateMessageInlines(p, message);
             return p;
@@ -328,7 +337,7 @@ namespace EchoXIV.UI.Native
             var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
             foreach (dynamic block in _chatOutput.Document.Blocks)
             {
-                block.Margin = (dynamic)Activator.CreateInstance(thinType!, 24.0, 0.0, 0.0, (double)_configuration.ChatMessageSpacing)!;
+                block.Margin = (dynamic)Activator.CreateInstance(thinType!, 2.0, 0.0, 0.0, (double)_configuration.ChatMessageSpacing)!;
             }
         }
 
@@ -391,6 +400,14 @@ namespace EchoXIV.UI.Native
                 XivChatType.Alliance => (255, 127, 0),
                 XivChatType.FreeCompany => (171, 219, 229),
                 XivChatType.TellIncoming or XivChatType.TellOutgoing => (255, 184, 222),
+                XivChatType.NoviceNetwork => (212, 255, 125),
+                XivChatType.Ls1 or XivChatType.Ls2 or XivChatType.Ls3 or XivChatType.Ls4 
+                    or XivChatType.Ls5 or XivChatType.Ls6 or XivChatType.Ls7 or XivChatType.Ls8 
+                    => (212, 255, 125),
+                XivChatType.CrossLinkShell1 or XivChatType.CrossLinkShell2 or XivChatType.CrossLinkShell3 
+                    or XivChatType.CrossLinkShell4 or XivChatType.CrossLinkShell5 or XivChatType.CrossLinkShell6 
+                    or XivChatType.CrossLinkShell7 or XivChatType.CrossLinkShell8 
+                    => (212, 255, 125),
                 _ => (204, 204, 204)
             };
             return fromRgb!.Invoke(null, new object[] { (byte)r, (byte)g, (byte)b })!;
@@ -402,6 +419,38 @@ namespace EchoXIV.UI.Native
             return type!.GetProperty(propName)!.GetValue(null)!;
         }
         
-        private string GetChannelName(XivChatType type) => type.ToString();
+        private string GetChannelName(XivChatType type)
+        {
+            return type switch
+            {
+                XivChatType.Say => "Say",
+                XivChatType.Shout => "Shout",
+                XivChatType.Yell => "Yell",
+                XivChatType.Party => "Party",
+                XivChatType.Alliance => "Alliance",
+                XivChatType.FreeCompany => "FC",
+                XivChatType.Ls1 => "LS1",
+                XivChatType.Ls2 => "LS2",
+                XivChatType.Ls3 => "LS3",
+                XivChatType.Ls4 => "LS4",
+                XivChatType.Ls5 => "LS5",
+                XivChatType.Ls6 => "LS6",
+                XivChatType.Ls7 => "LS7",
+                XivChatType.Ls8 => "LS8",
+                XivChatType.CrossLinkShell1 => "CWLS1",
+                XivChatType.CrossLinkShell2 => "CWLS2",
+                XivChatType.CrossLinkShell3 => "CWLS3",
+                XivChatType.CrossLinkShell4 => "CWLS4",
+                XivChatType.CrossLinkShell5 => "CWLS5",
+                XivChatType.CrossLinkShell6 => "CWLS6",
+                XivChatType.CrossLinkShell7 => "CWLS7",
+                XivChatType.CrossLinkShell8 => "CWLS8",
+                XivChatType.NoviceNetwork => "NN",
+                XivChatType.TellOutgoing => "Tell",
+                XivChatType.TellIncoming => "Tell",
+                XivChatType.Debug => "Echo",
+                _ => type.ToString()
+            };
+        }
     }
 }

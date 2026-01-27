@@ -47,11 +47,8 @@
                              IsReadOnly="True" 
                              IsDocumentEnabled="True"
                              VerticalScrollBarVisibility="Auto"
-                             Padding="5">
-                    <FlowDocument FontSize="14" FontFamily="Segoe UI, Tahoma">
-                        <Paragraph>
-                            <Run Text="Traductor iniciado..." Foreground="Gray"/>
-                        </Paragraph>
+                             Padding="0">
+                    <FlowDocument FontSize="14" FontFamily="Segoe UI, Tahoma" PagePadding="0">
                     </FlowDocument>
                 </RichTextBox>
             </Grid>

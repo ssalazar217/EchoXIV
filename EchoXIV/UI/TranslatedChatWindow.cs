@@ -5,6 +5,7 @@ using System.Numerics;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 using EchoXIV.Resources;
 using EchoXIV.Services;
 
@@ -104,31 +105,6 @@ namespace EchoXIV.UI
             }
         }
 
-        public override bool DrawConditions() 
-        {
-            if (!Plugin.IsChatVisible()) return false;
-
-            // Smart Visibility: Ocultar si el juego no tiene el foco (opcional)
-            if (_configuration.SmartVisibility)
-            {
-                var foreground = GetForegroundWindow();
-                if (foreground == IntPtr.Zero) return false;
-
-                GetWindowThreadProcessId(foreground, out uint foregroundPid);
-                var currentPid = (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
-                
-                // Si el foco no está en nuestro proceso, ocultamos
-                if (foregroundPid != currentPid) return false;
-            }
-
-            return true;
-        }
-
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
-
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         public override void Draw()
         {
@@ -228,8 +204,11 @@ namespace EchoXIV.UI
         private void DrawMessageList()
         {
             // Región scrollable
-            if (ImGui.BeginChild("MessageList", new Vector2(0, 0), true))
+            using var child = ImRaii.Child("MessageList", new Vector2(0, 0), true);
+            if (child)
             {
+                // Eliminar espacio vertical entre items
+                using var spacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(4.0f, 0.0f));
                 lock (_messagesLock)
                 {
                     foreach (var message in _messages)
@@ -250,94 +229,66 @@ namespace EchoXIV.UI
                     ImGui.SetScrollHereY(1.0f);
                 }
             }
-            ImGui.EndChild();
         }
 
         private void DrawMessage(TranslatedChatMessage message)
         {
-            // Color según canal
             var channelColor = GetChannelColor(message.ChatType);
             var channelName = GetChannelName(message.ChatType);
             
-            var startX = ImGui.GetCursorPosX();
-            var startY = ImGui.GetCursorPosY();
-            
-            // Calculamos una indentación fija para paridad con WPF (24-30px aprox)
-            // O podemos hacerla dinámica según el contenido del prefix.
-            // Para paridad exacta con el estilo de "hanging indent" de WPF:
-            float indentSize = 30.0f;
-            if (_configuration.ShowTimestamps) indentSize += 40.0f; // Ajuste si hay timestamp
-
-            // 1. Dibujar Metadatos (Prefix)
-            ImGui.BeginGroup();
-            
-            // Timestamp
+            // 1. Construir el prefijo exactamente igual a WPF
+            string prefix = "";
             if (_configuration.ShowTimestamps)
             {
-                ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), $"[{message.Timestamp:HH:mm}]");
-                ImGui.SameLine();
+                prefix += $"[{message.Timestamp:HH:mm}] ";
             }
 
-            // Canal + Sender
             if (message.ChatType == XivChatType.TellOutgoing)
             {
                 var name = string.IsNullOrEmpty(message.Recipient) ? message.Sender : message.Recipient;
-                ImGui.TextColored(channelColor, $"[Tell] >> {name}:");
+                prefix += $"[Tell] >> {name}: ";
             }
             else if (message.ChatType == XivChatType.TellIncoming)
             {
-                ImGui.TextColored(channelColor, $"[Tell] << {message.Sender}:");
+                prefix += $"[Tell] << {message.Sender}: ";
             }
             else
             {
-                ImGui.TextColored(channelColor, $"[{channelName}] {message.Sender}:");
+                prefix += $"[{channelName}] {message.Sender}: ";
             }
-            
-            ImGui.EndGroup();
 
-            // 2. Dibujar Mensaje con Alineación (Hanging Indent simulado)
-            // Si el prefix es corto, el texto empieza en la misma línea.
-            // Si el texto envuelve, queremos que las siguientes líneas estén indentadas.
+            // 2. Dibujar Prefijo
+            ImGui.TextColored(channelColor, prefix);
             
-            ImGui.SameLine();
+            // 3. Dibujar Mensaje junto al nombre con wrapping
+            ImGui.SameLine(0, 0);
             
-            if (message.IsTranslating)
+            using (var wrap = ImRaii.TextWrapPos(0.0f))
             {
-                ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.2f, 1f), Loc.ChatWindow_Translating);
-            }
-            else
-            {
-                ImGui.PushTextWrapPos(0.0f);
-                
-                // Si el texto traducido es igual al original, solo mostramos uno (el original)
-                if (string.Equals(message.OriginalText, message.TranslatedText, StringComparison.OrdinalIgnoreCase))
+                if (message.IsTranslating)
                 {
-                    ImGui.Text(message.OriginalText);
+                    ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.2f, 1f), Loc.ChatWindow_Translating);
                 }
                 else
                 {
-                    // Mostramos "Original -> Traducción" o similar para satisfacer "idioma de origen"
-                    ImGui.Text(message.OriginalText);
-                    ImGui.SameLine();
-                    ImGui.TextColored(new Vector4(0.0f, 1.0f, 0.5f, 1f), "->");
-                    ImGui.SameLine();
-                    ImGui.Text(message.TranslatedText);
+                    ImGui.TextUnformatted(message.TranslatedText);
                 }
-                
-                // Indicador de original [?] (Mantenemos por si acaso, o como tooltip de ayuda)
-                if (_configuration.ShowOriginalText)
+            }
+            
+            // Indicador de original [?] con tooltip
+            if (_configuration.ShowOriginalText && !string.Equals(message.OriginalText, message.TranslatedText, StringComparison.OrdinalIgnoreCase))
+            {
+                ImGui.SameLine();
+                ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), "[?]");
+                if (ImGui.IsItemHovered())
                 {
-                    ImGui.SameLine();
-                    ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), "[?]");
-                    if (ImGui.IsItemHovered())
+                    using var tooltip = ImRaii.Tooltip();
+                    if (tooltip)
                     {
-                        ImGui.BeginTooltip();
                         ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Loc.ChatWindow_Original);
-                        ImGui.Text(message.OriginalText);
-                        ImGui.EndTooltip();
+                        ImGui.TextUnformatted(message.OriginalText);
                     }
                 }
-                ImGui.PopTextWrapPos();
             }
         }
 

@@ -137,7 +137,6 @@ namespace EchoXIV
                     ObjectTable,
                     PluginLog
                 );
-                
                 // Conectar eventos
                 _incomingMessageHandler.OnTranslationStarted += m => _historyManager.AddMessage(m);
                 _incomingMessageHandler.OnMessageTranslated += m => _historyManager.UpdateMessage(m);
@@ -153,6 +152,7 @@ namespace EchoXIV
                          ClientState,
                          GameInteropProvider
                     );
+                    _chatBoxHook.OnMessageTranslated += (orig, trans) => _incomingMessageHandler?.RegisterPendingOutgoing(trans, orig);
                     _chatBoxHook.OnRequestEngineFailover += SwitchToGoogleFailover;
                     _chatBoxHook.Enable();
                 }
@@ -436,7 +436,7 @@ namespace EchoXIV
                                 Timestamp = DateTime.Now,
                                 ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
                                 Recipient = recipient,
-                                Sender = (ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter)?.Name.TextValue ?? "Yo",
+                                Sender = ObjectTable.LocalPlayer?.Name.TextValue ?? "Yo",
                                 OriginalText = message,
                                 TranslatedText = message,
                                 IsTranslating = false
@@ -454,28 +454,12 @@ namespace EchoXIV
                     // Enviar en main thread
                     _ = Framework.RunOnFrameworkThread(() =>
                     {
+                        // Registrar la traducción para que IncomingMessageHandler la pesque y la registre con el canal correcto
+                        _incomingMessageHandler?.RegisterPendingOutgoing(translated, message);
+                        
                         SendToChannel(translated, prefix);
                         
-                        // Mostrar también en nuestra ventana de chat traducido, si la configuración lo permite
-                        if (_configuration.ShowOutgoingMessages)
-                        {
-                            _historyManager.AddMessage(new TranslatedChatMessage
-                            {
-                                Timestamp = DateTime.Now,
-                                ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
-                                Recipient = recipient,
-                                Sender = (ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter)?.Name.TextValue ?? "Yo",
-                                OriginalText = message,
-                                TranslatedText = translated,
-                                IsTranslating = false
-                            });
-                            
-                            if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido, enviado y registrado: '{message}' → '{translated}'");
-                        }
-                        else
-                        {
-                            if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido y enviado (sin registro UI): '{message}' → '{translated}'");
-                        }
+                        if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}'");
                     });
                 }
                 catch (TranslationRateLimitException ex)
@@ -622,18 +606,23 @@ namespace EchoXIV
 
         private unsafe void SendToChannel(string message, string? channel)
         {
-            // Si el canal es null, enviamos solo el mensaje (el juego usará el canal activo)
-            // Si tiene canal (ej: /p), lo concatenamos
-            var fullMessage = string.IsNullOrEmpty(channel) ? message : $"{channel} {message}";
-            
             try
             {
-                var bytes = System.Text.Encoding.UTF8.GetBytes(fullMessage);
+               // SANEAMIENTO
+               var sanitized = message.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
+               var fullMessage = string.IsNullOrEmpty(channel) ? sanitized : $"{channel} {sanitized}";
+               
+               var bytes = System.Text.Encoding.UTF8.GetBytes(fullMessage);
                 
                 if (bytes.Length > 500)
                 {
-                    ChatGui.PrintError("[EchoXIV] ⚠️ Mensaje muy largo");
-                    return;
+                    // Truncar si es necesario
+                    while (System.Text.Encoding.UTF8.GetByteCount(fullMessage) > 497)
+                    {
+                        fullMessage = fullMessage.Substring(0, fullMessage.Length - 1);
+                    }
+                    fullMessage += "...";
+                    bytes = System.Text.Encoding.UTF8.GetBytes(fullMessage);
                 }
                 
                 var mes = FFXIVClientStructs.FFXIV.Client.System.String.Utf8String.FromSequence(bytes);
@@ -773,9 +762,11 @@ namespace EchoXIV
         private static unsafe bool UpdateChatVisibilityInternal()
         {
             // 1. Verificar login básico y presencia real de un personaje en el mundo
-            var localPlayer = ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter;
-            if (!ClientState.IsLoggedIn || localPlayer == null || PlayerState.ContentId == 0) 
+            var localPlayer = ObjectTable.LocalPlayer;
+            if (!ClientState.IsLoggedIn || localPlayer == null) 
+            {
                 return false;
+            }
 
             // 2. Verificar estados que impiden ver el chat (Carga, Cutscenes, GPose)
             if (Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] || 

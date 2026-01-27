@@ -14,8 +14,19 @@ namespace EchoXIV.GameFunctions
     /// Hook nativo para interceptar mensajes ANTES del envío
     /// Permite traducción sin cancelar el mensaje original (sin error rojo)
     /// </summary>
+    /// <summary>
+    /// Hook nativo para interceptar mensajes ANTES del envío
+    /// Permite traducción sin cancelar el mensaje original (sin error rojo)
+    /// </summary>
     internal unsafe class ChatBoxHook : IDisposable
     {
+        // Delegate oficial de ClientStructs si estuviera disponible, o mantenemos el nuestro pero saneado
+        public delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, IntPtr unused, byte a4);
+        
+        public delegate void OutgoingTranslationDelegate(string original, string translated);
+        public event OutgoingTranslationDelegate? OnMessageTranslated;
+
+        
         private readonly Configuration _configuration;
         private ITranslationService _translatorService;
         private readonly IPluginLog _pluginLog;
@@ -24,7 +35,6 @@ namespace EchoXIV.GameFunctions
         
         // Hook de ProcessChatBoxEntry - función que procesa mensajes del chat box
         private Hook<ProcessChatBoxDelegate>? _processChatBoxHook;
-        private delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, IntPtr unused, byte a4);
         
         /// <summary>
         /// Evento emitido cuando se solicita un cambio de motor por fallo (failover)
@@ -117,8 +127,15 @@ namespace EchoXIV.GameFunctions
                 
                 if (_configuration.VerboseLogging) _pluginLog.Info($"✅ Traducido: '{originalText}' → '{translatedText}'");
                 
+                // Notificar traducción para deduplicación en el historial
+                OnMessageTranslated?.Invoke(originalText, translatedText);
+
+                
+                // SANEAMIENTO: Asegurar que el string sea válido y no exceda límites
+                var sanitized = SanitizeText(translatedText);
+                
                 // Crear nuevo Utf8String con el texto traducido
-                var translatedUtf8 = Utf8String.FromString(translatedText);
+                var translatedUtf8 = Utf8String.FromString(sanitized);
                 
                 try
                 {
@@ -144,6 +161,26 @@ namespace EchoXIV.GameFunctions
                 // En caso de error, enviar mensaje original para no perder el mensaje
                 _processChatBoxHook!.Original(uiModule, message, unused, a4);
             }
+        }
+
+        private string SanitizeText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            
+            // Eliminar caracteres de control o nulos que puedan romper el chat
+            var sanitized = text.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
+            
+            // Limitar a ~450 para dejar margen al buffer de 500 bytes de FFXIV
+            if (Encoding.UTF8.GetByteCount(sanitized) > 450)
+            {
+                while (Encoding.UTF8.GetByteCount(sanitized) > 447)
+                {
+                    sanitized = sanitized.Substring(0, sanitized.Length - 1);
+                }
+                sanitized += "...";
+            }
+            
+            return sanitized;
         }
         
         public void Dispose()

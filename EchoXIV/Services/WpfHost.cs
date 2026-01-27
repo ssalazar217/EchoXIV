@@ -86,7 +86,14 @@ namespace EchoXIV.Services
                 if (_wpfApp == null)
                 {
                     _wpfApp = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Application");
-                    if (_wpfApp != null) _wpfApp.ShutdownMode = 1; // ShutdownMode.OnExplicitShutdown
+                    if (_wpfApp != null)
+                    {
+                        var shutdownModeType = Type.GetType("System.Windows.ShutdownMode, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                        if (shutdownModeType != null)
+                        {
+                            _wpfApp.ShutdownMode = Enum.ToObject(shutdownModeType, 1); // ShutdownMode.OnExplicitShutdown
+                        }
+                    }
                     _logger.Info("Nueva Dynamic Application creada.");
                 }
                 else

@@ -34,6 +34,8 @@ namespace EchoXIV
         private readonly IClientState _clientState;
         private readonly IObjectTable _objectTable;
         private readonly IPluginLog _pluginLog;
+        private readonly Dictionary<string, string> _pendingOutgoingTranslations = new(); // Translated -> Original
+
 
         /// <summary>
         /// Evento emitido cuando un mensaje ha sido traducido
@@ -75,6 +77,15 @@ namespace EchoXIV
             _pluginLog.Info($"IncomingMessageHandler: Motor actualizado a {_translatorService.Name}");
         }
 
+        public void RegisterPendingOutgoing(string translated, string original)
+        {
+            if (string.IsNullOrEmpty(translated)) return;
+            lock (_pendingOutgoingTranslations)
+            {
+                _pendingOutgoingTranslations[translated] = original;
+            }
+        }
+
         private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
         {
             // Solo procesar si las traducciones entrantes están habilitadas.
@@ -89,6 +100,50 @@ namespace EchoXIV
             var messageText = message.TextValue;
             var senderName = sender.TextValue;
 
+            // Formatear nombre: Nombre Apellido@Servidor
+            var localPlayer = _objectTable.LocalPlayer;
+            var nameParts = senderName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            
+            if (nameParts.Length == 3)
+            {
+                // Formato Cross-World estándar: First Last World
+                senderName = $"{nameParts[0]} {nameParts[1]}@{nameParts[2]}";
+            }
+            else if (nameParts.Length == 2)
+            {
+                 // Posible formato Cross-World pegado: First LastWorld
+                 // O Jugador del mismo mundo: First Last
+                 
+                 string lastPart = nameParts[1];
+                 int worldSplitIndex = -1;
+                 
+                 // Buscar una mayúscula que no sea la primera letra del apellido
+                 for (int i = 1; i < lastPart.Length; i++)
+                 {
+                     if (char.IsUpper(lastPart[i]))
+                     {
+                         worldSplitIndex = i;
+                         break;
+                     }
+                 }
+
+                 if (worldSplitIndex != -1)
+                 {
+                     // Es First LastWorld -> First Last@World
+                     senderName = $"{nameParts[0]} {lastPart.Substring(0, worldSplitIndex)}@{lastPart.Substring(worldSplitIndex)}";
+                 }
+                 else if (localPlayer != null && senderName == localPlayer.Name.TextValue)
+                 {
+                     // Jugador local: añadir mundo
+                     senderName = $"{localPlayer.Name.TextValue}@{localPlayer.HomeWorld.Value.Name}";
+                 }
+                 else if (localPlayer != null)
+                 {
+                     // Otro jugador mismo mundo: añadir mundo local
+                     senderName = $"{senderName}@{localPlayer.HomeWorld.Value.Name}";
+                 }
+            }
+
             // Ignorar mensajes vacíos
             if (string.IsNullOrWhiteSpace(messageText))
                 return;
@@ -98,12 +153,36 @@ namespace EchoXIV
                 return;
 
             // Verificar si es del jugador local
-            var localPlayer = _objectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter;
-            var localPlayerName = localPlayer?.Name.TextValue;
-            var isLocalPlayer = !string.IsNullOrEmpty(localPlayerName) && senderName == localPlayerName;
+            var isLocalPlayer = localPlayer != null && (senderName.StartsWith(localPlayer.Name.TextValue));
             
             if (isLocalPlayer && !_configuration.ShowOutgoingMessages)
                 return;
+
+            // DEDUPLICACIÓN: Verificar si es una traducción que nosotros mismos enviamos
+            string? originalFromPending = null;
+            lock (_pendingOutgoingTranslations)
+            {
+                if (_pendingOutgoingTranslations.TryGetValue(messageText, out originalFromPending))
+                {
+                    _pendingOutgoingTranslations.Remove(messageText);
+                }
+            }
+
+            if (originalFromPending != null)
+            {
+                // Ya lo tenemos, no traducir otra vez y usar el original real
+                var pendingMsg = new TranslatedChatMessage
+                {
+                    Timestamp = DateTime.Now,
+                    ChatType = type,
+                    Sender = senderName,
+                    OriginalText = originalFromPending,
+                    TranslatedText = messageText,
+                    IsTranslating = false
+                };
+                OnMessageTranslated?.Invoke(pendingMsg);
+                return;
+            }
 
             // Verificar lista de exclusión (insensible a mayúsculas gracias al HashSet configurado)
             if (_configuration.ExcludedMessages.Contains(messageText))
@@ -115,7 +194,7 @@ namespace EchoXIV
                     ChatType = type,
                     Sender = senderName,
                     OriginalText = messageText,
-                    TranslatedText = messageText, // El texto traducido es el mismo original
+                    TranslatedText = messageText, 
                     IsTranslating = false
                 };
                 OnMessageTranslated?.Invoke(excludedMsg);
