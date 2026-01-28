@@ -3,7 +3,7 @@ using System.Numerics;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
-using EchoXIV.Resources;
+using EchoXIV.Properties;
 
 namespace EchoXIV.UI;
 
@@ -13,7 +13,7 @@ public class WelcomeWindow : Window
     public event Action? OnConfigurationComplete;
 
     public WelcomeWindow(Configuration configuration) 
-        : base("EchoXIV - Bienvenido / Welcome###WelcomeWindow")
+        : base($"{Resources.PluginName} - {Resources.WelcomeWindow_Title}###WelcomeWindow")
     {
         _configuration = configuration;
         
@@ -23,19 +23,22 @@ public class WelcomeWindow : Window
 
     public override void Draw()
     {
-        ImGui.TextWrapped("¡Gracias por instalar EchoXIV! Por favor, configura tus idiomas iniciales para comenzar.");
-        ImGui.TextWrapped("Thank you for installing EchoXIV! Please set your initial languages to get started.");
+        ImGui.TextWrapped(Resources.Welcome_Intro);
         
         ImGui.Separator();
         ImGui.Spacing();
 
         // Selector de idioma de origen (Lo que escribes)
-        ImGui.Text("¿Qué idioma hablas?");
-        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), "(Idioma que usarás para escribir en el chat)");
+        ImGui.Text(Resources.Welcome_SourceQuestion);
+        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.Welcome_SourceTip);
         ImGui.SetNextItemWidth(-1);
         
         var languages = new[] { "es", "en", "ja", "fr", "de", "pt", "ko", "zh-CN", "zh-TW", "ru", "it" };
-        var languageNames = new[] { "Español", "English", "Japanese", "Français", "Deutsch", "Português", "Korean", "Chinese (Simp)", "Chinese (Trad)", "Russian", "Italiano" };
+        var languageNames = new[] { 
+            Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, Resources.Lang_FR, 
+            Resources.Lang_DE, Resources.Lang_PT, Resources.Lang_KO, Resources.Lang_ZH_Simp, 
+            Resources.Lang_ZH_Trad, Resources.Lang_RU, Resources.Lang_IT 
+        };
         
         var currentSourceIdx = Array.IndexOf(languages, _configuration.SourceLanguage);
         if (currentSourceIdx == -1) currentSourceIdx = 0;
@@ -48,8 +51,8 @@ public class WelcomeWindow : Window
         ImGui.Spacing();
 
         // Selector de idioma de destino (A qué traduces lo que escribes)
-        ImGui.Text("¿A qué idioma quieres traducir tus mensajes?");
-        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), "(Lo que verán los demás usuarios)");
+        ImGui.Text(Resources.Welcome_TargetQuestion);
+        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.Welcome_TargetTip);
         ImGui.SetNextItemWidth(-1);
         
         var currentTargetIdx = Array.IndexOf(languages, _configuration.TargetLanguage);
@@ -65,11 +68,15 @@ public class WelcomeWindow : Window
         ImGui.Spacing();
 
         // Idioma para los demás (Entrantes)
-        ImGui.Text("¿En qué idioma quieres leer a los demás?");
+        ImGui.Text(Resources.Welcome_ReadQuestion);
         ImGui.SetNextItemWidth(-1);
 
         var incomingLangs = new[] { "", "es", "en", "ja", "fr", "de", "pt", "ko", "zh-CN", "zh-TW", "ru", "it" };
-        var incomingLangNames = new[] { "Usar mi idioma de escritura", "Español", "English", "日本語", "Français", "Deutsch", "Português", "한국어", "简体中文", "繁體中文", "Русский", "Italiano" };
+        var incomingLangNames = new[] { 
+            Resources.Incoming_UseWritingLanguage, Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, 
+            Resources.Lang_FR, Resources.Lang_DE, Resources.Lang_PT, Resources.Lang_KO, 
+            Resources.Lang_ZH_Simp, Resources.Lang_ZH_Trad, Resources.Lang_RU, Resources.Lang_IT 
+        };
 
         var currentIncIdx = Array.IndexOf(incomingLangs, _configuration.IncomingTargetLanguage);
         if (currentIncIdx == -1) currentIncIdx = 0;
@@ -81,7 +88,7 @@ public class WelcomeWindow : Window
 
         ImGui.Dummy(new Vector2(0, 20));
         
-        if (ImGui.Button("Guardar y Comenzar / Save and Start", new Vector2(-1, 40)))
+        if (ImGui.Button(Resources.Welcome_SaveStart, new Vector2(-1, 40)))
         {
             _configuration.FirstRun = false;
             _configuration.Save();

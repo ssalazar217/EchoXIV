@@ -29,11 +29,11 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock x:Name="TitleText" Text="Traductor Chat" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TitleText" Text="Chat Translator" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
                         
                         <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <Button x:Name="BtnLock" Content="🔓" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0" ToolTip="Bloquear/Compactar (Click-Through)"/>
-                            <Button x:Name="BtnClear" Content="Limpiar" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0"/>
+                            <Button x:Name="BtnLock" Content="🔓" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0" ToolTip="Lock/Compact (Click-Through)"/>
+                            <Button x:Name="BtnClear" Content="Clear" Margin="0,0,5,0" Padding="5,2" Background="#44000000" Foreground="White" BorderThickness="0"/>
                             <Button x:Name="BtnHide" Content="X" Padding="5,2" Background="#88FF0000" Foreground="White" BorderThickness="0"/>
                         </StackPanel>
                     </Grid>
@@ -65,7 +65,7 @@
                 BorderBrush="White"
                 BorderThickness="1"
                 Visibility="Collapsed"
-                ToolTip="Desbloquear ventana"
+                ToolTip="Unlock window"
                 Cursor="Hand"/>
     </Grid>
 </Window>

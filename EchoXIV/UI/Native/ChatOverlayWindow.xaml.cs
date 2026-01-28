@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Linq.Expressions;
 using Dalamud.Game.Text;
 using EchoXIV.Services;
+using EchoXIV.Properties;
 
 namespace EchoXIV.UI.Native
 {
@@ -49,11 +50,6 @@ namespace EchoXIV.UI.Native
             _btnUnlockOverlay = _window.FindName("BtnUnlockOverlay");
             _btnLock = _window.FindName("BtnLock");
 
-            // Nota: Para evitar CS1977, usamos un truco de casting o reflexión para eventos en dynamic
-            // HookEvent(_headerBorder, "MouseLeftButtonDown", new Action<object, dynamic>((s, e) => { if (e.ChangedButton == 0) _window.DragMove(); }));
-            // HookEvent(_window.FindName("BtnLock"), "Click", new EventHandler((s, e) => Lock_Click(s, e)));
-            // HookEvent(_window.FindName("BtnUnlockOverlay"), "Click", new EventHandler((s, e) => UnlockOverlay_Click(s, e)));
-            
             // Usaremos una forma robusta con Expression Trees para evitar problemas de tipos de delegados
             HookEvent(_window.FindName("BtnLock"), "Click", (Action<object, dynamic>)((s, e) => Lock_Click(s, e)));
             HookEvent(_window.FindName("BtnUnlockOverlay"), "Click", (Action<object, dynamic>)((s, e) => UnlockOverlay_Click(s, e)));
@@ -89,6 +85,20 @@ namespace EchoXIV.UI.Native
 
                 _window.Closed += (EventHandler)((s, e) => SaveGeometry());
             }
+
+            // Localizar elementos estáticos
+            if (_titleText != null) _titleText.Text = Resources.ChatWindow_Title;
+            if (_headerBorder != null) _headerBorder.ToolTip = Resources.ChatWindow_HideTooltip; // Opcional, o al botón X
+            if (_btnLock != null) _btnLock.ToolTip = Resources.ChatWindow_LockTooltip;
+            var btnHide = _window.FindName("BtnHide");
+            if (btnHide != null) btnHide.ToolTip = Resources.ChatWindow_HideTooltip;
+            var btnClear = _window.FindName("BtnClear");
+            if (btnClear != null) {
+                btnClear.Content = Resources.ChatWindow_Clear;
+                btnClear.ToolTip = Resources.ChatWindow_ClearTooltip;
+            }
+            if (_btnUnlockOverlay != null) _btnUnlockOverlay.ToolTip = Resources.ChatWindow_UnlockTooltip;
+
             UpdateTitle();
 
             foreach (var msg in _historyManager.GetHistory()) AddMessage(msg);
@@ -134,9 +144,9 @@ namespace EchoXIV.UI.Native
             return value is IntPtr ptr ? ptr : IntPtr.Zero;
         }
 
-        public void Show() { if (NativeUiLoader.IsWindows && _window != null) ((object)_window).GetType().GetMethod("Show")?.Invoke(_window, null); }
-        public void Hide() { if (NativeUiLoader.IsWindows && _window != null) ((object)_window).GetType().GetMethod("Hide")?.Invoke(_window, null); }
-        public void Close() { if (NativeUiLoader.IsWindows && _window != null) ((object)_window).GetType().GetMethod("Close")?.Invoke(_window, null); }
+        public void Show() { if (NativeUiLoader.IsWindows && _window != null) _window.Dispatcher.InvokeAsync((Action)(() => ((object)_window).GetType().GetMethod("Show")?.Invoke(_window, null))); }
+        public void Hide() { if (NativeUiLoader.IsWindows && _window != null) _window.Dispatcher.InvokeAsync((Action)(() => ((object)_window).GetType().GetMethod("Hide")?.Invoke(_window, null))); }
+        public void Close() { if (NativeUiLoader.IsWindows && _window != null) _window.Dispatcher.InvokeAsync((Action)(() => ((object)_window).GetType().GetMethod("Close")?.Invoke(_window, null))); }
         public bool IsVisible() => NativeUiLoader.IsWindows && _window != null && Equals(_window.Visibility, NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 0));
 
         private void UpdateTitle()
@@ -144,7 +154,7 @@ namespace EchoXIV.UI.Native
             if (_titleText != null && _chatOutput != null)
             {
                 var count = _chatOutput.Document.Blocks.Count;
-                _titleText.Text = $"EchoXIV [{_configuration.SelectedEngine}] ({count})";
+                _titleText.Text = $"{Resources.ChatWindow_Title} [{_configuration.SelectedEngine}] ({count})";
             }
         }
 
@@ -223,12 +233,18 @@ namespace EchoXIV.UI.Native
         
         public void ResetPosition()
         {
-            if (!NativeUiLoader.IsWindows) return;
-            _window.Left = 100;
-            _window.Top = 100;
-            Show();
-            _window.Topmost = true;
-            _window.Activate();
+            if (!NativeUiLoader.IsWindows || _window == null) return;
+            _window.Dispatcher.InvokeAsync((Action)(() =>
+            {
+                _window.Left = 100;
+                _window.Top = 100;
+                Show();
+                if (_window != null)
+                {
+                    _window.Topmost = true;
+                    _window.Activate();
+                }
+            }));
         }
 
         private void SaveGeometry()
@@ -302,7 +318,7 @@ namespace EchoXIV.UI.Native
 
             if (message.IsTranslating)
             {
-                dynamic? run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", "Traduciendo...");
+                dynamic? run = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Documents.Run", Resources.ChatWindow_Translating);
                 if (run != null)
                 {
                     run.Foreground = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Yellow");
@@ -357,55 +373,59 @@ namespace EchoXIV.UI.Native
 
         public void SetLock(bool state)
         {
-            _isLocked = state;
-            if (_isLocked)
+            if (_window == null) return;
+            _window.Dispatcher.InvokeAsync((Action)(() =>
             {
-                _mainBorder.IsHitTestVisible = false;
-                _mainBorder.Background = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Transparent");
-                var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-                var thickness = Activator.CreateInstance(thinType!, 0.0);
-                if (thickness != null) _mainBorder.BorderThickness = (dynamic)thickness;
-                
-                if (_headerBorder != null) 
+                _isLocked = state;
+                if (_isLocked)
                 {
-                    var collapsed = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 2);
-                    if (collapsed != null) _headerBorder.Visibility = (dynamic)collapsed;
-                }
-                if (_btnUnlockOverlay != null)
-                {
-                    var visible = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 0);
-                    if (visible != null) _btnUnlockOverlay.Visibility = (dynamic)visible;
-                }
-                
-                var noResize = NativeUiLoader.GetEnumValue("PresentationFramework", "System.Windows.ResizeMode", 0);
-                if (noResize != null) _window.ResizeMode = (dynamic)noResize;
+                    _mainBorder.IsHitTestVisible = false;
+                    _mainBorder.Background = (dynamic)GetStaticProperty("System.Windows.Media.Brushes, PresentationCore", "Transparent");
+                    var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                    var thickness = Activator.CreateInstance(thinType!, 0.0);
+                    if (thickness != null) _mainBorder.BorderThickness = (dynamic)thickness;
+                    
+                    if (_headerBorder != null) 
+                    {
+                        var collapsed = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 2);
+                        if (collapsed != null) _headerBorder.Visibility = (dynamic)collapsed;
+                    }
+                    if (_btnUnlockOverlay != null)
+                    {
+                        var visible = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 0);
+                        if (visible != null) _btnUnlockOverlay.Visibility = (dynamic)visible;
+                    }
+                    
+                    var noResize = NativeUiLoader.GetEnumValue("PresentationFramework", "System.Windows.ResizeMode", 0);
+                    if (noResize != null) _window.ResizeMode = (dynamic)noResize;
 
-                if (_btnLock != null) _btnLock.Content = "🔒";
-            }
-            else
-            {
-                _mainBorder.IsHitTestVisible = true;
-                SetOpacity(_configuration.WindowOpacity);
-                var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-                var thickness = Activator.CreateInstance(thinType!, 1.0);
-                if (thickness != null) _mainBorder.BorderThickness = (dynamic)thickness;
-                
-                if (_headerBorder != null)
-                {
-                    var visible = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 0);
-                    if (visible != null) _headerBorder.Visibility = (dynamic)visible;
+                    if (_btnLock != null) _btnLock.Content = "🔒";
                 }
-                if (_btnUnlockOverlay != null)
+                else
                 {
-                    var collapsed = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 2);
-                    if (collapsed != null) _btnUnlockOverlay.Visibility = (dynamic)collapsed;
+                    _mainBorder.IsHitTestVisible = true;
+                    SetOpacity(_configuration.WindowOpacity);
+                    var thinType = Type.GetType("System.Windows.Thickness, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                    var thickness = Activator.CreateInstance(thinType!, 1.0);
+                    if (thickness != null) _mainBorder.BorderThickness = (dynamic)thickness;
+                    
+                    if (_headerBorder != null)
+                    {
+                        var visible = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 0);
+                        if (visible != null) _headerBorder.Visibility = (dynamic)visible;
+                    }
+                    if (_btnUnlockOverlay != null)
+                    {
+                        var collapsed = NativeUiLoader.GetEnumValue("PresentationCore", "System.Windows.Visibility", 2);
+                        if (collapsed != null) _btnUnlockOverlay.Visibility = (dynamic)collapsed;
+                    }
+
+                    var canResize = NativeUiLoader.GetEnumValue("PresentationFramework", "System.Windows.ResizeMode", 2);
+                    if (canResize != null) _window.ResizeMode = (dynamic)canResize;
+
+                    if (_btnLock != null) _btnLock.Content = "🔓";
                 }
-
-                var canResize = NativeUiLoader.GetEnumValue("PresentationFramework", "System.Windows.ResizeMode", 2);
-                if (canResize != null) _window.ResizeMode = (dynamic)canResize;
-
-                if (_btnLock != null) _btnLock.Content = "🔓";
-            }
+            }));
         }
         
         public void UpdateVisuals()

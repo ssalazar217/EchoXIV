@@ -14,7 +14,7 @@
     "plugin"
   ],
   "Punchline": "Bidirectional (Outgoing+Incoming) chat translation with Auto-Failover. / Traducción de chat bidireccional con Failover automático.",
-  "Changelog": "v0.1.0.12:\n- Corregido RuntimeBinderException en ShutdownMode (WPF Bridge).\n- Compatibilidad mejorada para cargas dinámicas.",
+  "Changelog": "v0.1.0.14:\n- Corregida inconsistencia en listado de idiomas entrantes.\n- Eliminados caracteres corruptos en menús desplegables.",
   "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
   "AcceptsFeedback": true
 }

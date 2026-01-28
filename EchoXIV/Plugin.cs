@@ -8,6 +8,7 @@ using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
 using EchoXIV.Services;
 using EchoXIV.UI;
+using EchoXIV.Properties;
 using Newtonsoft.Json;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
@@ -76,7 +77,11 @@ namespace EchoXIV
                 }
 
                 // Inicializar localización basada en idioma del usuario
-                Resources.Loc.SetCulture(_configuration.SourceLanguage);
+                try 
+                {
+                    Resources.Culture = new System.Globalization.CultureInfo(_configuration.SourceLanguage ?? "en");
+                }
+                catch { }
                 
                 // Inicializar servicio de traducción
                 UpdateTranslationService();
@@ -95,7 +100,11 @@ namespace EchoXIV
                     _welcomeWindow = new WelcomeWindow(_configuration);
                     _welcomeWindow.OnConfigurationComplete += () => 
                     {
-                        Resources.Loc.SetCulture(_configuration.SourceLanguage);
+                        try 
+                        {
+                            Resources.Culture = new System.Globalization.CultureInfo(_configuration.SourceLanguage ?? "en");
+                        }
+                        catch { }
                         UpdateTranslationService();
                     };
                     _windowSystem.AddWindow(_welcomeWindow);
@@ -258,6 +267,7 @@ namespace EchoXIV
             // pero Dalamud maneja la limpieza al descargar el plugin en la mayoría de casos)
 
             _wpfHost?.Dispose();
+            _wpfHost = null;
             
             // Limpiar comandos
             CommandManager.RemoveHandler(CommandName);
@@ -713,9 +723,6 @@ namespace EchoXIV
             // Actualizar referencia en IncomingMessageHandler si ya existe
             if (_incomingMessageHandler != null)
             {
-                // Un poco hacky: IncomingMessageHandler necesita el servicio actualizado
-                // Idealmente IncomingMessageHandler debería pedir el servicio al plugin o tener metodo Update
-                // Re-creamos o añadimos un setter (vamos a añadir un setter en IncomingMessageHandler)
                 _incomingMessageHandler.UpdateTranslator(_translatorService);
             }
             
@@ -761,14 +768,12 @@ namespace EchoXIV
         /// </summary>
         private static unsafe bool UpdateChatVisibilityInternal()
         {
-            // 1. Verificar login básico y presencia real de un personaje en el mundo
             var localPlayer = ObjectTable.LocalPlayer;
             if (!ClientState.IsLoggedIn || localPlayer == null) 
             {
                 return false;
             }
 
-            // 2. Verificar estados que impiden ver el chat (Carga, Cutscenes, GPose)
             if (Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] || 
                 Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.WatchingCutscene] || 
                 Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.OccupiedInCutSceneEvent] || 
@@ -777,14 +782,11 @@ namespace EchoXIV
                 return false;
             }
 
-            // 3. Verificar si el addon de chat nativo está visible
             var chatLogAddon = (FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase*)(nint)GameGui.GetAddonByName("ChatLog");
             bool nativeChatVisible = chatLogAddon != null && chatLogAddon->IsVisible && chatLogAddon->RootNode != null;
 
             if (nativeChatVisible) return true;
 
-            // 4. Si el chat nativo no es visible, retornamos true si estamos logueados 
-            // (esto permite que el overlay sea visible con cualquier interfaz de chat externa)
             return true;
         }
     }

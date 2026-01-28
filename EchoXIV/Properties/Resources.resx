@@ -265,4 +265,163 @@ Requires plugin reload to apply changes.</value>
     <data name="Cache_DisabledWarning">
         <value>Cache disabled - all translations will be new</value>
     </data>
+    <data name="ChatWindow_LockTooltip">
+        <value>Lock/Compact (Click-Through)</value>
+    </data>
+    <data name="ChatWindow_UnlockTooltip">
+        <value>Unlock window</value>
+    </data>
+    <data name="ChatWindow_HideTooltip">
+        <value>Hide window</value>
+    </data>
+    <data name="ChatWindow_ClearTooltip">
+        <value>Clear chat content</value>
+    </data>
+    <data name="ConfigWindow_Title">
+        <value>EchoXIV - Configuration</value>
+    </data>
+    <data name="Tab_Visuals">
+        <value>Visuals</value>
+    </data>
+    <data name="General_Engine">
+        <value>Translation Engine</value>
+    </data>
+    <data name="General_EngineGoogleDesc">
+        <value>Classic Google Translate (GTx JSON API)</value>
+    </data>
+    <data name="General_EnginePapagoDesc">
+        <value>Naver Papago Translator (Korean/Japanese focus)</value>
+    </data>
+    <data name="General_WindowMode">
+        <value>Window Mode</value>
+    </data>
+    <data name="General_RestoreWindow">
+        <value>Restore/Unlock Window</value>
+    </data>
+    <data name="General_RestoreWindowTip">
+        <value>Use if the native window is locked or lost.</value>
+    </data>
+    <data name="General_SmartVisibility">
+        <value>Smart Visibility (Hide on focus loss)</value>
+    </data>
+    <data name="General_SmartVisibilityTip">
+        <value>Automatically hides the window when the game is not in the foreground.</value>
+    </data>
+    <data name="General_VerboseLogs">
+        <value>Verbose Logging</value>
+    </data>
+    <data name="General_VerboseLogsTip">
+        <value>Enables extra technical info in the Dalamud log. Useful for debugging.</value>
+    </data>
+    <data name="Visuals_Description">
+        <value>Customize the appearance of the translated chat window.</value>
+    </data>
+    <data name="Visuals_FontSize">
+        <value>Font Size</value>
+    </data>
+    <data name="Visuals_Spacing">
+        <value>Message Spacing</value>
+    </data>
+    <data name="Visuals_TimeFormat">
+        <value>Time Format</value>
+    </data>
+    <data name="Visuals_TimeFormatShort">
+        <value>Short (13:30)</value>
+    </data>
+    <data name="Visuals_TimeFormatLong">
+        <value>Long (13:30:45)</value>
+    </data>
+    <data name="Visuals_TimeFormatAMPM">
+        <value>AM/PM (1:30 PM)</value>
+    </data>
+    <data name="Incoming_ShowOutgoing">
+        <value>Show my own messages</value>
+    </data>
+    <data name="WelcomeWindow_Title">
+        <value>EchoXIV - Welcome</value>
+    </data>
+    <data name="Welcome_Intro">
+        <value>Thank you for installing EchoXIV! Please set your initial languages to get started.</value>
+    </data>
+    <data name="Welcome_SourceQuestion">
+        <value>What language do you speak?</value>
+    </data>
+    <data name="Welcome_SourceTip">
+        <value>(The language you will use to write in chat)</value>
+    </data>
+    <data name="Welcome_TargetQuestion">
+        <value>What language do you want to translate your messages to?</value>
+    </data>
+    <data name="Welcome_TargetTip">
+        <value>(What other users will see)</value>
+    </data>
+    <data name="Welcome_ReadQuestion">
+        <value>In what language do you want to read others?</value>
+    </data>
+    <data name="Welcome_SaveStart">
+        <value>Save and Start</value>
+    </data>
+    <data name="Lang_ES">
+        <value>Spanish</value>
+    </data>
+    <data name="Lang_EN">
+        <value>English</value>
+    </data>
+    <data name="Lang_JA">
+        <value>Japanese</value>
+    </data>
+    <data name="Lang_FR">
+        <value>French</value>
+    </data>
+    <data name="Lang_DE">
+        <value>German</value>
+    </data>
+    <data name="Lang_PT">
+        <value>Portuguese</value>
+    </data>
+    <data name="Lang_KO">
+        <value>Korean</value>
+    </data>
+    <data name="Lang_ZH_Simp">
+        <value>Chinese (Simp)</value>
+    </data>
+    <data name="Lang_ZH_Trad">
+        <value>Chinese (Trad)</value>
+    </data>
+    <data name="Lang_RU">
+        <value>Russian</value>
+    </data>
+    <data name="Lang_IT">
+        <value>Italian</value>
+    </data>
+    <data name="Channel_Say">
+        <value>Say</value>
+    </data>
+    <data name="Channel_Shout">
+        <value>Shout</value>
+    </data>
+    <data name="Channel_Yell">
+        <value>Yell</value>
+    </data>
+    <data name="Channel_Party">
+        <value>Party</value>
+    </data>
+    <data name="Channel_Alliance">
+        <value>Alliance</value>
+    </data>
+    <data name="Channel_FC">
+        <value>FC</value>
+    </data>
+    <data name="Channel_NN">
+        <value>NN</value>
+    </data>
+    <data name="Channel_Tell">
+        <value>Tell</value>
+    </data>
+    <data name="Incoming_UseWritingLanguage">
+        <value>Use my writing language</value>
+    </data>
+    <data name="General_ChangesAppliedImmediately">
+        <value>Most changes are applied immediately.</value>
+    </data>
 </root>

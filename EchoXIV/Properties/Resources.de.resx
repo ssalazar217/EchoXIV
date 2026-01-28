@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
+        <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+        <xsd:element name="root" msdata:IsDataSet="true">
+            <xsd:complexType>
+                <xsd:choice maxOccurs="unbounded">
+                    <xsd:element name="metadata">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" use="required" type="xsd:string"/>
+                            <xsd:attribute name="type" type="xsd:string"/>
+                            <xsd:attribute name="mimetype" type="xsd:string"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="assembly">
+                        <xsd:complexType>
+                            <xsd:attribute name="alias" type="xsd:string"/>
+                            <xsd:attribute name="name" type="xsd:string"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="data">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
+                            <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
+                            <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="resheader">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:choice>
+            </xsd:complexType>
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    
+    <data name="PluginName">
+        <value>FFXIV Chat Translator</value>
+    </data>
+    <data name="Tab_General">
+        <value>Allgemein</value>
+    </data>
+    <data name="Tab_ExcludedMessages">
+        <value>Ausgeschlossene Nachrichten</value>
+    </data>
+    <data name="Tab_Cache">
+        <value>Cache</value>
+    </data>
+    <data name="Tab_IncomingChannels">
+        <value>Eingehende Kanäle</value>
+    </data>
+    <data name="General_Description">
+        <value>Allgemeine Übersetzereinstellungen</value>
+    </data>
+    <data name="General_EnableTranslation">
+        <value>Automatische Übersetzung aktivieren</value>
+    </data>
+    <data name="General_SourceLanguage">
+        <value>Quellsprache:</value>
+    </data>
+    <data name="General_TargetLanguage">
+        <value>Zielsprache:</value>
+    </data>
+    <data name="General_DefaultChannel">
+        <value>Standardkanal (Fallback):</value>
+    </data>
+    <data name="General_DefaultChannelTip">
+        <value>Wird verwendet, wenn die automatische Erkennung fehlschlägt.</value>
+    </data>
+    <data name="Incoming_Description">
+        <value>Kanäle für die Übersetzung eingehender Nachrichten konfigurieren.</value>
+    </data>
+    <data name="Incoming_Enable">
+        <value>Übersetzung eingehender Nachrichten aktivieren</value>
+    </data>
+    <data name="Incoming_Disabled">
+        <value>Eingehende Übersetzung deaktiviert</value>
+    </data>
+    <data name="Incoming_TranslateTo">
+        <value>Eingehende Nachrichten übersetzen in:</value>
+    </data>
+    <data name="Incoming_AutoDetectNote">
+        <value>(Quellsprache wird automatisch erkannt)</value>
+    </data>
+    <data name="Incoming_UseWritingLanguage">
+        <value>(Schreibsprache verwenden)</value>
+    </data>
+    <data name="Incoming_DisplayOptions">
+        <value>Anzeigeoptionen:</value>
+    </data>
+    <data name="Incoming_ShowOriginal">
+        <value>Originaltext im Tooltip anzeigen</value>
+    </data>
+    <data name="Incoming_ShowTimestamps">
+        <value>Zeitstempel anzeigen</value>
+    </data>
+    <data name="Incoming_MaxMessages">
+        <value>Maximale Nachrichten</value>
+    </data>
+    <data name="Incoming_ChannelsToTranslate">
+        <value>Zu übersetzende Kanäle:</value>
+    </data>
+    <data name="Incoming_Linkshells">
+        <value>Linkshells:</value>
+    </data>
+    <data name="Incoming_CrossWorldLS">
+        <value>Weltenübergreifende Linkshells:</value>
+    </data>
+    <data name="Excluded_Description">
+        <value>Nachrichten, die nicht übersetzt werden (Emotes, universelle Ausdrücke usw.)</value>
+    </data>
+    <data name="Excluded_CurrentList">
+        <value>Aktuelle Ausschlussliste:</value>
+    </data>
+    <data name="Excluded_AddNew">
+        <value>Neuen Ausschluss hinzufügen:</value>
+    </data>
+    <data name="Excluded_Add">
+        <value>Hinzufügen</value>
+    </data>
+    <data name="Cache_Description">
+        <value>Einstellungen für den Übersetzungscache</value>
+    </data>
+    <data name="Cache_Enable">
+        <value>Übersetzungscache aktivieren</value>
+    </data>
+    <data name="Cache_Description_Long">
+        <value>Nachrichten, die kürzer als das angegebene Limit sind, werden zwischengespeichert. Längere Nachrichten werden immer übersetzt.</value>
+    </data>
+    <data name="Cache_MaxLength">
+        <value>Maximale Länge für Caching</value>
+    </data>
+    <data name="Cache_Stats">
+        <value>Cache-Statistiken:</value>
+    </data>
+    <data name="Cache_Entries">
+        <value>Zwischengespeicherte Einträge:</value>
+    </data>
+    <data name="Cache_Clear">
+        <value>Cache vollständig leeren</value>
+    </data>
+    <data name="Cache_ClearTooltip">
+        <value>Löscht alle gespeicherten Übersetzungen. Nützlich, wenn Sie die Zielsprache geändert haben.</value>
+    </data>
+    <data name="Cache_Tip">
+        <value>Tipp: Der Cache wird automatisch geleert, wenn er voll ist.</value>
+    </data>
+    <data name="ChatWindow_Title">
+        <value>Chat-Übersetzer</value>
+    </data>
+    <data name="ChatWindow_Active">
+        <value>Aktiv</value>
+    </data>
+    <data name="ChatWindow_AutoScroll">
+        <value>Auto-Scroll</value>
+    </data>
+    <data name="ChatWindow_Clear">
+        <value>Leeren</value>
+    </data>
+    <data name="ChatWindow_Translating">
+        <value>Übersetzen...</value>
+    </data>
+    <data name="ChatWindow_Original">
+        <value>Original:</value>
+    </data>
+    <data name="Command_TranslationEnabled">
+        <value>Übersetzung aktiviert.</value>
+    </data>
+    <data name="Command_TranslationDisabled">
+        <value>Übersetzung deaktiviert.</value>
+    </data>
+    <data name="Command_WindowOpened">
+        <value>Übersetzungsfenster geöffnet. Verwenden Sie /tl reset, falls Sie es nicht sehen können.</value>
+    </data>
+    <data name="Command_WindowClosed">
+        <value>Übersetzungsfenster geschlossen.</value>
+    </data>
+    <data name="Command_PositionReset">
+        <value>Fensterposition auf (100, 100) zurückgesetzt. Es sollte jetzt sichtbar sein.</value>
+    </data>
+    <data name="Command_NoMessage">
+        <value>Keine Nachricht zu übersetzen</value>
+    </data>
+    <data name="Command_MessageTooLong">
+        <value>Nachricht zu lang</value>
+    </data>
+    <data name="Command_TranslateError">
+        <value>Übersetzungsfehler</value>
+    </data>
+    <data name="Command_SendError">
+        <value>Fehler beim Senden der Nachricht</value>
+    </data>
+    <data name="General_ChangesAppliedImmediately">
+        <value>Änderungen werden sofort übernommen.</value>
+    </data>
+    <data name="Excluded_InputLabel">
+        <value>Nachricht hinzufügen:</value>
+    </data>
+    <data name="Excluded_Remove">
+        <value>Entfernen</value>
+    </data>
+    <data name="Excluded_RestoreDefault">
+        <value>Standardliste wiederherstellen</value>
+    </data>
+    <data name="Cache_CharLimit">
+        <value>{0} Zeichen</value>
+    </data>
+    <data name="Cache_PercentUsed">
+        <value>{0}% verwendet</value>
+    </data>
+    <data name="Incoming_WindowOpacity">
+        <value>Fensterdeckkraft</value>
+    </data>
+    <data name="Incoming_NativeWindow">
+        <value>Natives Fenster verwenden (WPF / Besserer Multi-Monitor-Support)</value>
+    </data>
+    <data name="Incoming_NativeWindowTooltip">
+        <value>Aktiviert ein unabhängiges externes Fenster (bessere FPS-Leistung). Deaktivieren, um das interne Dalamud-Fenster zu verwenden. Erfordert ein Plugin-Neuladen, um Änderungen zu übernehmen.</value>
+    </data>
+    <data name="Incoming_RestartNote">
+        <value>Hinweis: Das Ändern des Fenstermodus erfordert einen Plugin-Neustart.</value>
+    </data>
+    <data name="Cache_DisabledWarning">
+        <value>Cache deaktiviert - alle Übersetzungen werden neu erstellt</value>
+    </data>
+    <data name="ChatWindow_LockTooltip">
+        <value>Sperren/Kompakt (Durchklickbar)</value>
+    </data>
+    <data name="ChatWindow_UnlockTooltip">
+        <value>Fenster entsperren</value>
+    </data>
+    <data name="ChatWindow_HideTooltip">
+        <value>Fenster ausblenden</value>
+    </data>
+    <data name="ChatWindow_ClearTooltip">
+        <value>Chat-Inhalt leeren</value>
+    </data>
+    <data name="ConfigWindow_Title">
+        <value>EchoXIV - Konfiguration</value>
+    </data>
+    <data name="Tab_Visuals">
+        <value>Visualisierung</value>
+    </data>
+    <data name="General_Engine">
+        <value>Übersetzungs-Engine</value>
+    </data>
+    <data name="General_EngineGoogleDesc">
+        <value>Klassisches Google Translate (GTx JSON API)</value>
+    </data>
+    <data name="General_EnginePapagoDesc">
+        <value>Naver Papago Translator (Koreanisch/Japanisch Fokus)</value>
+    </data>
+    <data name="General_WindowMode">
+        <value>Fenstermodus</value>
+    </data>
+    <data name="General_RestoreWindow">
+        <value>Fenster wiederherstellen/entsperren</value>
+    </data>
+    <data name="General_RestoreWindowTip">
+        <value>Verwenden Sie dies, wenn das native Fenster gesperrt oder verloren gegangen ist.</value>
+    </data>
+    <data name="General_SmartVisibility">
+        <value>Smarte Sichtbarkeit (Ausblenden bei Fokusverlust)</value>
+    </data>
+    <data name="General_SmartVisibilityTip">
+        <value>Blendet das Fenster automatisch aus, wenn das Spiel nicht im Vordergrund ist.</value>
+    </data>
+    <data name="General_VerboseLogs">
+        <value>Ausführliche Protokollierung</value>
+    </data>
+    <data name="General_VerboseLogsTip">
+        <value>Aktiviert zusätzliche technische Informationen im Dalamud-Log. Nützlich für das Debugging.</value>
+    </data>
+    <data name="Visuals_Description">
+        <value>Passen Sie das Erscheinungsbild des übersetzten Chat-Fensters an.</value>
+    </data>
+    <data name="Visuals_FontSize">
+        <value>Schriftgröße</value>
+    </data>
+    <data name="Visuals_Spacing">
+        <value>Zeilenabstand</value>
+    </data>
+    <data name="Visuals_TimeFormat">
+        <value>Zeitformat</value>
+    </data>
+    <data name="Visuals_TimeFormatShort">
+        <value>Kurz (13:30)</value>
+    </data>
+    <data name="Visuals_TimeFormatLong">
+        <value>Lang (13:30:45)</value>
+    </data>
+    <data name="Visuals_TimeFormatAMPM">
+        <value>AM/PM (1:30 PM)</value>
+    </data>
+    <data name="Incoming_ShowOutgoing">
+        <value>Eigene Nachrichten anzeigen</value>
+    </data>
+    <data name="WelcomeWindow_Title">
+        <value>EchoXIV - Willkommen</value>
+    </data>
+    <data name="Welcome_Intro">
+        <value>Vielen Dank für die Installation von EchoXIV! Bitte stellen Sie Ihre Ausgangssprachen ein, um zu beginnen.</value>
+    </data>
+    <data name="Welcome_SourceQuestion">
+        <value>Welche Sprache sprechen Sie?</value>
+    </data>
+    <data name="Welcome_SourceTip">
+        <value>(Die Sprache, die Sie zum Schreiben im Chat verwenden werden)</value>
+    </data>
+    <data name="Welcome_TargetQuestion">
+        <value>In welche Sprache sollen Ihre Nachrichten übersetzt werden?</value>
+    </data>
+    <data name="Welcome_TargetTip">
+        <value>(Was andere Benutzer sehen werden)</value>
+    </data>
+    <data name="Welcome_ReadQuestion">
+        <value>In welcher Sprache möchten Sie andere lesen?</value>
+    </data>
+    <data name="Welcome_SaveStart">
+        <value>Speichern und Starten</value>
+    </data>
+    <data name="Lang_ES">
+        <value>Spanisch</value>
+    </data>
+    <data name="Lang_EN">
+        <value>Englisch</value>
+    </data>
+    <data name="Lang_JA">
+        <value>Japanisch</value>
+    </data>
+    <data name="Lang_FR">
+        <value>Französisch</value>
+    </data>
+    <data name="Lang_DE">
+        <value>Deutsch</value>
+    </data>
+    <data name="Lang_PT">
+        <value>Portugiesisch</value>
+    </data>
+    <data name="Lang_KO">
+        <value>Koreanisch</value>
+    </data>
+    <data name="Lang_ZH_Simp">
+        <value>Chinesisch (Simp)</value>
+    </data>
+    <data name="Lang_ZH_Trad">
+        <value>Chinesisch (Trad)</value>
+    </data>
+    <data name="Lang_RU">
+        <value>Russisch</value>
+    </data>
+    <data name="Lang_IT">
+        <value>Italienisch</value>
+    </data>
+    <data name="Channel_Say">
+        <value>Sagen</value>
+    </data>
+    <data name="Channel_Shout">
+        <value>Rufen</value>
+    </data>
+    <data name="Channel_Yell">
+        <value>Schreien</value>
+    </data>
+    <data name="Channel_Party">
+        <value>Gruppe</value>
+    </data>
+    <data name="Channel_Alliance">
+        <value>Allianz</value>
+    </data>
+    <data name="Channel_FC">
+        <value>FK</value>
+    </data>
+    <data name="Channel_NN">
+        <value>Neuling</value>
+    </data>
+    <data name="Channel_Tell">
+        <value>Tell</value>
+    </data>
+    <data name="Incoming_UseWritingLanguage">
+        <value>Meine Schreibsprache verwenden</value>
+    </data>
+    <data name="General_ChangesAppliedImmediately">
+        <value>Die meisten Änderungen werden sofort übernommen.</value>
+    </data>
+</root>

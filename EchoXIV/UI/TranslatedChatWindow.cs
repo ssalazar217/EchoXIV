@@ -6,7 +6,7 @@ using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
-using EchoXIV.Resources;
+using EchoXIV.Properties;
 using EchoXIV.Services;
 
 namespace EchoXIV.UI
@@ -25,7 +25,7 @@ namespace EchoXIV.UI
         private bool _resetPending = false;
 
         public TranslatedChatWindow(Configuration configuration, MessageHistoryManager historyManager)
-            : base(Loc.ChatWindow_Title + "###TranslatedChatWindow")
+            : base(Resources.ChatWindow_Title + "###TranslatedChatWindow")
         {
             _configuration = configuration;
             _historyManager = historyManager;
@@ -172,7 +172,7 @@ namespace EchoXIV.UI
         {
             // Toggle de traducción entrante
             var enabled = _configuration.IncomingTranslationEnabled;
-            if (ImGui.Checkbox(Loc.ChatWindow_Active, ref enabled))
+            if (ImGui.Checkbox(Resources.ChatWindow_Active, ref enabled))
             {
                 _configuration.IncomingTranslationEnabled = enabled;
                 _configuration.Save();
@@ -181,12 +181,12 @@ namespace EchoXIV.UI
             ImGui.SameLine();
 
             // Auto-scroll toggle
-            ImGui.Checkbox(Loc.ChatWindow_AutoScroll, ref _autoScroll);
+            ImGui.Checkbox(Resources.ChatWindow_AutoScroll, ref _autoScroll);
 
             ImGui.SameLine();
 
             // Botón limpiar
-            if (ImGui.Button(Loc.ChatWindow_Clear))
+            if (ImGui.Button(Resources.ChatWindow_Clear))
             {
                 ClearMessages();
             }
@@ -246,11 +246,11 @@ namespace EchoXIV.UI
             if (message.ChatType == XivChatType.TellOutgoing)
             {
                 var name = string.IsNullOrEmpty(message.Recipient) ? message.Sender : message.Recipient;
-                prefix += $"[Tell] >> {name}: ";
+                prefix += $"[{Resources.Channel_Tell}] >> {name}: ";
             }
             else if (message.ChatType == XivChatType.TellIncoming)
             {
-                prefix += $"[Tell] << {message.Sender}: ";
+                prefix += $"[{Resources.Channel_Tell}] << {message.Sender}: ";
             }
             else
             {
@@ -267,7 +267,7 @@ namespace EchoXIV.UI
             {
                 if (message.IsTranslating)
                 {
-                    ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.2f, 1f), Loc.ChatWindow_Translating);
+                    ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.2f, 1f), Resources.ChatWindow_Translating);
                 }
                 else
                 {
@@ -285,7 +285,7 @@ namespace EchoXIV.UI
                     using var tooltip = ImRaii.Tooltip();
                     if (tooltip)
                     {
-                        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Loc.ChatWindow_Original);
+                        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_Original);
                         ImGui.TextUnformatted(message.OriginalText);
                     }
                 }
@@ -323,12 +323,12 @@ namespace EchoXIV.UI
         {
             return type switch
             {
-                XivChatType.Say => "Say",
-                XivChatType.Shout => "Shout",
-                XivChatType.Yell => "Yell",
-                XivChatType.Party => "Party",
-                XivChatType.Alliance => "Alliance",
-                XivChatType.FreeCompany => "FC",
+                XivChatType.Say => Resources.Channel_Say,
+                XivChatType.Shout => Resources.Channel_Shout,
+                XivChatType.Yell => Resources.Channel_Yell,
+                XivChatType.Party => Resources.Channel_Party,
+                XivChatType.Alliance => Resources.Channel_Alliance,
+                XivChatType.FreeCompany => Resources.Channel_FC,
                 XivChatType.Ls1 => "LS1",
                 XivChatType.Ls2 => "LS2",
                 XivChatType.Ls3 => "LS3",
@@ -345,9 +345,9 @@ namespace EchoXIV.UI
                 XivChatType.CrossLinkShell6 => "CWLS6",
                 XivChatType.CrossLinkShell7 => "CWLS7",
                 XivChatType.CrossLinkShell8 => "CWLS8",
-                XivChatType.NoviceNetwork => "NN",
-                XivChatType.TellOutgoing => "Tell",
-                XivChatType.TellIncoming => "Tell",
+                XivChatType.NoviceNetwork => Resources.Channel_NN,
+                XivChatType.TellOutgoing => Resources.Channel_Tell,
+                XivChatType.TellIncoming => Resources.Channel_Tell,
                 XivChatType.Debug => "Echo",
                 _ => type.ToString()
             };

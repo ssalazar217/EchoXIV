@@ -94,32 +94,30 @@ namespace EchoXIV.Services
                             var prop = _wpfApp.GetType().GetProperty("ShutdownMode");
                             if (prop != null)
                             {
-                                prop.SetValue(_wpfApp, Enum.ToObject(shutdownModeType, 1));
+                                // ShutdownMode.OnExplicitShutdown = 2
+                                prop.SetValue(_wpfApp, Enum.ToObject(shutdownModeType, 2));
                             }
                         }
                     }
-                    _logger.Info("Nueva Dynamic Application creada.");
+                    _logger.Info("WpfHost: Nueva Application creada (OnExplicitShutdown).");
                 }
                 else
                 {
-                    _logger.Info("Usando Dynamic Application existente.");
+                    _logger.Info("WpfHost: Reutilizando Application existente.");
                 }
 
-                _logger.Info("Instanciando ChatOverlayWindow (Dynamic)...");
+                _logger.Info("WpfHost: Inicializando ChatOverlayWindow...");
                 _chatWindow = new EchoXIV.UI.Native.ChatOverlayWindow(_configuration, _historyManager);
-                
-                // _chatWindow.Closed += ...
-                // Nota: Los eventos en dynamic requieren cuidado o usar delegados
-                
                 _chatWindow.Show();
-                _logger.Info("✅ Ventana WPF dinámica inicializada correctamente.");
+                
                 IsInitialized = true;
+                _logger.Info("WpfHost: ✅ Ventana lista.");
 
                 _currentPid = (uint)Process.GetCurrentProcess().Id;
                 _gameWindowHandle = GetGameWindowHandle();
                 _chatWindowHandle = _chatWindow.GetHandle();
 
-                // DispatcherTimer
+                // Timer de visibilidad inteligente
                 _visibilityTimer = NativeUiLoader.CreateInstance("WindowsBase", "System.Windows.Threading.DispatcherTimer");
                 if (_visibilityTimer != null)
                 {
@@ -130,7 +128,7 @@ namespace EchoXIV.Services
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "CRITICAL: Error en WpfThreadEntryPoint dinámica");
+                _logger.Error(ex, "WpfHost: Error crítico en WpfThreadEntryPoint");
                 IsInitialized = false;
             }
 
@@ -138,27 +136,26 @@ namespace EchoXIV.Services
 
             try 
             {
-                // Dispatcher.Run()
                 var dispatcherType = Type.GetType("System.Windows.Threading.Dispatcher, WindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
                 dispatcherType?.GetMethod("Run", Array.Empty<Type>())?.Invoke(null, null);
             }
             catch (Exception ex)
             {
-                 _logger.Error(ex, "Error en Dispatcher loop dinámico");
+                _logger.Error(ex, "WpfHost: Error en el loop del Dispatcher");
             }
             finally
             {
-                _logger.Info("Dispatcher loop terminado.");
+                _logger.Info("WpfHost: Loop del Dispatcher finalizado.");
                 IsInitialized = false;
-                _chatWindow = null;
                 _visibilityTimer?.Stop();
                 _visibilityTimer = null;
+                _chatWindow = null;
             }
         }
 
         private void VisibilityTimer_Tick(object? sender, EventArgs e)
         {
-            if (_chatWindow == null) return;
+            if (_chatWindow == null || !_isRunning) return;
             if (!_configuration.OverlayVisible) return;
             
             bool isChatVisible = Plugin.IsChatVisible();
@@ -167,14 +164,14 @@ namespace EchoXIV.Services
             if (_configuration.SmartVisibility && isChatVisible)
             {
                 var foreground = GetForegroundWindow();
-                if (foreground == IntPtr.Zero)
-                {
-                    shouldBeVisible = false;
-                }
-                else
+                if (foreground != IntPtr.Zero)
                 {
                     GetWindowThreadProcessId(foreground, out uint foregroundPid);
                     shouldBeVisible = (foregroundPid == _currentPid);
+                }
+                else
+                {
+                    shouldBeVisible = false;
                 }
             }
 
@@ -217,36 +214,49 @@ namespace EchoXIV.Services
         {
             if (!_isRunning) return;
             _isRunning = false;
+            _logger.Info("WpfHost: Iniciando apagado...");
 
             _visibilityTimer?.Stop();
             _visibilityTimer = null;
 
-            if (_chatWindow != null)
-            {
-                try { _chatWindow.Close(); } catch { }
-            }
-            
             if (_wpfThread != null && _wpfThread.IsAlive)
             {
                 try
                 {
-                    // dispatcher.InvokeShutdown() vía reflexión
                     var dispatcherType = Type.GetType("System.Windows.Threading.Dispatcher, WindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
                     var dispatcher = dispatcherType?.GetMethod("FromThread")?.Invoke(null, new object[] { _wpfThread });
+                    
                     if (dispatcher != null)
                     {
-                        var method = dispatcher.GetType().GetMethod("InvokeShutdown");
-                        method?.Invoke(dispatcher, null);
+                        // Intentar cerrar la ventana de forma segura desede el hilo de la UI
+                        if (_chatWindow != null)
+                        {
+                            try { _chatWindow.Close(); } catch { } 
+                        }
+
+                        // Forzar el apagado del dispatcher para terminar el thread
+                        var method = dispatcher.GetType().GetMethod("BeginInvokeShutdown", new[] { Type.GetType("System.Windows.Threading.DispatcherPriority, WindowsBase") });
+                        if (method != null)
+                        {
+                            var priorityNormal = NativeUiLoader.GetEnumValue("WindowsBase", "System.Windows.Threading.DispatcherPriority", 7); // Normal
+                            method.Invoke(dispatcher, new[] { priorityNormal });
+                        }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.Warning($"WpfHost: Error al solicitar apagado del Dispatcher: {ex.Message}");
+                }
 
-                _wpfThread.Join(1000);
+                if (!_wpfThread.Join(1500))
+                {
+                    _logger.Warning("WpfHost: El hilo WPF no terminó a tiempo.");
+                }
             }
             
-            _wpfApp = null;
             _chatWindow = null;
             _wpfThread = null;
+            _logger.Info("WpfHost: Apagado completado.");
         }
     }
 }

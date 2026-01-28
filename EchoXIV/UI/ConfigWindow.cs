@@ -5,7 +5,7 @@ using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
-using EchoXIV.Resources;
+using EchoXIV.Properties;
 
 namespace EchoXIV.UI;
 
@@ -24,7 +24,7 @@ public class ConfigWindow : Window, IDisposable
     private string _newExcludedMessage = string.Empty;
     
     public ConfigWindow(Configuration configuration) 
-        : base("EchoXIV - Configuración###ConfigWindow")
+        : base($"{Resources.PluginName} - {Resources.ConfigWindow_Title}###ConfigWindow")
     {
         _configuration = configuration;
         
@@ -42,22 +42,22 @@ public class ConfigWindow : Window, IDisposable
         {
             if (tabBar)
             {
-                using (var tabItem = ImRaii.TabItem(Loc.Tab_General + "###GeneralTab"))
+                using (var tabItem = ImRaii.TabItem(Resources.Tab_General + "###GeneralTab"))
                 {
                     if (tabItem) DrawGeneralTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem("Visuales###VisualsTab"))
+                using (var tabItem = ImRaii.TabItem(Resources.Tab_Visuals + "###VisualsTab"))
                 {
                     if (tabItem) DrawVisualsTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem(Loc.Tab_ExcludedMessages + "###ExcludedTab"))
+                using (var tabItem = ImRaii.TabItem(Resources.Tab_ExcludedMessages + "###ExcludedTab"))
                 {
                     if (tabItem) DrawExcludedMessagesTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem(Loc.Tab_IncomingChannels + "###IncomingTab"))
+                using (var tabItem = ImRaii.TabItem(Resources.Tab_IncomingChannels + "###IncomingTab"))
                 {
                     if (tabItem) DrawIncomingChannelsTab();
                 }
@@ -70,13 +70,13 @@ public class ConfigWindow : Window, IDisposable
         using var child = ImRaii.Child("GeneralScroll");
         if (child)
         {
-            ImGui.TextWrapped(Loc.General_Description);
+            ImGui.TextWrapped(Resources.General_Description);
             ImGui.Separator();
             ImGui.Spacing();
             
             // Toggle de traducción
             var enabled = _configuration.TranslationEnabled;
-            if (ImGui.Checkbox(Loc.General_EnableTranslation, ref enabled))
+            if (ImGui.Checkbox(Resources.General_EnableTranslation, ref enabled))
             {
                 _configuration.TranslationEnabled = enabled;
                 _configuration.Save();
@@ -87,7 +87,7 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Spacing();
             
             // Selector de Motor de Traducción
-            ImGui.Text("Motor de Traducción");
+            ImGui.Text(Resources.General_Engine);
             ImGui.SetNextItemWidth(200);
             
             var engines = Enum.GetValues<TranslationEngine>();
@@ -107,19 +107,23 @@ public class ConfigWindow : Window, IDisposable
 
             ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), 
                 _configuration.SelectedEngine == TranslationEngine.Google 
-                ? "Motor clásico de Google Translate (GTx JSON API)" 
-                : "Naver Papago Translator (Coreano/Japonés)");
+                ? Resources.General_EngineGoogleDesc 
+                : Resources.General_EnginePapagoDesc);
 
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
             
             // Selector de idioma de origen
-            ImGui.Text(Loc.General_SourceLanguage);
+            ImGui.Text(Resources.General_SourceLanguage);
             ImGui.SetNextItemWidth(200);
             
             var languages = new[] { "es", "en", "ja", "fr", "de", "pt", "ko", "zh-CN", "zh-TW", "ru", "it" };
-            var languageNames = new[] { "Español", "English", "Japanese", "Français", "Deutsch", "Português", "Korean", "Chinese (Simp)", "Chinese (Trad)", "Russian", "Italiano" };
+            var languageNames = new[] { 
+                Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, Resources.Lang_FR, 
+                Resources.Lang_DE, Resources.Lang_PT, Resources.Lang_KO, Resources.Lang_ZH_Simp, 
+                Resources.Lang_ZH_Trad, Resources.Lang_RU, Resources.Lang_IT 
+            };
             
             var currentSourceIdx = Array.IndexOf(languages, _configuration.SourceLanguage);
             if (currentSourceIdx == -1) currentSourceIdx = 0;
@@ -133,7 +137,7 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Spacing();
             
             // Selector de idioma de destino
-            ImGui.Text(Loc.General_TargetLanguage);
+            ImGui.Text(Resources.General_TargetLanguage);
             ImGui.SetNextItemWidth(200);
             
             var currentTargetIdx = Array.IndexOf(languages, _configuration.TargetLanguage);
@@ -150,16 +154,16 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Spacing();
 
             
-            ImGui.TextWrapped(Loc.General_ChangesAppliedImmediately);
+            ImGui.TextWrapped(Resources.General_ChangesAppliedImmediately);
             
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
 
             // Selector de modo de ventana (Movido a General para visibilidad)
-            ImGui.Text("Modo de Ventana");
+            ImGui.Text(Resources.General_WindowMode);
             var useNative = _configuration.UseNativeWindow;
-            if (ImGui.Checkbox(Loc.Incoming_NativeWindow, ref useNative))
+            if (ImGui.Checkbox(Resources.Incoming_NativeWindow, ref useNative))
             {
                 var oldMode = _configuration.UseNativeWindow;
                 _configuration.UseNativeWindow = useNative;
@@ -171,14 +175,14 @@ public class ConfigWindow : Window, IDisposable
             }
             if (ImGui.IsItemHovered())
             {
-                ImGui.SetTooltip(Loc.Incoming_NativeWindowTooltip);
+                ImGui.SetTooltip(Resources.Incoming_NativeWindowTooltip);
             }
             
             if (useNative)
             {
                 var windowOpacity = _configuration.WindowOpacity;
                 ImGui.SetNextItemWidth(150);
-                if (ImGui.SliderFloat(Loc.Incoming_WindowOpacity, ref windowOpacity, 0.0f, 1.0f, "%.2f"))
+                if (ImGui.SliderFloat(Resources.Incoming_WindowOpacity, ref windowOpacity, 0.0f, 1.0f, "%.2f"))
                 {
                     _configuration.WindowOpacity = windowOpacity;
                     _configuration.Save();
@@ -188,13 +192,13 @@ public class ConfigWindow : Window, IDisposable
                 }
 
                 ImGui.SameLine();
-                if (ImGui.Button("Restaurar/Desbloquear Ventana"))
+                if (ImGui.Button(Resources.General_RestoreWindow))
                 {
                     OnUnlockNativeRequested?.Invoke();
                 }
                 if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip("Úsalo si la ventana nativa está bloqueada o perdida.");
+                    ImGui.SetTooltip(Resources.General_RestoreWindowTip);
                 }
             }
             
@@ -202,13 +206,13 @@ public class ConfigWindow : Window, IDisposable
             
             // Smart Visibility Option (Ahora disponible para ambos modos)
             var smartVis = _configuration.SmartVisibility;
-            if (ImGui.Checkbox("Smart Visibility (Ocultar al perder foco)", ref smartVis))
+            if (ImGui.Checkbox(Resources.General_SmartVisibility, ref smartVis))
             {
                 _configuration.SmartVisibility = smartVis;
                 _configuration.Save();
                 OnSmartVisibilityChanged?.Invoke(smartVis);
             }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Oculta automáticamente la ventana cuando el juego no está en primer plano.");
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_SmartVisibilityTip);
             
             ImGui.Spacing();
             ImGui.Separator();
@@ -216,16 +220,16 @@ public class ConfigWindow : Window, IDisposable
 
             // Opción de Logs Detallados
             var verboseLogs = _configuration.VerboseLogging;
-            if (ImGui.Checkbox("Registro de Logs Detallados", ref verboseLogs))
+            if (ImGui.Checkbox(Resources.General_VerboseLogs, ref verboseLogs))
             {
                 _configuration.VerboseLogging = verboseLogs;
                 _configuration.Save();
             }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Activa información técnica adicional en el log de Dalamud. Útil para depuración.");
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_VerboseLogsTip);
 
             if (useNative != _configuration.UseNativeWindow) 
             {
-                ImGui.TextColored(new Vector4(1f, 0.5f, 0f, 1f), Loc.Incoming_RestartNote);
+                ImGui.TextColored(new Vector4(1f, 0.5f, 0f, 1f), Resources.Incoming_RestartNote);
             }
         }
     }
@@ -234,11 +238,11 @@ public class ConfigWindow : Window, IDisposable
         using var child = ImRaii.Child("ExcludedScroll");
         if (child)
         {
-            ImGui.TextWrapped(Loc.Excluded_Description);
+            ImGui.TextWrapped(Resources.Excluded_Description);
             ImGui.Separator();
             ImGui.Spacing();
             
-            ImGui.Text(Loc.Excluded_InputLabel);
+            ImGui.Text(Resources.Excluded_InputLabel);
             ImGui.SetNextItemWidth(-100);
             if (ImGui.InputText("##NewExcluded", ref _newExcludedMessage, 100, ImGuiInputTextFlags.EnterReturnsTrue))
             {
@@ -255,7 +259,7 @@ public class ConfigWindow : Window, IDisposable
             }
             
             ImGui.SameLine();
-            if (ImGui.Button(Loc.Excluded_Add + "##AddExcluded"))
+            if (ImGui.Button(Resources.Excluded_Add + "##AddExcluded"))
             {
                 var trimmed = _newExcludedMessage.Trim();
                 if (!string.IsNullOrWhiteSpace(trimmed))
@@ -273,7 +277,7 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
             
-            ImGui.Text($"{Loc.Excluded_CurrentList} ({_configuration.ExcludedMessages.Count}):");
+            ImGui.Text($"{Resources.Excluded_CurrentList} ({_configuration.ExcludedMessages.Count}):");
             
             using (var innerChild = ImRaii.Child("ExcludedList", new Vector2(0, 200), true))
             {
@@ -285,7 +289,7 @@ public class ConfigWindow : Window, IDisposable
                 ImGui.Text(msg);
                 ImGui.SameLine();
                 ImGui.SetCursorPosX(ImGui.GetWindowWidth() - 80);
-                if (ImGui.SmallButton($"{Loc.Excluded_Remove}##{msg}"))
+                if (ImGui.SmallButton($"{Resources.Excluded_Remove}##{msg}"))
                 {
                     toRemove = msg;
                 }
@@ -300,7 +304,7 @@ public class ConfigWindow : Window, IDisposable
             
             ImGui.Spacing();
             
-            if (ImGui.Button(Loc.Excluded_RestoreDefault))
+            if (ImGui.Button(Resources.Excluded_RestoreDefault))
             {
                 _configuration.ExcludedMessages = new(StringComparer.OrdinalIgnoreCase)
                 {
@@ -324,13 +328,13 @@ public class ConfigWindow : Window, IDisposable
         using var child = ImRaii.Child("VisualsScroll");
         if (child)
         {
-            ImGui.TextWrapped("Personaliza la apariencia de la ventana de chat traducido.");
+            ImGui.TextWrapped(Resources.Visuals_Description);
             ImGui.Separator();
             ImGui.Spacing();
 
             // Font Size
             int fontSize = _configuration.FontSize;
-            if (ImGui.SliderInt("Tamaño de Fuente", ref fontSize, 10, 32))
+            if (ImGui.SliderInt(Resources.Visuals_FontSize, ref fontSize, 10, 32))
             {
                 _configuration.FontSize = fontSize;
                 _configuration.Save();
@@ -339,7 +343,7 @@ public class ConfigWindow : Window, IDisposable
             
             // Spacing
             int spacing = _configuration.ChatMessageSpacing;
-            if (ImGui.SliderInt("Espaciado entre Mensajes", ref spacing, 0, 20))
+            if (ImGui.SliderInt(Resources.Visuals_Spacing, ref spacing, 0, 20))
             {
                 _configuration.ChatMessageSpacing = spacing;
                 _configuration.Save();
@@ -349,9 +353,9 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Spacing();
             
             // Timestamp Format
-            ImGui.Text("Formato de Hora");
+            ImGui.Text(Resources.Visuals_TimeFormat);
             string[] formats = { "HH:mm", "HH:mm:ss", "h:mm tt" };
-            string[] formatNames = { "Corto (13:30)", "Largo (13:30:45)", "AM/PM (1:30 PM)" };
+            string[] formatNames = { Resources.Visuals_TimeFormatShort, Resources.Visuals_TimeFormatLong, Resources.Visuals_TimeFormatAMPM };
             
             int currentFmt = Array.IndexOf(formats, _configuration.TimestampFormat);
             if (currentFmt == -1) currentFmt = 0;
@@ -371,13 +375,13 @@ public class ConfigWindow : Window, IDisposable
         using var child = ImRaii.Child("IncomingScroll");
         if (child)
         {
-            ImGui.TextWrapped(Loc.Incoming_Description);
+            ImGui.TextWrapped(Resources.Incoming_Description);
         ImGui.Separator();
         ImGui.Spacing();
         
         // Toggle general
         var incomingEnabled = _configuration.IncomingTranslationEnabled;
-        if (ImGui.Checkbox(Loc.Incoming_Enable, ref incomingEnabled))
+        if (ImGui.Checkbox(Resources.Incoming_Enable, ref incomingEnabled))
         {
             _configuration.IncomingTranslationEnabled = incomingEnabled;
             _configuration.Save();
@@ -385,7 +389,7 @@ public class ConfigWindow : Window, IDisposable
         
         if (!incomingEnabled)
         {
-            ImGui.TextColored(new Vector4(1f, 0.5f, 0f, 1f), Loc.Incoming_Disabled);
+            ImGui.TextColored(new Vector4(1f, 0.5f, 0f, 1f), Resources.Incoming_Disabled);
             return;
         }
         
@@ -394,12 +398,16 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         
         // Selector de idioma destino para entrantes
-        ImGui.Text(Loc.Incoming_TranslateTo);
-        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Loc.Incoming_AutoDetectNote);
+        ImGui.Text(Resources.Incoming_TranslateTo);
+        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Resources.Incoming_AutoDetectNote);
         ImGui.SetNextItemWidth(200);
         
         var languages = new[] { "", "es", "en", "ja", "fr", "de", "pt", "ko", "zh-CN", "zh-TW", "ru", "it" };
-        var languageNames = new[] { Loc.Incoming_UseWritingLanguage, "Español", "English", "日本語", "Français", "Deutsch", "Português", "한국어", "简体中文", "繁體中文", "Русский", "Italiano" };
+        var languageNames = new[] { 
+            Resources.Incoming_UseWritingLanguage, Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, 
+            Resources.Lang_FR, Resources.Lang_DE, Resources.Lang_PT, Resources.Lang_KO, 
+            Resources.Lang_ZH_Simp, Resources.Lang_ZH_Trad, Resources.Lang_RU, Resources.Lang_IT 
+        };
         
         var currentIdx = Array.IndexOf(languages, _configuration.IncomingTargetLanguage);
         if (currentIdx == -1) currentIdx = 0;
@@ -415,17 +423,17 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Spacing();
         
         // Opciones de visualización
-        ImGui.Text(Loc.Incoming_DisplayOptions);
+        ImGui.Text(Resources.Incoming_DisplayOptions);
         
         var showOriginal = _configuration.ShowOriginalText;
-        if (ImGui.Checkbox(Loc.Incoming_ShowOriginal, ref showOriginal))
+        if (ImGui.Checkbox(Resources.Incoming_ShowOriginal, ref showOriginal))
         {
             _configuration.ShowOriginalText = showOriginal;
             _configuration.Save();
         }
         
         var showTimestamps = _configuration.ShowTimestamps;
-        if (ImGui.Checkbox(Loc.Incoming_ShowTimestamps, ref showTimestamps))
+        if (ImGui.Checkbox(Resources.Incoming_ShowTimestamps, ref showTimestamps))
         {
             _configuration.ShowTimestamps = showTimestamps;
             _configuration.Save();
@@ -433,14 +441,14 @@ public class ConfigWindow : Window, IDisposable
         
         var maxMessages = _configuration.MaxDisplayedMessages;
         ImGui.SetNextItemWidth(100);
-        if (ImGui.InputInt(Loc.Incoming_MaxMessages, ref maxMessages))
+        if (ImGui.InputInt(Resources.Incoming_MaxMessages, ref maxMessages))
         {
             _configuration.MaxDisplayedMessages = Math.Clamp(maxMessages, 10, 200);
             _configuration.Save();
         }
         
         var showOutgoing = _configuration.ShowOutgoingMessages;
-        if (ImGui.Checkbox("Mostrar mis mensajes", ref showOutgoing))
+        if (ImGui.Checkbox(Resources.Incoming_ShowOutgoing, ref showOutgoing))
         {
             _configuration.ShowOutgoingMessages = showOutgoing;
             _configuration.Save();
@@ -451,7 +459,7 @@ public class ConfigWindow : Window, IDisposable
         /*
         var windowOpacity = _configuration.WindowOpacity;
         ImGui.SetNextItemWidth(150);
-        if (ImGui.SliderFloat(Loc.Incoming_WindowOpacity, ref windowOpacity, 0.0f, 1.0f, "%.2f"))
+        if (ImGui.SliderFloat(Resources.Incoming_WindowOpacity, ref windowOpacity, 0.0f, 1.0f, "%.2f"))
         {
             _configuration.WindowOpacity = windowOpacity;
             _configuration.Save();
@@ -464,7 +472,7 @@ public class ConfigWindow : Window, IDisposable
         
         // Selector de modo de ventana
         var useNative = _configuration.UseNativeWindow;
-        if (ImGui.Checkbox(Loc.Incoming_NativeWindow, ref useNative))
+        if (ImGui.Checkbox(Resources.Incoming_NativeWindow, ref useNative))
         {
             _configuration.UseNativeWindow = useNative;
             _configuration.Save();
@@ -475,7 +483,7 @@ public class ConfigWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip(Loc.Incoming_NativeWindowTooltip);
+            ImGui.SetTooltip(Resources.Incoming_NativeWindowTooltip);
         }
         if (useNative != _configuration.UseNativeWindow) // Si acaba de cambiar (pero esto es post-render loop logic, no buena idea)
         {
@@ -484,14 +492,14 @@ public class ConfigWindow : Window, IDisposable
         
         // Mostrar aviso si se cambió y difiere del estado actual (requiere tracking de estado en plugin)
         // Simplificación: texto explicativo estático.
-        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Loc.Incoming_RestartNote);
+        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Resources.Incoming_RestartNote);
         */
         
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
         
-        ImGui.Text(Loc.Incoming_ChannelsToTranslate);
+        ImGui.Text(Resources.Incoming_ChannelsToTranslate);
         ImGui.Spacing();
         
         // Canales principales
@@ -514,7 +522,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Columns(1);
         
         ImGui.Spacing();
-        ImGui.Text(Loc.Incoming_Linkshells);
+        ImGui.Text(Resources.Incoming_Linkshells);
         ImGui.Columns(4, "LSColumns", false);
         
         DrawChannelCheckbox("LS1", XivChatType.Ls1);
@@ -532,7 +540,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Columns(1);
         
         ImGui.Spacing();
-        ImGui.Text(Loc.Incoming_CrossWorldLS);
+        ImGui.Text(Resources.Incoming_CrossWorldLS);
         ImGui.Columns(4, "CWLSColumns", false);
         
         DrawChannelCheckbox("CWLS1", XivChatType.CrossLinkShell1);

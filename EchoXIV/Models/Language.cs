@@ -36,7 +36,7 @@ namespace EchoXIV.Models
             {
                 var jsonPath = Path.Combine(
                     Path.GetDirectoryName(typeof(LanguageProvider).Assembly.Location) ?? string.Empty,
-                    "Resources",
+                    "Properties",
                     "Languages.json"
                 );
                 
