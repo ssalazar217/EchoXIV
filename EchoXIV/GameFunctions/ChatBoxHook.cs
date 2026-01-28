@@ -21,7 +21,7 @@ namespace EchoXIV.GameFunctions
     internal unsafe class ChatBoxHook : IDisposable
     {
         // Delegate oficial de ClientStructs si estuviera disponible, o mantenemos el nuestro pero saneado
-        public delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, IntPtr unused, byte a4);
+        public delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, void* unused, byte a4);
         
         public delegate void OutgoingTranslationDelegate(string original, string translated);
         public event OutgoingTranslationDelegate? OnMessageTranslated;
@@ -91,7 +91,7 @@ namespace EchoXIV.GameFunctions
         /// <summary>
         /// Detour function: intercepta mensajes ANTES de procesarlos
         /// </summary>
-        private void ProcessChatBoxDetour(UIModule* uiModule, Utf8String* message, IntPtr unused, byte a4)
+        private void ProcessChatBoxDetour(UIModule* uiModule, Utf8String* message, void* unused, byte a4)
         {
             try
             {

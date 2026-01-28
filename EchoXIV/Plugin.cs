@@ -38,23 +38,22 @@ namespace EchoXIV
         [PluginService] internal static ICondition Condition { get; private set; } = null!;
         [PluginService] internal static IGameInteropProvider GameInteropProvider { get; private set; } = null!;
         [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
-        [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
         [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
         
         private Configuration _configuration = null!;
         private ITranslationService _translatorService = null!;
         private GoogleTranslatorService _googleTranslator = null!;
         private PapagoTranslatorService _papagoTranslator = null!;
-        private GlossaryService _glossaryService = null!; // Added
-        private TranslationCache _translationCache = null!; // Added
+        private GlossaryService _glossaryService = null!;
+        private TranslationCache _translationCache = null!;
         private WindowSystem _windowSystem = null!;
         private ConfigWindow? _configWindow = null;
         private TranslatedChatWindow? _translatedChatWindow = null;
         private WelcomeWindow? _welcomeWindow = null;
-        private WpfHost? _wpfHost = null; // Host para ventana WPF nativa
-        private GameFunctions.ChatBoxHook? _chatBoxHook = null; // Corrected type and nullability
+        private WpfHost? _wpfHost = null;
+        private GameFunctions.ChatBoxHook? _chatBoxHook = null;
         private IncomingMessageHandler? _incomingMessageHandler = null;
-        private MessageHistoryManager _historyManager = null!; // Changed to nullable, but initialized
+        private MessageHistoryManager _historyManager = null!;
         private static bool _chatVisible = false;
         
         public Plugin()
@@ -66,8 +65,8 @@ namespace EchoXIV
                 _historyManager = new MessageHistoryManager(_configuration, PluginInterface.GetPluginConfigDirectory());
 
                 // Initialize new services
-                _glossaryService = new GlossaryService(PluginInterface.GetPluginConfigDirectory()); // Added
-                _translationCache = new TranslationCache(PluginInterface.GetPluginConfigDirectory()); // Added
+                _glossaryService = new GlossaryService(PluginInterface.GetPluginConfigDirectory());
+                _translationCache = new TranslationCache(PluginInterface.GetPluginConfigDirectory());
 
                 // Borrar si existiera para evitar configs corruptas si el usuario borró el JSON
                 if (_configuration.FirstRun)
@@ -164,7 +163,7 @@ namespace EchoXIV
                     _translationCache,
                     ChatGui,
                     ClientState,
-                    ObjectTable,
+                    PlayerState,
                     PluginLog
                 );
                 // Conectar eventos
@@ -471,7 +470,7 @@ namespace EchoXIV
                                 Timestamp = DateTime.Now,
                                 ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
                                 Recipient = recipient,
-                                Sender = ObjectTable.LocalPlayer?.Name.TextValue ?? "Yo",
+                                Sender = ClientState.LocalPlayer?.Name.TextValue ?? "Yo",
                                 OriginalText = message,
                                 TranslatedText = message,
                                 IsTranslating = false
@@ -798,7 +797,7 @@ namespace EchoXIV
         /// </summary>
         private static unsafe bool UpdateChatVisibilityInternal()
         {
-            var localPlayer = ObjectTable.LocalPlayer;
+            var localPlayer = ClientState.LocalPlayer;
             if (!ClientState.IsLoggedIn || localPlayer == null) 
             {
                 return false;

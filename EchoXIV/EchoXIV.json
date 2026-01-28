@@ -16,6 +16,5 @@
   "Punchline": "Bidirectional (Outgoing+Incoming) chat translation with Auto-Failover. / Traducción de chat bidireccional con Failover automático.",
   "AssemblyVersion": "0.1.0.17",
   "Changelog": "v0.1.0.16: Visual Polish (Mica, Colors)\nv0.1.0.17: History Persistence & Failover 2.0",
-  "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
   "AcceptsFeedback": true
 }

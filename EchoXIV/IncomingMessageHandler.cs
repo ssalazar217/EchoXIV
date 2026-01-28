@@ -34,7 +34,7 @@ namespace EchoXIV
         private ITranslationService? _secondaryTranslator;
         private readonly IChatGui _chatGui;
         private readonly IClientState _clientState;
-        private readonly IObjectTable _objectTable;
+        private readonly IPlayerState _playerState;
         private readonly IPluginLog _pluginLog;
         private readonly Dictionary<string, string> _pendingOutgoingTranslations = new(); // Translated -> Original
 
@@ -64,7 +64,7 @@ namespace EchoXIV
             TranslationCache translationCache,
             IChatGui chatGui,
             IClientState clientState,
-            IObjectTable objectTable,
+            IPlayerState playerState,
             IPluginLog pluginLog)
         {
             _configuration = configuration;
@@ -74,7 +74,7 @@ namespace EchoXIV
             _translationCache = translationCache;
             _chatGui = chatGui;
             _clientState = clientState;
-            _objectTable = objectTable;
+            _playerState = playerState;
             _pluginLog = pluginLog;
 
             _chatGui.ChatMessage += OnChatMessage;
@@ -118,7 +118,7 @@ namespace EchoXIV
             var senderName = sender.TextValue;
 
             // Formatear nombre: Nombre Apellido@Servidor
-            var localPlayer = _objectTable.LocalPlayer;
+            var localPlayer = _clientState.LocalPlayer;
             var nameParts = senderName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             
             if (nameParts.Length == 3)
@@ -272,7 +272,7 @@ namespace EchoXIV
                 );
 
                 // 4. Restaurar términos y guardar en caché
-                var finalTranslation = _glossaryService.Restore(translation);
+                var finalTranslation = SanitizeText(_glossaryService.Restore(translation));
                 
                 _translationCache.Add(message.OriginalText, "auto", targetLanguage, finalTranslation);
 
@@ -298,7 +298,7 @@ namespace EchoXIV
                             : _configuration.IncomingTargetLanguage;
 
                         var translation = await _secondaryTranslator.TranslateAsync(protectedText, "auto", targetLanguage);
-                        var finalTranslation = _glossaryService.Restore(translation);
+                        var finalTranslation = SanitizeText(_glossaryService.Restore(translation));
                         
                         _translationCache.Add(message.OriginalText, "auto", targetLanguage, finalTranslation);
                         message.TranslatedText = finalTranslation;
@@ -355,6 +355,18 @@ namespace EchoXIV
             }
 
             return false;
+        }
+
+        private string SanitizeText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            
+            // Eliminar caracteres de control o nulos que puedan romper el chat o el overlay
+            var sanitized = text.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
+            
+            // Asegurar UTF-8 válido (aunque .NET strings son UTF-16, esto previene basura)
+            // Dalamud maneja bien los strings, pero es mejor prevenir caracteres inválidos de las APIs
+            return sanitized;
         }
 
         public void Dispose()
