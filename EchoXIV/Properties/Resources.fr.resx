@@ -407,4 +407,13 @@
     <data name="General_ChangesAppliedImmediately">
         <value>La plupart des changements sont appliqués immédiatement.</value>
     </data>
+    <data name="Visuals_Colors">
+        <value>Couleurs par canal</value>
+    </data>
+    <data name="Visuals_ChannelColorsDesc">
+        <value>Personnalisez la couleur de chaque canal de discussion.</value>
+    </data>
+    <data name="Channel_Linkshell">
+        <value>Linkshell</value>
+    </data>
 </root>

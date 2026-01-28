@@ -42,6 +42,9 @@ namespace EchoXIV.Services
                 
                 var response = await _httpClient.GetAsync(url);
                 
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                    throw new TranslationRateLimitException(Name, "Google Translate rate limit exceeded");
+
                 if (!response.IsSuccessStatusCode)
                     return text; // Fallback
                 

@@ -147,6 +147,24 @@ namespace EchoXIV
             24,  // FreeCompany
         };
 
+        /// <summary>
+        /// Colores personalizados para cada canal de chat (ARGB)
+        /// Guardamos como uint para serialización simple
+        /// </summary>
+        public Dictionary<int, uint> ChannelColors { get; set; } = new()
+        {
+            { 10, 0xFFF7F7F7 }, // Say
+            { 11, 0xFFFFA666 }, // Shout
+            { 30, 0xFFFFFF00 }, // Yell
+            { 14, 0xFF66E5FF }, // Party
+            { 15, 0xFFFF7F00 }, // Alliance
+            { 24, 0xFFABDBE5 }, // FreeCompany
+            { 13, 0xFFFFB8DE }, // TellIncoming
+            { 12, 0xFFFFB8DE }, // TellOutgoing
+            { 27, 0xFFD4FF7D }, // NoviceNetwork
+            { 16, 0xFFD4FF7D }, // Ls1 (y el resto de LS suelen ser iguales)
+        };
+
 
         [NonSerialized]
         private IDalamudPluginInterface? _pluginInterface;

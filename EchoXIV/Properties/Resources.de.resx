@@ -407,4 +407,13 @@
     <data name="General_ChangesAppliedImmediately">
         <value>Die meisten Änderungen werden sofort übernommen.</value>
     </data>
+    <data name="Visuals_Colors">
+        <value>Kanalfarben</value>
+    </data>
+    <data name="Visuals_ChannelColorsDesc">
+        <value>Passen Sie die Farbe für jeden Chat-Kanal an.</value>
+    </data>
+    <data name="Channel_Linkshell">
+        <value>Linkshell</value>
+    </data>
 </root>

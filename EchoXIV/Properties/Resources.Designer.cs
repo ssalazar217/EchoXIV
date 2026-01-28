@@ -65,6 +65,7 @@ namespace EchoXIV.Properties {
         public static string Tab_ExcludedMessages { get { return ResourceManager.GetString("Tab_ExcludedMessages", resourceCulture); } }
         public static string Tab_Cache { get { return ResourceManager.GetString("Tab_Cache", resourceCulture); } }
         public static string Tab_IncomingChannels { get { return ResourceManager.GetString("Tab_IncomingChannels", resourceCulture); } }
+        public static string Tab_History { get { return ResourceManager.GetString("Tab_History", resourceCulture); } }
         public static string General_Description { get { return ResourceManager.GetString("General_Description", resourceCulture); } }
         public static string General_EnableTranslation { get { return ResourceManager.GetString("General_EnableTranslation", resourceCulture); } }
         public static string General_SourceLanguage { get { return ResourceManager.GetString("General_SourceLanguage", resourceCulture); } }
@@ -174,5 +175,12 @@ namespace EchoXIV.Properties {
         public static string Channel_FC { get { return ResourceManager.GetString("Channel_FC", resourceCulture); } }
         public static string Channel_NN { get { return ResourceManager.GetString("Channel_NN", resourceCulture); } }
         public static string Channel_Tell { get { return ResourceManager.GetString("Channel_Tell", resourceCulture); } }
+        public static string Channel_Linkshell { get { return ResourceManager.GetString("Channel_Linkshell", resourceCulture); } }
+        public static string Visuals_Colors { get { return ResourceManager.GetString("Visuals_Colors", resourceCulture); } }
+        public static string Visuals_ChannelColorsDesc { get { return ResourceManager.GetString("Visuals_ChannelColorsDesc", resourceCulture); } }
+        public static string History_Search { get { return ResourceManager.GetString("History_Search", resourceCulture); } }
+        public static string History_NoMessages { get { return ResourceManager.GetString("History_NoMessages", resourceCulture); } }
+        public static string History_Clear { get { return ResourceManager.GetString("History_Clear", resourceCulture); } }
+        public static string History_Title { get { return ResourceManager.GetString("History_Title", resourceCulture); } }
     }
 }

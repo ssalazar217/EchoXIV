@@ -295,28 +295,31 @@ namespace EchoXIV.UI
         /// <summary>
         /// Colores de chat (valores RGB normalizados a 0-1)
         /// </summary>
-        private static Vector4 GetChannelColor(XivChatType type)
+        private Vector4 GetChannelColor(XivChatType type)
         {
-            return type switch
+            int typeId = (int)type;
+            
+            // Especiales (Tells y Linkshells suelen compartir color)
+            if (type == XivChatType.TellIncoming || type == XivChatType.TellOutgoing) typeId = 13;
+            if (typeId >= 16 && typeId <= 23) typeId = 16; // LS1-8
+            if (typeId >= 101 && typeId <= 108) typeId = 16; // CWLS1-8
+
+            if (_configuration.ChannelColors.TryGetValue(typeId, out var colorValue))
             {
-                // Colores oficiales (RGB/255 convertidos a 0-1)
-                XivChatType.Say => new Vector4(247f/255f, 247f/255f, 247f/255f, 1f),           // #F7F7F7
-                XivChatType.Shout => new Vector4(255f/255f, 166f/255f, 102f/255f, 1f),         // #FFA666
-                XivChatType.Yell => new Vector4(255f/255f, 255f/255f, 0f/255f, 1f),            // #FFFF00
-                XivChatType.Party => new Vector4(102f/255f, 229f/255f, 255f/255f, 1f),         // #66E5FF
-                XivChatType.Alliance => new Vector4(255f/255f, 127f/255f, 0f/255f, 1f),        // #FF7F00
-                XivChatType.FreeCompany => new Vector4(171f/255f, 219f/255f, 229f/255f, 1f),   // #ABDBE5
-                XivChatType.TellIncoming or XivChatType.TellOutgoing 
-                    => new Vector4(255f/255f, 184f/255f, 222f/255f, 1f),                       // #FFB8DE
-                XivChatType.NoviceNetwork => new Vector4(212f/255f, 255f/255f, 125f/255f, 1f), // #D4FF7D
-                XivChatType.Ls1 or XivChatType.Ls2 or XivChatType.Ls3 or XivChatType.Ls4
-                    or XivChatType.Ls5 or XivChatType.Ls6 or XivChatType.Ls7 or XivChatType.Ls8
-                    or XivChatType.CrossLinkShell1 or XivChatType.CrossLinkShell2 or XivChatType.CrossLinkShell3
-                    or XivChatType.CrossLinkShell4 or XivChatType.CrossLinkShell5 or XivChatType.CrossLinkShell6
-                    or XivChatType.CrossLinkShell7 or XivChatType.CrossLinkShell8
-                    => new Vector4(212f/255f, 255f/255f, 125f/255f, 1f),                       // #D4FF7D (Linkshells)
-                _ => new Vector4(204f/255f, 204f/255f, 204f/255f, 1f)                          // #CCCCCC default
-            };
+                return ColorToVector4(colorValue);
+            }
+
+            // Fallback
+            return new Vector4(204f/255f, 204f/255f, 204f/255f, 1f); // #CCCCCC default
+        }
+
+        private static Vector4 ColorToVector4(uint color)
+        {
+            float a = ((color >> 24) & 0xFF) / 255f;
+            float r = ((color >> 16) & 0xFF) / 255f;
+            float g = ((color >> 8) & 0xFF) / 255f;
+            float b = (color & 0xFF) / 255f;
+            return new Vector4(r, g, b, a);
         }
 
         private static string GetChannelName(XivChatType type)

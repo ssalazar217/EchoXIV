@@ -77,6 +77,9 @@
     <data name="Tab_IncomingChannels">
         <value>Incoming Channels</value>
     </data>
+    <data name="Tab_History">
+        <value>History</value>
+    </data>
     
     <!-- General Tab -->
     <data name="General_Description">
@@ -423,5 +426,26 @@ Requires plugin reload to apply changes.</value>
     </data>
     <data name="General_ChangesAppliedImmediately">
         <value>Most changes are applied immediately.</value>
+    </data>
+    <data name="Visuals_Colors">
+        <value>Channel Colors</value>
+    </data>
+    <data name="Visuals_ChannelColorsDesc">
+        <value>Customize the color for each chat channel.</value>
+    </data>
+    <data name="Channel_Linkshell">
+        <value>Linkshell</value>
+    </data>
+    <data name="History_Search">
+        <value>Search history...</value>
+    </data>
+    <data name="History_NoMessages">
+        <value>No messages found matching your criteria.</value>
+    </data>
+    <data name="History_Clear">
+        <value>Clear History</value>
+    </data>
+    <data name="History_Title">
+        <value>Message History</value>
     </data>
 </root>

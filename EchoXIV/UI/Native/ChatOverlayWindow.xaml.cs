@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using Dalamud.Game.Text;
 using EchoXIV.Services;
 using EchoXIV.Properties;
+using System.Runtime.InteropServices;
 
 namespace EchoXIV.UI.Native
 {
@@ -84,6 +85,9 @@ namespace EchoXIV.UI.Native
                 _window.Height = _configuration.WindowHeight;
 
                 _window.Closed += (EventHandler)((s, e) => SaveGeometry());
+                
+                // Aplicar estilo moderno si es Windows 11
+                ApplyModernStyle();
             }
 
             // Localizar elementos estáticos
@@ -502,27 +506,27 @@ namespace EchoXIV.UI.Native
         private object GetChannelColor(XivChatType type)
         {
             var colorType = Type.GetType("System.Windows.Media.Color, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            var fromRgb = colorType?.GetMethod("FromRgb", new[] { typeof(byte), typeof(byte), typeof(byte) });
+            var fromRgb = colorType?.GetMethod("FromArgb", new[] { typeof(byte), typeof(byte), typeof(byte), typeof(byte) });
             
-            var (r, g, b) = type switch {
-                XivChatType.Say => (247, 247, 247),
-                XivChatType.Shout => (255, 166, 102),
-                XivChatType.Yell => (255, 255, 0),
-                XivChatType.Party => (102, 229, 255),
-                XivChatType.Alliance => (255, 127, 0),
-                XivChatType.FreeCompany => (171, 219, 229),
-                XivChatType.TellIncoming or XivChatType.TellOutgoing => (255, 184, 222),
-                XivChatType.NoviceNetwork => (212, 255, 125),
-                XivChatType.Ls1 or XivChatType.Ls2 or XivChatType.Ls3 or XivChatType.Ls4 
-                    or XivChatType.Ls5 or XivChatType.Ls6 or XivChatType.Ls7 or XivChatType.Ls8 
-                    => (212, 255, 125),
-                XivChatType.CrossLinkShell1 or XivChatType.CrossLinkShell2 or XivChatType.CrossLinkShell3 
-                    or XivChatType.CrossLinkShell4 or XivChatType.CrossLinkShell5 or XivChatType.CrossLinkShell6 
-                    or XivChatType.CrossLinkShell7 or XivChatType.CrossLinkShell8 
-                    => (212, 255, 125),
-                _ => (204, 204, 204)
-            };
-            return fromRgb?.Invoke(null, new object[] { (byte)r, (byte)g, (byte)b }) ?? new object();
+            int typeId = (int)type;
+            
+            // Especiales (Tells y Linkshells suelen compartir color)
+            if (type == XivChatType.TellIncoming || type == XivChatType.TellOutgoing) typeId = 13;
+            if (typeId >= 16 && typeId <= 23) typeId = 16; // LS1-8
+            if (typeId >= 101 && typeId <= 108) typeId = 16; // CWLS1-8
+
+            uint colorValue = 0xFFCCCCCC; // Default Gray
+            if (_configuration.ChannelColors.TryGetValue(typeId, out var val))
+            {
+                colorValue = val;
+            }
+
+            byte a = (byte)((colorValue >> 24) & 0xFF);
+            byte r = (byte)((colorValue >> 16) & 0xFF);
+            byte g = (byte)((colorValue >> 8) & 0xFF);
+            byte b = (byte)(colorValue & 0xFF);
+
+            return fromRgb?.Invoke(null, new object[] { a, r, g, b }) ?? new object();
         }
 
         private dynamic GetStaticProperty(string typeName, string propName)
@@ -535,12 +539,12 @@ namespace EchoXIV.UI.Native
         {
             return type switch
             {
-                XivChatType.Say => "Say",
-                XivChatType.Shout => "Shout",
-                XivChatType.Yell => "Yell",
-                XivChatType.Party => "Party",
-                XivChatType.Alliance => "Alliance",
-                XivChatType.FreeCompany => "FC",
+                XivChatType.Say => Resources.Channel_Say,
+                XivChatType.Shout => Resources.Channel_Shout,
+                XivChatType.Yell => Resources.Channel_Yell,
+                XivChatType.Party => Resources.Channel_Party,
+                XivChatType.Alliance => Resources.Channel_Alliance,
+                XivChatType.FreeCompany => Resources.Channel_FC,
                 XivChatType.Ls1 => "LS1",
                 XivChatType.Ls2 => "LS2",
                 XivChatType.Ls3 => "LS3",
@@ -557,12 +561,67 @@ namespace EchoXIV.UI.Native
                 XivChatType.CrossLinkShell6 => "CWLS6",
                 XivChatType.CrossLinkShell7 => "CWLS7",
                 XivChatType.CrossLinkShell8 => "CWLS8",
-                XivChatType.NoviceNetwork => "NN",
-                XivChatType.TellOutgoing => "Tell",
-                XivChatType.TellIncoming => "Tell",
+                XivChatType.NoviceNetwork => Resources.Channel_NN,
+                XivChatType.TellOutgoing => Resources.Channel_Tell,
+                XivChatType.TellIncoming => Resources.Channel_Tell,
                 XivChatType.Debug => "Echo",
                 _ => type.ToString()
             };
         }
+        #region Modern Windows 11 Stylings (Mica/Acrylic)
+        
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+        private const int DWMWA_CAPTION_COLOR = 35;
+        private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+
+        private const int DWMWCP_ROUND = 2;
+        private const int DWMSBT_AUTO = 0;
+        private const int DWMSBT_MAINWINDOW = 2; // Mica
+        private const int DWMSBT_TRANSIENTWINDOW = 3; // Acrylic
+        private const int DWMSBT_TABBEDWINDOW = 4; // Mica Alt
+
+        private void ApplyModernStyle()
+        {
+            if (!NativeUiLoader.IsWindows || _window == null) return;
+
+            // Solo funciona en Windows 11 (Build 22000+)
+            if (Environment.OSVersion.Version.Build < 22000) return;
+
+            _window.Dispatcher.Invoke((Action)(() =>
+            {
+                try
+                {
+                    // Necesitamos el HWND vía reflexión
+                    var psType = Type.GetType("System.Windows.PresentationSource, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
+                    var fromVisual = psType?.GetMethod("FromVisual", new[] { Type.GetType("System.Windows.Media.Visual, PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35")! });
+                    
+                    dynamic? ps = fromVisual?.Invoke(null, new object[] { _window });
+                    if (ps == null) return;
+
+                    var hwndProp = ps.GetType().GetProperty("Handle");
+                    if (hwndProp == null) return;
+                    
+                    IntPtr hwnd = (IntPtr)hwndProp.GetValue(ps);
+
+                    // 1. Esquinas redondeadas
+                    int cornerPreference = DWMWCP_ROUND;
+                    DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPreference, sizeof(int));
+
+                    // 2. Fondo Mica/Acrylic
+                    int backdropType = DWMSBT_TABBEDWINDOW; // Mica Alt (más oscuro/nítido)
+                    DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
+
+                    // 3. Quitar color de la barra (aunque sea invisible)
+                    int captionColor = 0x00FFFFFF; 
+                    DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref captionColor, sizeof(int));
+                }
+                catch { }
+            }));
+        }
+
+        #endregion
     }
 }

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
+using System.Text.RegularExpressions;
 using EchoXIV.Services;
 
 namespace EchoXIV
@@ -29,13 +30,13 @@ namespace EchoXIV
     public class IncomingMessageHandler : IDisposable
     {
         private readonly Configuration _configuration;
-        private ITranslationService _translatorService;
+        private ITranslationService _primaryTranslator;
+        private ITranslationService? _secondaryTranslator;
         private readonly IChatGui _chatGui;
         private readonly IClientState _clientState;
         private readonly IObjectTable _objectTable;
         private readonly IPluginLog _pluginLog;
         private readonly Dictionary<string, string> _pendingOutgoingTranslations = new(); // Translated -> Original
-
 
         /// <summary>
         /// Evento emitido cuando un mensaje ha sido traducido
@@ -52,29 +53,45 @@ namespace EchoXIV
         /// </summary>
         public event Action? OnRequestEngineFailover;
 
+        private readonly GlossaryService _glossaryService;
+        private readonly TranslationCache _translationCache;
+
         public IncomingMessageHandler(
             Configuration configuration,
-            ITranslationService translatorService,
+            ITranslationService primaryTranslator,
+            ITranslationService? secondaryTranslator,
+            GlossaryService glossaryService,
+            TranslationCache translationCache,
             IChatGui chatGui,
             IClientState clientState,
             IObjectTable objectTable,
             IPluginLog pluginLog)
         {
             _configuration = configuration;
-            _translatorService = translatorService;
+            _primaryTranslator = primaryTranslator;
+            _secondaryTranslator = secondaryTranslator;
+            _glossaryService = glossaryService;
+            _translationCache = translationCache;
             _chatGui = chatGui;
             _clientState = clientState;
             _objectTable = objectTable;
             _pluginLog = pluginLog;
 
             _chatGui.ChatMessage += OnChatMessage;
-            _pluginLog.Info($"✅ IncomingMessageHandler inicializado con motor: {_translatorService.Name}");
+            _pluginLog.Info($"✅ IncomingMessageHandler inicializado con motor: {_primaryTranslator.Name}");
         }
 
         public void UpdateTranslator(ITranslationService newService)
         {
-            _translatorService = newService;
-            _pluginLog.Info($"IncomingMessageHandler: Motor actualizado a {_translatorService.Name}");
+            _primaryTranslator = newService;
+            _pluginLog.Info($"IncomingMessageHandler: Motor principal actualizado a {_primaryTranslator.Name}");
+        }
+
+        public void UpdateSecondaryTranslator(ITranslationService? newService)
+        {
+            _secondaryTranslator = newService;
+            if (_secondaryTranslator != null)
+                _pluginLog.Info($"IncomingMessageHandler: Motor secundario actualizado a {_secondaryTranslator.Name}");
         }
 
         public void RegisterPendingOutgoing(string translated, string original)
@@ -147,6 +164,13 @@ namespace EchoXIV
             // Ignorar mensajes vacíos
             if (string.IsNullOrWhiteSpace(messageText))
                 return;
+
+            // FILTRO RMT/SPAM: Evitar gastar API en basura
+            if (IsRmtSpam(messageText))
+            {
+                if (_configuration.VerboseLogging) _pluginLog.Info($"🚫 Spam RMT detectado y omitido: {messageText.Substring(0, Math.Min(20, messageText.Length))}...");
+                return;
+            }
 
             // Ignorar comandos
             if (messageText.StartsWith("/"))
@@ -223,20 +247,36 @@ namespace EchoXIV
         {
             try
             {
-                // Determinar idioma destino: usar IncomingTargetLanguage si está configurado,
-                // sino usar SourceLanguage (idioma nativo del usuario)
+                // 1. Verificar Caché
                 var targetLanguage = string.IsNullOrEmpty(_configuration.IncomingTargetLanguage)
                     ? _configuration.SourceLanguage
                     : _configuration.IncomingTargetLanguage;
+
+                var cached = _translationCache.Get(message.OriginalText, "auto", targetLanguage);
+                if (cached != null)
+                {
+                    message.TranslatedText = cached;
+                    message.IsTranslating = false;
+                    OnMessageTranslated?.Invoke(message);
+                    return;
+                }
+
+                // 2. Proteger términos con Glossary
+                var protectedText = _glossaryService.Protect(message.OriginalText);
                 
-                // Traducir con auto-detect de origen → idioma destino configurado
-                var translation = await _translatorService.TranslateAsync(
-                    message.OriginalText,
-                    "auto",          // Siempre auto-detectar idioma de origen
-                    targetLanguage   // Idioma destino (configurable)
+                // 3. Traducir
+                var translation = await _primaryTranslator.TranslateAsync(
+                    protectedText,
+                    "auto",
+                    targetLanguage
                 );
 
-                message.TranslatedText = translation;
+                // 4. Restaurar términos y guardar en caché
+                var finalTranslation = _glossaryService.Restore(translation);
+                
+                _translationCache.Add(message.OriginalText, "auto", targetLanguage, finalTranslation);
+
+                message.TranslatedText = finalTranslation;
                 message.IsTranslating = false;
 
                 if (_configuration.VerboseLogging) _pluginLog.Info($"📥 Traducido entrante: '{message.OriginalText}' → '{message.TranslatedText}'");
@@ -246,13 +286,38 @@ namespace EchoXIV
             }
             catch (TranslationRateLimitException ex)
             {
-                _pluginLog.Warning($"⚠️ {ex.Message}. Activando conmutación automática a Google...");
-                message.TranslatedText = message.OriginalText; // Fallback inmediato para este mensaje
+                _pluginLog.Warning($"⚠️ {ex.Message}. Intentando failover inmediato...");
+                
+                try
+                {
+                    if (_secondaryTranslator != null)
+                    {
+                        var protectedText = _glossaryService.Protect(message.OriginalText);
+                        var targetLanguage = string.IsNullOrEmpty(_configuration.IncomingTargetLanguage)
+                            ? _configuration.SourceLanguage
+                            : _configuration.IncomingTargetLanguage;
+
+                        var translation = await _secondaryTranslator.TranslateAsync(protectedText, "auto", targetLanguage);
+                        var finalTranslation = _glossaryService.Restore(translation);
+                        
+                        _translationCache.Add(message.OriginalText, "auto", targetLanguage, finalTranslation);
+                        message.TranslatedText = finalTranslation;
+                        message.IsTranslating = false;
+                        OnMessageTranslated?.Invoke(message);
+                        
+                        // Si funcionó, pedir cambio permanente de motor
+                        OnRequestEngineFailover?.Invoke();
+                        return;
+                    }
+                }
+                catch (Exception secondaryEx)
+                {
+                    _pluginLog.Error(secondaryEx, "Error en el motor secundario durante failover");
+                }
+
+                message.TranslatedText = message.OriginalText; // Fallback final
                 message.IsTranslating = false;
                 OnMessageTranslated?.Invoke(message);
-
-                // Activar failover (cambiar motor globalmente)
-                OnRequestEngineFailover?.Invoke();
             }
             catch (Exception ex)
             {
@@ -266,6 +331,30 @@ namespace EchoXIV
         public void InjectMessage(TranslatedChatMessage message)
         {
             OnMessageTranslated?.Invoke(message);
+        }
+
+        private bool IsRmtSpam(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            
+            // Patrones comunes de RMT
+            var spamPatterns = new[] {
+                @"g\s*u\s*l\s*d\s*2\s*v\s*i\s*p", // guld2vip
+                @"f\s*f\s*1\s*4\s*c\s*o\s*i\s*n", // ff14coin
+                @"p\s*v\s*p\s*b\s*a\s*n\s*k",     // pvpbank
+                @"m\s*m\s*o\s*g\s*a\s*h",         // mmogah
+                @"\$\d+\s*=\s*\d+M",               // $10=100M (precios comunes)
+                @"FAST\s*DELIVERY",
+                @"CHEAP\s*GIL"
+            };
+
+            foreach (var pattern in spamPatterns)
+            {
+                if (Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         public void Dispose()

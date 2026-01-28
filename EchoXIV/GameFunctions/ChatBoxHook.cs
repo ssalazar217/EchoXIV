@@ -41,17 +41,23 @@ namespace EchoXIV.GameFunctions
         /// </summary>
         public event Action? OnRequestEngineFailover;
         
+        private readonly GlossaryService _glossaryService;
+        private readonly TranslationCache _translationCache;
+        
         public ChatBoxHook(
             Configuration configuration,
             ITranslationService translatorService,
+            GlossaryService glossaryService,
+            TranslationCache translationCache,
             IPluginLog pluginLog,
             IClientState clientState,
             IGameInteropProvider gameInteropProvider)
         {
             _configuration = configuration;
             _translatorService = translatorService;
+            _glossaryService = glossaryService;
+            _translationCache = translationCache;
             _pluginLog = pluginLog;
-            _clientState = clientState;
             _clientState = clientState;
             _gameInteropProvider = gameInteropProvider;
         }
@@ -107,16 +113,34 @@ namespace EchoXIV.GameFunctions
                 
                 if (_configuration.VerboseLogging) _pluginLog.Info($"🎯 Hook interceptó: '{originalText}'");
                 
-                // Verificar si ya está en caché
-                var cacheKey = $"{originalText}|{_configuration.SourceLanguage}|{_configuration.TargetLanguage}";
-                
-                // TRADUCIR (sincrónico usando .Result para mantener thread)
-                // En caché será instantáneo, fuera de caché tomará tiempo
-                var translatedText = _translatorService.TranslateAsync(
-                    originalText,
-                    _configuration.SourceLanguage,
-                    _configuration.TargetLanguage
-                ).Result;
+                // 1. Verificar caché persistente
+                var cached = _translationCache.Get(originalText, _configuration.SourceLanguage, _configuration.TargetLanguage);
+                string translatedText;
+
+                if (cached != null)
+                {
+                    translatedText = cached;
+                }
+                else
+                {
+                    // 2. Proteger términos con el Glosario
+                    var protectedText = _glossaryService.Protect(originalText);
+
+                    // 3. Traducir (sincrónico)
+                    var rawTranslation = _translatorService.TranslateAsync(
+                        protectedText,
+                        _configuration.SourceLanguage,
+                        _configuration.TargetLanguage
+                    ).Result;
+
+                    // 4. Restaurar términos y guardar en caché
+                    translatedText = _glossaryService.Restore(rawTranslation);
+                    
+                    if (translatedText != originalText && !string.IsNullOrEmpty(translatedText))
+                    {
+                        _translationCache.Add(originalText, _configuration.SourceLanguage, _configuration.TargetLanguage, translatedText);
+                    }
+                }
                 
                 if (string.IsNullOrWhiteSpace(translatedText) || translatedText == originalText)
                 {

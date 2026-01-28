@@ -6,12 +6,16 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 using EchoXIV.Properties;
+using Dalamud.Interface;
+using EchoXIV.Services;
 
 namespace EchoXIV.UI;
 
 public class ConfigWindow : Window, IDisposable
 {
     private Configuration _configuration;
+    private MessageHistoryManager _historyManager;
+    private string _historyFilter = string.Empty;
     
     // Callback para actualizaciones en tiempo real
     public Action<float>? OnOpacityChanged;
@@ -23,10 +27,11 @@ public class ConfigWindow : Window, IDisposable
     
     private string _newExcludedMessage = string.Empty;
     
-    public ConfigWindow(Configuration configuration) 
+    public ConfigWindow(Configuration configuration, MessageHistoryManager historyManager) 
         : base($"{Resources.PluginName} - {Resources.ConfigWindow_Title}###ConfigWindow")
     {
         _configuration = configuration;
+        _historyManager = historyManager;
         
         Size = new Vector2(600, 500);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -42,24 +47,29 @@ public class ConfigWindow : Window, IDisposable
         {
             if (tabBar)
             {
-                using (var tabItem = ImRaii.TabItem(Resources.Tab_General + "###GeneralTab"))
+                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.Cog.ToIconString()} {Resources.Tab_General}###GeneralTab"))
                 {
                     if (tabItem) DrawGeneralTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem(Resources.Tab_Visuals + "###VisualsTab"))
+                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.Palette.ToIconString()} {Resources.Tab_Visuals}###VisualsTab"))
                 {
                     if (tabItem) DrawVisualsTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem(Resources.Tab_ExcludedMessages + "###ExcludedTab"))
+                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.Filter.ToIconString()} {Resources.Tab_ExcludedMessages}###ExcludedTab"))
                 {
                     if (tabItem) DrawExcludedMessagesTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem(Resources.Tab_IncomingChannels + "###IncomingTab"))
+                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.Comments.ToIconString()} {Resources.Tab_IncomingChannels}###IncomingTab"))
                 {
                     if (tabItem) DrawIncomingChannelsTab();
+                }
+
+                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.History.ToIconString()} {Resources.Tab_History}###HistoryTab"))
+                {
+                    if (tabItem) DrawHistoryTab();
                 }
             }
         }
@@ -366,7 +376,131 @@ public class ConfigWindow : Window, IDisposable
                 _configuration.Save();
                 OnVisualsChanged?.Invoke();
             }
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+            
+            DrawChannelColors();
         }
+    }
+    
+    private void DrawChannelColors()
+    {
+        ImGui.Text(Resources.Visuals_Colors);
+        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Resources.Visuals_ChannelColorsDesc);
+        
+        ImGui.Spacing();
+
+        var channels = new Dictionary<int, string>
+        {
+            { 10, Resources.Channel_Say },
+            { 11, Resources.Channel_Shout },
+            { 30, Resources.Channel_Yell },
+            { 14, Resources.Channel_Party },
+            { 15, Resources.Channel_Alliance },
+            { 24, Resources.Channel_FC },
+            { 13, Resources.Channel_Tell },
+            { 27, Resources.Channel_NN },
+            { 16, Resources.Channel_Linkshell }
+        };
+
+        foreach (var channel in channels)
+        {
+            if (!_configuration.ChannelColors.TryGetValue(channel.Key, out var colorValue))
+                continue;
+
+            var colorVector = ColorToVector4(colorValue);
+            if (ImGui.ColorEdit4($"{channel.Value}##Color{channel.Key}", ref colorVector, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoAlpha))
+            {
+                _configuration.ChannelColors[channel.Key] = Vector4ToColor(colorVector);
+                _configuration.Save();
+                OnVisualsChanged?.Invoke();
+            }
+            if (channel.Key == 13 || channel.Key == 15 || channel.Key == 24) ImGui.SameLine();
+        }
+    }
+
+    private static Vector4 ColorToVector4(uint color)
+    {
+        float a = ((color >> 24) & 0xFF) / 255f;
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        return new Vector4(r, g, b, a);
+    }
+
+    private static uint Vector4ToColor(Vector4 vector)
+    {
+        uint a = (uint)(vector.W * 255) << 24;
+        uint r = (uint)(vector.X * 255) << 16;
+        uint g = (uint)(vector.Y * 255) << 8;
+        uint b = (uint)(vector.Z * 255);
+        return a | r | g | b;
+    }
+
+    private void DrawHistoryTab()
+    {
+        ImGui.Text(Resources.History_Search);
+        ImGui.SetNextItemWidth(-120);
+        ImGui.InputText("##HistorySearch", ref _historyFilter, 100);
+        
+        ImGui.SameLine();
+        if (ImGui.Button(Resources.History_Clear))
+        {
+            _historyManager.Clear();
+        }
+
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        using var child = ImRaii.Child("HistoryList", new Vector2(0, -1), true);
+        if (child)
+        {
+            var messages = _historyManager.GetHistory();
+            if (!string.IsNullOrWhiteSpace(_historyFilter))
+            {
+                messages = messages.Where(m => 
+                    m.OriginalText.Contains(_historyFilter, StringComparison.OrdinalIgnoreCase) || 
+                    m.TranslatedText.Contains(_historyFilter, StringComparison.OrdinalIgnoreCase) ||
+                    m.Sender.Contains(_historyFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            if (messages.Count == 0)
+            {
+                ImGui.TextWrapped(Resources.History_NoMessages);
+            }
+            else
+            {
+                foreach (var msg in messages.AsEnumerable().Reverse())
+                {
+                    var color = GetChannelColor(msg.ChatType);
+                    ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), $"[{msg.Timestamp.ToString(_configuration.TimestampFormat)}]");
+                    ImGui.SameLine();
+                    ImGui.TextColored(color, $"[{msg.ChatType}] {msg.Sender}:");
+                    ImGui.TextWrapped(msg.TranslatedText);
+                    if (_configuration.ShowOriginalText)
+                    {
+                        ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.8f, 0.8f), msg.OriginalText);
+                    }
+                    ImGui.Separator();
+                }
+            }
+        }
+    }
+
+    private Vector4 GetChannelColor(XivChatType type)
+    {
+        int typeId = (int)type;
+        if (type == XivChatType.TellIncoming || type == XivChatType.TellOutgoing) typeId = 13;
+        if (typeId >= 16 && typeId <= 23) typeId = 16;
+        if (typeId >= 101 && typeId <= 108) typeId = 16;
+
+        if (_configuration.ChannelColors.TryGetValue(typeId, out var colorValue))
+        {
+            return ColorToVector4(colorValue);
+        }
+        return new Vector4(0.8f, 0.8f, 0.8f, 1f);
     }
     
     private void DrawIncomingChannelsTab()

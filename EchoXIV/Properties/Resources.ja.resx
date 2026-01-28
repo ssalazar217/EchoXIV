@@ -405,6 +405,15 @@
         <value>自分の入力言語を使用する</value>
     </data>
     <data name="General_ChangesAppliedImmediately">
-        <value>ほとんどの設定は即座に反映されます。</value>
+        <value>ほとんどの変更が即座に適用されます。</value>
+    </data>
+    <data name="Visuals_Colors">
+        <value>チャンネルの色</value>
+    </data>
+    <data name="Visuals_ChannelColorsDesc">
+        <value>各チャットチャネルの色をカスタマイズします。</value>
+    </data>
+    <data name="Channel_Linkshell">
+        <value>LS</value>
     </data>
 </root>

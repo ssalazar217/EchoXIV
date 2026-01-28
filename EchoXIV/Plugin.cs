@@ -43,14 +43,18 @@ namespace EchoXIV
         
         private Configuration _configuration = null!;
         private ITranslationService _translatorService = null!;
+        private GoogleTranslatorService _googleTranslator = null!;
+        private PapagoTranslatorService _papagoTranslator = null!;
+        private GlossaryService _glossaryService = null!; // Added
+        private TranslationCache _translationCache = null!; // Added
         private WindowSystem _windowSystem = null!;
         private ConfigWindow? _configWindow = null;
         private TranslatedChatWindow? _translatedChatWindow = null;
         private WelcomeWindow? _welcomeWindow = null;
         private WpfHost? _wpfHost = null; // Host para ventana WPF nativa
+        private GameFunctions.ChatBoxHook? _chatBoxHook = null; // Corrected type and nullability
         private IncomingMessageHandler? _incomingMessageHandler = null;
-        private readonly MessageHistoryManager _historyManager;
-        private GameFunctions.ChatBoxHook? _chatBoxHook = null!;
+        private MessageHistoryManager _historyManager = null!; // Changed to nullable, but initialized
         private static bool _chatVisible = false;
         
         public Plugin()
@@ -59,7 +63,11 @@ namespace EchoXIV
             {
                 // Cargar configuración
                 _configuration = LoadConfiguration();
-                _historyManager = new MessageHistoryManager(_configuration);
+                _historyManager = new MessageHistoryManager(_configuration, PluginInterface.GetPluginConfigDirectory());
+
+                // Initialize new services
+                _glossaryService = new GlossaryService(PluginInterface.GetPluginConfigDirectory()); // Added
+                _translationCache = new TranslationCache(PluginInterface.GetPluginConfigDirectory()); // Added
 
                 // Borrar si existiera para evitar configs corruptas si el usuario borró el JSON
                 if (_configuration.FirstRun)
@@ -83,6 +91,10 @@ namespace EchoXIV
                 }
                 catch { }
                 
+                // Inicializar motores de traducción
+                _googleTranslator = new GoogleTranslatorService();
+                _papagoTranslator = new PapagoTranslatorService(_configuration);
+
                 // Inicializar servicio de traducción
                 UpdateTranslationService();
                 
@@ -91,7 +103,7 @@ namespace EchoXIV
                 
 
                 // Crear ventana de configuración (SIEMPRE)
-                _configWindow = new ConfigWindow(_configuration);
+                _configWindow = new ConfigWindow(_configuration, _historyManager);
                 _windowSystem.AddWindow(_configWindow);
 
                 // Manejar pantalla de bienvenida si sigue siendo FirstRun (ej: Dalamud está en Inglés)
@@ -137,10 +149,19 @@ namespace EchoXIV
                     if (_configuration.VerboseLogging) PluginLog.Info("🖥️ Ventana interna Dalamud iniciada");
                 }
                 
+                // (Motores ya inicializados arriba)
+
                 // Crear manejador de mensajes entrantes
+                var secondaryTranslator = _configuration.SelectedEngine == TranslationEngine.Google 
+                    ? (ITranslationService)_papagoTranslator 
+                    : _googleTranslator;
+
                 _incomingMessageHandler = new IncomingMessageHandler(
                     _configuration,
                     _translatorService,
+                    secondaryTranslator,
+                    _glossaryService,
+                    _translationCache,
                     ChatGui,
                     ClientState,
                     ObjectTable,
@@ -157,6 +178,8 @@ namespace EchoXIV
                     _chatBoxHook = new GameFunctions.ChatBoxHook(
                          _configuration,
                          _translatorService,
+                         _glossaryService, // Added
+                         _translationCache, // Added
                          PluginLog,
                          ClientState,
                          GameInteropProvider
@@ -243,15 +266,15 @@ namespace EchoXIV
         public void Dispose()
         {
             // Detener manejador de mensajes entrantes
-            if (_incomingMessageHandler != null)
-            {
-                _incomingMessageHandler.Dispose();
-            }
-            
+            _incomingMessageHandler?.Dispose(); // Consolidated
 
-            
+            // Detener motores de traducción
+            _googleTranslator?.Dispose();
+            // _papagoTranslator no es IDisposable actualmente, pero lo manejamos por si acaso
+            if (_papagoTranslator is IDisposable papagoDisp) papagoDisp.Dispose();
+
             // Detener hook nativo
-            _chatBoxHook?.Dispose();
+            _chatBoxHook?.Dispose(); // Consolidated
             
             // Limpiar ventanas
             _windowSystem?.RemoveAllWindows();
@@ -268,6 +291,8 @@ namespace EchoXIV
 
             _wpfHost?.Dispose();
             _wpfHost = null;
+            
+            _translationCache.Save(); // Added
             
             // Limpiar comandos
             CommandManager.RemoveHandler(CommandName);
@@ -710,12 +735,12 @@ namespace EchoXIV
             switch (_configuration.SelectedEngine)
             {
                 case TranslationEngine.Papago:
-                    _translatorService = new PapagoTranslatorService(_configuration);
+                    _translatorService = _papagoTranslator;
                     if (_configuration.VerboseLogging) PluginLog.Info("Motor de traducción cambiado a: Papago (Naver)");
                     break;
                 case TranslationEngine.Google:
                 default:
-                    _translatorService = new GoogleTranslatorService();
+                    _translatorService = _googleTranslator;
                     if (_configuration.VerboseLogging) PluginLog.Info("Motor de traducción cambiado a: Google");
                     break;
             }
@@ -723,7 +748,12 @@ namespace EchoXIV
             // Actualizar referencia en IncomingMessageHandler si ya existe
             if (_incomingMessageHandler != null)
             {
+                var secondaryTranslator = _configuration.SelectedEngine == TranslationEngine.Google 
+                    ? (ITranslationService)_papagoTranslator 
+                    : _googleTranslator;
+                
                 _incomingMessageHandler.UpdateTranslator(_translatorService);
+                _incomingMessageHandler.UpdateSecondaryTranslator(secondaryTranslator);
             }
             
             // Actualizar referencia en ChatBoxHook
