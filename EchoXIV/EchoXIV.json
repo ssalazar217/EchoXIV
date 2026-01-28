@@ -14,7 +14,7 @@
     "plugin"
   ],
   "Punchline": "Bidirectional (Outgoing+Incoming) chat translation with Auto-Failover. / Traducción de chat bidireccional con Failover automático.",
-  "Changelog": "v0.1.0.11:\n- Corregido error de acceso entre hilos en UpdateVisuals al cambiar ajustes visuales.\n- Reforzada la seguridad de hilos en métodos sincronizados con ImGui.\nv0.1.0.10:\n- Corregido error de acceso entre hilos al cambiar la opacidad desde el hilo de ImGui.\n- Envuelta lógica de SetOpacity en el Dispatcher de la ventana nativa.",
+  "Changelog": "v0.1.0.12:\n- Corregido RuntimeBinderException en ShutdownMode (WPF Bridge).\n- Compatibilidad mejorada para cargas dinámicas.",
   "IconUrl": "https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png",
   "AcceptsFeedback": true
 }

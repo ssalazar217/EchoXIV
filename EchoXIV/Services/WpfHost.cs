@@ -91,7 +91,11 @@ namespace EchoXIV.Services
                         var shutdownModeType = Type.GetType("System.Windows.ShutdownMode, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
                         if (shutdownModeType != null)
                         {
-                            _wpfApp.ShutdownMode = Enum.ToObject(shutdownModeType, 1); // ShutdownMode.OnExplicitShutdown
+                            var prop = _wpfApp.GetType().GetProperty("ShutdownMode");
+                            if (prop != null)
+                            {
+                                prop.SetValue(_wpfApp, Enum.ToObject(shutdownModeType, 1));
+                            }
                         }
                     }
                     _logger.Info("Nueva Dynamic Application creada.");
