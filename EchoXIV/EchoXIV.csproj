@@ -15,8 +15,14 @@
     <PackageIcon>images/icon.png</PackageIcon>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <UseWPF>true</UseWPF>
-    <RuntimeFrameworkVersion>10.0.0</RuntimeFrameworkVersion>
   </PropertyGroup>
+
+  <!-- Force Windows Desktop framework to 10.0.0 for plogon CI compatibility -->
+  <ItemGroup>
+    <KnownFrameworkReference Update="Microsoft.WindowsDesktop.App" IsWindowsOnly="false" TargetingPackVersion="10.0.0" />
+    <KnownFrameworkReference Update="Microsoft.WindowsDesktop.App.WPF" IsWindowsOnly="false" TargetingPackVersion="10.0.0" />
+    <KnownFrameworkReference Update="Microsoft.WindowsDesktop.App.WindowsForms" IsWindowsOnly="false" TargetingPackVersion="10.0.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
