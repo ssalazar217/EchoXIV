@@ -15,6 +15,7 @@
     <PackageIcon>images/icon.png</PackageIcon>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <UseWPF>true</UseWPF>
+    <RuntimeFrameworkVersion>10.0.0</RuntimeFrameworkVersion>
   </PropertyGroup>
 
   <ItemGroup>
