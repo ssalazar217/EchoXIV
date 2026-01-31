@@ -421,12 +421,7 @@ Requiere recargar el plugin para aplicar cambios.</value>
     <data name="Channel_Tell">
         <value>Tell</value>
     </data>
-    <data name="Incoming_UseWritingLanguage">
-        <value>Usar mi idioma de escritura</value>
-    </data>
-    <data name="General_ChangesAppliedImmediately">
-        <value>La mayoría de los cambios se aplican de inmediato.</value>
-    </data>
+
     <data name="Visuals_Colors">
         <value>Colores por Canal</value>
     </data>

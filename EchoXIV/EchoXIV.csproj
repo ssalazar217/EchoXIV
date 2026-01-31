@@ -1,8 +1,8 @@
 <Project Sdk="Dalamud.NET.Sdk/14.0.1">
   <PropertyGroup>
-    <Version>0.1.0.17</Version>
-    <AssemblyVersion>0.1.0.17</AssemblyVersion>
-    <FileVersion>0.1.0.17</FileVersion>
+    <Version>0.1.0.18</Version>
+    <AssemblyVersion>0.1.0.18</AssemblyVersion>
+    <FileVersion>0.1.0.18</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -13,6 +13,8 @@
     <RootNamespace>EchoXIV</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <PackageIcon>images/icon.png</PackageIcon>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>

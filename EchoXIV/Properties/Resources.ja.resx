@@ -401,12 +401,6 @@
     <data name="Channel_Tell">
         <value>Tell</value>
     </data>
-    <data name="Incoming_UseWritingLanguage">
-        <value>自分の入力言語を使用する</value>
-    </data>
-    <data name="General_ChangesAppliedImmediately">
-        <value>ほとんどの変更が即座に適用されます。</value>
-    </data>
     <data name="Visuals_Colors">
         <value>チャンネルの色</value>
     </data>

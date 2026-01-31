@@ -39,6 +39,7 @@ namespace EchoXIV
         [PluginService] internal static IGameInteropProvider GameInteropProvider { get; private set; } = null!;
         [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
         [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
+        [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
         
         private Configuration _configuration = null!;
         private ITranslationService _translatorService = null!;
@@ -164,6 +165,7 @@ namespace EchoXIV
                     ChatGui,
                     ClientState,
                     PlayerState,
+                    ObjectTable,
                     PluginLog
                 );
                 // Conectar eventos
@@ -470,7 +472,7 @@ namespace EchoXIV
                                 Timestamp = DateTime.Now,
                                 ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
                                 Recipient = recipient,
-                                Sender = ClientState.LocalPlayer?.Name.TextValue ?? "Yo",
+                                Sender = PlayerState.CharacterName.ToString(),
                                 OriginalText = message,
                                 TranslatedText = message,
                                 IsTranslating = false
@@ -797,8 +799,7 @@ namespace EchoXIV
         /// </summary>
         private static unsafe bool UpdateChatVisibilityInternal()
         {
-            var localPlayer = ClientState.LocalPlayer;
-            if (!ClientState.IsLoggedIn || localPlayer == null) 
+            if (!ClientState.IsLoggedIn || !PlayerState.IsLoaded) 
             {
                 return false;
             }

@@ -401,12 +401,7 @@
     <data name="Channel_Tell">
         <value>Tell</value>
     </data>
-    <data name="Incoming_UseWritingLanguage">
-        <value>Utiliser ma langue d'écriture</value>
-    </data>
-    <data name="General_ChangesAppliedImmediately">
-        <value>La plupart des changements sont appliqués immédiatement.</value>
-    </data>
+
     <data name="Visuals_Colors">
         <value>Couleurs par canal</value>
     </data>

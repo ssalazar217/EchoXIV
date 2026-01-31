@@ -3,14 +3,17 @@ using System.Threading;
 using System.Runtime.InteropServices; 
 using System.Diagnostics;
 using System.Linq;
+using System.Windows;
+using System.Windows.Threading;
+using EchoXIV.UI.Native;
 
 namespace EchoXIV.Services
 {
     public class WpfHost : IDisposable
     {
         private Thread? _wpfThread;
-        private dynamic? _wpfApp;
-        private dynamic? _chatWindow;
+        private Application? _wpfApp;
+        private ChatOverlayWindow? _chatWindow;
         private readonly Configuration _configuration;
         private bool _isRunning;
 
@@ -18,7 +21,7 @@ namespace EchoXIV.Services
         private readonly ManualResetEvent _readyEvent = new(false);
         
         // Smart Visibility
-        private dynamic? _visibilityTimer;
+        private DispatcherTimer? _visibilityTimer;
         private IntPtr _gameWindowHandle;
 
         [DllImport("user32.dll")]
@@ -47,7 +50,8 @@ namespace EchoXIV.Services
         public void Start()
         {
             if (_isRunning) return;
-            if (!NativeUiLoader.IsWindows)
+            // Verificación simple de SO, aunque el build target ya fuerza Windows
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
             {
                 _logger.Warning("WpfHost: Intento de inicio en plataforma no compatible (No-Windows).");
                 return;
@@ -68,46 +72,25 @@ namespace EchoXIV.Services
 
         private void WpfThreadEntryPoint()
         {
-            _logger.Info("Iniciando hilo WPF (Dynamic Bridge)...");
+            _logger.Info("Iniciando hilo WPF (Strict Mode)...");
             
-            if (!NativeUiLoader.TryLoadWpf(_logger))
-            {
-                _logger.Error("No se pudieron cargar las librerías de WPF necesarias.");
-                _readyEvent.Set();
-                return;
-            }
-
             try
             {
-                // dynamic app = Application.Current
-                var appType = Type.GetType("System.Windows.Application, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-                _wpfApp = appType?.GetProperty("Current")?.GetValue(null);
-
-                if (_wpfApp == null)
+                // Gestionar Application de WPF
+                if (Application.Current != null)
                 {
-                    _wpfApp = NativeUiLoader.CreateInstance("PresentationFramework", "System.Windows.Application");
-                    if (_wpfApp != null)
-                    {
-                        var shutdownModeType = Type.GetType("System.Windows.ShutdownMode, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-                        if (shutdownModeType != null)
-                        {
-                            var prop = _wpfApp.GetType().GetProperty("ShutdownMode");
-                            if (prop != null)
-                            {
-                                // ShutdownMode.OnExplicitShutdown = 2
-                                prop.SetValue(_wpfApp, Enum.ToObject(shutdownModeType, 2));
-                            }
-                        }
-                    }
-                    _logger.Info("WpfHost: Nueva Application creada (OnExplicitShutdown).");
+                    _wpfApp = Application.Current;
+                    _logger.Info("WpfHost: Reutilizando Application existente.");
                 }
                 else
                 {
-                    _logger.Info("WpfHost: Reutilizando Application existente.");
+                    _wpfApp = new Application();
+                    _wpfApp.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                    _logger.Info("WpfHost: Nueva Application creada (OnExplicitShutdown).");
                 }
 
                 _logger.Info("WpfHost: Inicializando ChatOverlayWindow...");
-                _chatWindow = new EchoXIV.UI.Native.ChatOverlayWindow(_configuration, _historyManager);
+                _chatWindow = new ChatOverlayWindow(_configuration, _historyManager);
                 _chatWindow.Show();
                 
                 IsInitialized = true;
@@ -118,13 +101,10 @@ namespace EchoXIV.Services
                 _chatWindowHandle = _chatWindow.GetHandle();
 
                 // Timer de visibilidad inteligente
-                _visibilityTimer = NativeUiLoader.CreateInstance("WindowsBase", "System.Windows.Threading.DispatcherTimer");
-                if (_visibilityTimer != null)
-                {
-                    _visibilityTimer.Interval = TimeSpan.FromMilliseconds(500);
-                    _visibilityTimer.Tick += (EventHandler)((s, e) => VisibilityTimer_Tick(s, e));
-                    _visibilityTimer.Start();
-                }
+                _visibilityTimer = new DispatcherTimer();
+                _visibilityTimer.Interval = TimeSpan.FromMilliseconds(500);
+                _visibilityTimer.Tick += VisibilityTimer_Tick;
+                _visibilityTimer.Start();
             }
             catch (Exception ex)
             {
@@ -136,8 +116,7 @@ namespace EchoXIV.Services
 
             try 
             {
-                var dispatcherType = Type.GetType("System.Windows.Threading.Dispatcher, WindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-                dispatcherType?.GetMethod("Run", Array.Empty<Type>())?.Invoke(null, null);
+                Dispatcher.Run();
             }
             catch (Exception ex)
             {
@@ -193,7 +172,9 @@ namespace EchoXIV.Services
         public void ResetWindow() => _chatWindow?.ResetPosition();
         public void SetOpacity(float opacity) => _chatWindow?.SetOpacity(opacity);
         public void SetSmartVisibility(bool enabled) => VisibilityTimer_Tick(null, EventArgs.Empty);
-        public void SetLock(bool locked) => _chatWindow?.SetLock(locked);
+        // Asumiendo que SetLock existe en ChatOverlayWindow, si no la compilación fallará
+        public void SetLock(bool locked) => _chatWindow?.SetLock(locked); 
+        // Asumiendo que UpdateVisuals existe en ChatOverlayWindow
         public void UpdateVisuals() => _chatWindow?.UpdateVisuals();
 
         private IntPtr GetGameWindowHandle()
@@ -223,24 +204,17 @@ namespace EchoXIV.Services
             {
                 try
                 {
-                    var dispatcherType = Type.GetType("System.Windows.Threading.Dispatcher, WindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-                    var dispatcher = dispatcherType?.GetMethod("FromThread")?.Invoke(null, new object[] { _wpfThread });
-                    
-                    if (dispatcher != null)
+                    var disp = Dispatcher.FromThread(_wpfThread);
+                    if (disp != null)
                     {
                         // Intentar cerrar la ventana de forma segura desede el hilo de la UI
                         if (_chatWindow != null)
                         {
-                            try { _chatWindow.Close(); } catch { } 
+                            disp.Invoke(() => { try { _chatWindow.Close(); } catch { } });
                         }
 
                         // Forzar el apagado del dispatcher para terminar el thread
-                        var method = dispatcher.GetType().GetMethod("BeginInvokeShutdown", new[] { Type.GetType("System.Windows.Threading.DispatcherPriority, WindowsBase") });
-                        if (method != null)
-                        {
-                            var priorityNormal = NativeUiLoader.GetEnumValue("WindowsBase", "System.Windows.Threading.DispatcherPriority", 7); // Normal
-                            method.Invoke(dispatcher, new[] { priorityNormal });
-                        }
+                        disp.BeginInvokeShutdown(DispatcherPriority.Normal);
                     }
                 }
                 catch (Exception ex)
