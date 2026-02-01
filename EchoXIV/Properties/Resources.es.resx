@@ -443,4 +443,19 @@ Requiere recargar el plugin para aplicar cambios.</value>
     <data name="History_Title">
         <value>Historial de Mensajes</value>
     </data>
+    <data name="Welcome_WindowModeQuestion">
+        <value>¿Qué modo de ventana prefieres para las traducciones?</value>
+    </data>
+    <data name="Welcome_WindowModeWpf">
+        <value>Ventana Nativa (WPF - Mejor rendimiento)</value>
+    </data>
+    <data name="Welcome_WindowModeImGui">
+        <value>Ventana Dalamud (Integrada - Mejor compatibilidad)</value>
+    </data>
+    <data name="Welcome_RecommendationFullscreen">
+        <value>⚠️ Recomendación: Al estar en Pantalla Completa, se recomienda la ventana Integrada de Dalamud para mejor compatibilidad.</value>
+    </data>
+    <data name="Welcome_RecommendationWindowed">
+        <value>💡 Recomendación: Al estar en modo Ventana/Sin Bordes, la ventana Nativa (WPF) ofrece mejor rendimiento.</value>
+    </data>
 </root>

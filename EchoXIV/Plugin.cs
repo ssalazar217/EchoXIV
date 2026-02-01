@@ -40,6 +40,7 @@ namespace EchoXIV
         [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
         [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
         [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+        [PluginService] internal static IGameConfig GameConfig { get; private set; } = null!;
         
         private Configuration _configuration = null!;
         private ITranslationService _translatorService = null!;
@@ -72,6 +73,16 @@ namespace EchoXIV
                 // Borrar si existiera para evitar configs corruptas si el usuario borró el JSON
                 if (_configuration.FirstRun)
                 {
+                    // Detect ScreenMode for initial UI recommendation
+                    if (GameConfig.System.TryGetUInt("ScreenMode", out uint screenMode))
+                    {
+                        if (screenMode == 2) // Fullscreen
+                        {
+                            PluginLog.Info("[EchoXIV] Fullscreen mode detected on first run. Defaulting to ImGui (UseNativeWindow = false).");
+                            _configuration.UseNativeWindow = false;
+                        }
+                    }
+
                     var uiLang = PluginInterface.UiLanguage;
                     if (uiLang != "en")
                     {
@@ -79,7 +90,7 @@ namespace EchoXIV
                         _configuration.SourceLanguage = uiLang;
                         _configuration.TargetLanguage = "en";
                         _configuration.IncomingTargetLanguage = uiLang;
-                        _configuration.FirstRun = false;
+                        // Mantenemos FirstRun = true para que se muestre la ventana de bienvenida
                         _configuration.Save();
                     }
                 }
@@ -109,7 +120,14 @@ namespace EchoXIV
                 // Manejar pantalla de bienvenida si sigue siendo FirstRun (ej: Dalamud está en Inglés)
                 if (_configuration.FirstRun)
                 {
-                    _welcomeWindow = new WelcomeWindow(_configuration);
+                    // Detect screen mode for welcome window recommendations
+                    uint screenMode = 0; // Default to Windowed
+                    if (GameConfig.System.TryGetUInt("ScreenMode", out uint detectedMode))
+                    {
+                        screenMode = detectedMode;
+                    }
+                    
+                    _welcomeWindow = new WelcomeWindow(_configuration, screenMode);
                     _welcomeWindow.OnConfigurationComplete += () => 
                     {
                         try 

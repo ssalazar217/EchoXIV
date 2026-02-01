@@ -411,4 +411,19 @@
     <data name="Channel_Linkshell">
         <value>Linkshell</value>
     </data>
+    <data name="Welcome_WindowModeQuestion">
+        <value>Quel mode de fenêtre préférez-vous pour les traductions ?</value>
+    </data>
+    <data name="Welcome_WindowModeWpf">
+        <value>Fenêtre native (WPF - Meilleures performances)</value>
+    </data>
+    <data name="Welcome_WindowModeImGui">
+        <value>Fenêtre Dalamud (Intégrée - Meilleure compatibilité)</value>
+    </data>
+    <data name="Welcome_RecommendationFullscreen">
+        <value>⚠️ Recommandation : Étant en mode plein écran, la fenêtre intégrée Dalamud est recommandée pour une meilleure compatibilité.</value>
+    </data>
+    <data name="Welcome_RecommendationWindowed">
+        <value>💡 Recommandation : Étant en mode fenêtré/sans bordure, la fenêtre native WPF offre de meilleures performances.</value>
+    </data>
 </root>

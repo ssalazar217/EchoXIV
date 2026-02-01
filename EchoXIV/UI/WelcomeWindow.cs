@@ -10,14 +10,22 @@ namespace EchoXIV.UI;
 public class WelcomeWindow : Window
 {
     private Configuration _configuration;
+    private uint _screenMode;
     public event Action? OnConfigurationComplete;
 
-    public WelcomeWindow(Configuration configuration) 
+    public WelcomeWindow(Configuration configuration, uint screenMode) 
         : base($"{Resources.PluginName} - {Resources.WelcomeWindow_Title}###WelcomeWindow")
     {
         _configuration = configuration;
+        _screenMode = screenMode;
         
-        Size = new Vector2(450, 400);
+        // Set smart default based on screen mode
+        if (_screenMode == 2) // Fullscreen
+        {
+            _configuration.UseNativeWindow = false;
+        }
+        
+        Size = new Vector2(500, 550);
         Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar;
     }
 
@@ -84,6 +92,35 @@ public class WelcomeWindow : Window
         if (ImGui.Combo("##WelcomeIncLang", ref currentIncIdx, incomingLangNames, incomingLangNames.Length))
         {
             _configuration.IncomingTargetLanguage = incomingLangs[currentIncIdx];
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Window Mode Selection
+        ImGui.Text(Resources.Welcome_WindowModeQuestion);
+        
+        // Show recommendation based on screen mode
+        if (_screenMode == 2) // Fullscreen
+        {
+            ImGui.TextColored(new Vector4(1f, 0.7f, 0.2f, 1f), Resources.Welcome_RecommendationFullscreen);
+        }
+        else // Windowed or Borderless
+        {
+            ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), Resources.Welcome_RecommendationWindowed);
+        }
+        
+        ImGui.Spacing();
+        
+        bool useNativeWindow = _configuration.UseNativeWindow;
+        if (ImGui.RadioButton(Resources.Welcome_WindowModeImGui, !useNativeWindow))
+        {
+            _configuration.UseNativeWindow = false;
+        }
+        if (ImGui.RadioButton(Resources.Welcome_WindowModeWpf, useNativeWindow))
+        {
+            _configuration.UseNativeWindow = true;
         }
 
         ImGui.Dummy(new Vector2(0, 20));

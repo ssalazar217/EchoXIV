@@ -210,6 +210,7 @@ namespace EchoXIV.UI.Native
                 {
                     block.Inlines.Clear();
                     PopulateMessageInlines(block, message);
+                    ScrollToEnd();
                     break;
                 }
             }
@@ -357,7 +358,16 @@ namespace EchoXIV.UI.Native
 
         private void ScrollToEnd()
         {
-            if (_autoScroll) _chatOutput?.ScrollToEnd();
+            if (_autoScroll && _chatOutput != null)
+            {
+                // Usamos InvokeAsync para permitir que el layout se actualice antes de scrollear
+                _chatOutput.Dispatcher.InvokeAsync((Action)(() => 
+                {
+                    try {
+                        _chatOutput.ScrollToEnd();
+                    } catch { }
+                }));
+            }
         }
 
         private void Header_MouseDown(object sender, dynamic e)

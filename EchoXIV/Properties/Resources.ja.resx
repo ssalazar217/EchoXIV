@@ -410,4 +410,19 @@
     <data name="Channel_Linkshell">
         <value>LS</value>
     </data>
+    <data name="Welcome_WindowModeQuestion">
+        <value>翻訳にどのウィンドウモードを使用しますか？</value>
+    </data>
+    <data name="Welcome_WindowModeWpf">
+        <value>ネイティブウィンドウ（WPF - より高いパフォーマンス）</value>
+    </data>
+    <data name="Welcome_WindowModeImGui">
+        <value>Dalamudウィンドウ（統合 - より高い互換性）</value>
+    </data>
+    <data name="Welcome_RecommendationFullscreen">
+        <value>⚠️ 推奨：フルスクリーンモードのため、互換性向上のため統合Dalamudウィンドウを推奨します。</value>
+    </data>
+    <data name="Welcome_RecommendationWindowed">
+        <value>💡 推奨：ウィンドウ/ボーダーレスモードのため、ネイティブWPFウィンドウがより高いパフォーマンスを提供します。</value>
+    </data>
 </root>

@@ -182,5 +182,10 @@ namespace EchoXIV.Properties {
         public static string History_NoMessages { get { return ResourceManager.GetString("History_NoMessages", resourceCulture); } }
         public static string History_Clear { get { return ResourceManager.GetString("History_Clear", resourceCulture); } }
         public static string History_Title { get { return ResourceManager.GetString("History_Title", resourceCulture); } }
+        public static string Welcome_WindowModeQuestion { get { return ResourceManager.GetString("Welcome_WindowModeQuestion", resourceCulture); } }
+        public static string Welcome_WindowModeWpf { get { return ResourceManager.GetString("Welcome_WindowModeWpf", resourceCulture); } }
+        public static string Welcome_WindowModeImGui { get { return ResourceManager.GetString("Welcome_WindowModeImGui", resourceCulture); } }
+        public static string Welcome_RecommendationFullscreen { get { return ResourceManager.GetString("Welcome_RecommendationFullscreen", resourceCulture); } }
+        public static string Welcome_RecommendationWindowed { get { return ResourceManager.GetString("Welcome_RecommendationWindowed", resourceCulture); } }
     }
 }
