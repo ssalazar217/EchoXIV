@@ -145,6 +145,8 @@ namespace EchoXIV
             14,  // Party
             15,  // Alliance
             24,  // FreeCompany
+            12,  // TellOutgoing
+            13,  // TellIncoming
         };
 
         /// <summary>

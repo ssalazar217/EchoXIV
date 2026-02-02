@@ -35,6 +35,7 @@ namespace EchoXIV
         private readonly IChatGui _chatGui;
         private readonly IClientState _clientState;
         private readonly IPlayerState _playerState;
+        private readonly IObjectTable _objectTable;
         private readonly IPluginLog _pluginLog;
         private readonly Dictionary<string, string> _pendingOutgoingTranslations = new(); // Translated -> Original
 
@@ -65,6 +66,7 @@ namespace EchoXIV
             IChatGui chatGui,
             IClientState clientState,
             IPlayerState playerState,
+            IObjectTable objectTable,
             IPluginLog pluginLog)
         {
             _configuration = configuration;
@@ -75,6 +77,7 @@ namespace EchoXIV
             _chatGui = chatGui;
             _clientState = clientState;
             _playerState = playerState;
+            _objectTable = objectTable;
             _pluginLog = pluginLog;
 
             _chatGui.ChatMessage += OnChatMessage;
@@ -118,7 +121,14 @@ namespace EchoXIV
             var senderName = sender.TextValue;
 
             // Formatear nombre: Nombre Apellido@Servidor
-            var localPlayer = _clientState.LocalPlayer;
+            var localPlayerName = _playerState.CharacterName.ToString();
+            // Resolver nombre del mundo (string) para evitar problemas de tipos con Value/Nullable
+            string? localPlayerWorldName = null;
+            if (_playerState.HomeWorld.RowId > 0)
+            {
+               localPlayerWorldName = _playerState.HomeWorld.Value.Name.ToString();
+            }
+
             var nameParts = senderName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             
             if (nameParts.Length == 3)
@@ -135,6 +145,20 @@ namespace EchoXIV
                  int worldSplitIndex = -1;
                  
                  // Buscar una mayúscula que no sea la primera letra del apellido
+                 // y comparar con el HomeWorld del jugador local si es posible
+                 
+                 // Si es el mismo mundo que nosotros, agregar nuestro mundo
+                 if (!string.IsNullOrEmpty(localPlayerWorldName) && localPlayerName == senderName)
+                 {
+                     senderName = $"{senderName}@{localPlayerWorldName}";
+                 }
+                 else if (!string.IsNullOrEmpty(localPlayerWorldName))
+                 {
+                     // Lógica heurística simplificada
+                     // Asumimos mismo mundo si no hay indicador de otro mundo.
+                     senderName = $"{senderName}@{localPlayerWorldName}";
+                 }
+
                  for (int i = 1; i < lastPart.Length; i++)
                  {
                      if (char.IsUpper(lastPart[i]))
@@ -149,15 +173,15 @@ namespace EchoXIV
                      // Es First LastWorld -> First Last@World
                      senderName = $"{nameParts[0]} {lastPart.Substring(0, worldSplitIndex)}@{lastPart.Substring(worldSplitIndex)}";
                  }
-                 else if (localPlayer != null && senderName == localPlayer.Name.TextValue)
+                 else if (!string.IsNullOrEmpty(localPlayerName) && senderName == localPlayerName && !string.IsNullOrEmpty(localPlayerWorldName))
                  {
                      // Jugador local: añadir mundo
-                     senderName = $"{localPlayer.Name.TextValue}@{localPlayer.HomeWorld.Value.Name}";
+                     senderName = $"{localPlayerName}@{localPlayerWorldName}";
                  }
-                 else if (localPlayer != null)
+                 else if (!string.IsNullOrEmpty(localPlayerName) && !string.IsNullOrEmpty(localPlayerWorldName))
                  {
                      // Otro jugador mismo mundo: añadir mundo local
-                     senderName = $"{senderName}@{localPlayer.HomeWorld.Value.Name}";
+                     senderName = $"{senderName}@{localPlayerWorldName}";
                  }
             }
 
@@ -177,7 +201,7 @@ namespace EchoXIV
                 return;
 
             // Verificar si es del jugador local
-            var isLocalPlayer = localPlayer != null && (senderName.StartsWith(localPlayer.Name.TextValue));
+            var isLocalPlayer = !string.IsNullOrEmpty(localPlayerName) && (senderName.StartsWith(localPlayerName));
             
             if (isLocalPlayer && !_configuration.ShowOutgoingMessages)
                 return;
@@ -279,7 +303,7 @@ namespace EchoXIV
                 message.TranslatedText = finalTranslation;
                 message.IsTranslating = false;
 
-                if (_configuration.VerboseLogging) _pluginLog.Info($"📥 Traducido entrante: '{message.OriginalText}' → '{message.TranslatedText}'");
+                if (_configuration.VerboseLogging) _pluginLog.Info($"[{message.ChatType}] 📥 Traducido entrante: '{message.OriginalText}' → '{message.TranslatedText}'");
 
                 // Notificar que la traducción está lista
                 OnMessageTranslated?.Invoke(message);

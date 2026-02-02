@@ -421,12 +421,6 @@ Requires plugin reload to apply changes.</value>
     <data name="Channel_Tell">
         <value>Tell</value>
     </data>
-    <data name="Incoming_UseWritingLanguage">
-        <value>Use my writing language</value>
-    </data>
-    <data name="General_ChangesAppliedImmediately">
-        <value>Most changes are applied immediately.</value>
-    </data>
     <data name="Visuals_Colors">
         <value>Channel Colors</value>
     </data>
@@ -447,5 +441,20 @@ Requires plugin reload to apply changes.</value>
     </data>
     <data name="History_Title">
         <value>Message History</value>
+    </data>
+    <data name="Welcome_WindowModeQuestion">
+        <value>Which window mode do you prefer for translations?</value>
+    </data>
+    <data name="Welcome_WindowModeWpf">
+        <value>Native Window (WPF - Better performance)</value>
+    </data>
+    <data name="Welcome_WindowModeImGui">
+        <value>Dalamud Window (Integrated - Better compatibility)</value>
+    </data>
+    <data name="Welcome_RecommendationFullscreen">
+        <value>⚠️ Recommendation: Since you are in Fullscreen mode, the Integrated Dalamud window is recommended for better compatibility.</value>
+    </data>
+    <data name="Welcome_RecommendationWindowed">
+        <value>💡 Recommendation: Since you are in Borderless/Windowed mode, the Native WPF window offers better performance.</value>
     </data>
 </root>

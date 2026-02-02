@@ -401,12 +401,6 @@
     <data name="Channel_Tell">
         <value>Tell</value>
     </data>
-    <data name="Incoming_UseWritingLanguage">
-        <value>自分の入力言語を使用する</value>
-    </data>
-    <data name="General_ChangesAppliedImmediately">
-        <value>ほとんどの変更が即座に適用されます。</value>
-    </data>
     <data name="Visuals_Colors">
         <value>チャンネルの色</value>
     </data>
@@ -415,5 +409,20 @@
     </data>
     <data name="Channel_Linkshell">
         <value>LS</value>
+    </data>
+    <data name="Welcome_WindowModeQuestion">
+        <value>翻訳にどのウィンドウモードを使用しますか？</value>
+    </data>
+    <data name="Welcome_WindowModeWpf">
+        <value>ネイティブウィンドウ（WPF - より高いパフォーマンス）</value>
+    </data>
+    <data name="Welcome_WindowModeImGui">
+        <value>Dalamudウィンドウ（統合 - より高い互換性）</value>
+    </data>
+    <data name="Welcome_RecommendationFullscreen">
+        <value>⚠️ 推奨：フルスクリーンモードのため、互換性向上のため統合Dalamudウィンドウを推奨します。</value>
+    </data>
+    <data name="Welcome_RecommendationWindowed">
+        <value>💡 推奨：ウィンドウ/ボーダーレスモードのため、ネイティブWPFウィンドウがより高いパフォーマンスを提供します。</value>
     </data>
 </root>
