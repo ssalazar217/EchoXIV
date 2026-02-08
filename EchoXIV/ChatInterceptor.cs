@@ -66,7 +66,8 @@ namespace EchoXIV
                 if (!string.IsNullOrWhiteSpace(translatedText) && translatedText != originalText)
                 {
                     message = new SeString(new Dalamud.Game.Text.SeStringHandling.Payloads.TextPayload(translatedText));
-                    _pluginLog.Info($"Traducido: '{originalText}' → '{translatedText}'");
+                    if (_configuration.VerboseLogging)
+                        _pluginLog.Info($"Traducido: '{originalText}' → '{translatedText}'");
                 }
             }
             catch (Exception ex)

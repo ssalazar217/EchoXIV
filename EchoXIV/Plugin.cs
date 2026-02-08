@@ -77,16 +77,12 @@ namespace EchoXIV
                     if (GameConfig.System.TryGetUInt("ScreenMode", out uint screenMode))
                     {
                         if (screenMode == 2) // Fullscreen
-                        {
-                            PluginLog.Info("[EchoXIV] Fullscreen mode detected on first run. Defaulting to ImGui (UseNativeWindow = false).");
                             _configuration.UseNativeWindow = false;
-                        }
                     }
 
                     var uiLang = PluginInterface.UiLanguage;
                     if (uiLang != "en")
                     {
-                        PluginLog.Info($"[EchoXIV] Primera ejecución detectada. Auto-configurando idioma base desde Dalamud: {uiLang}");
                         _configuration.SourceLanguage = uiLang;
                         _configuration.TargetLanguage = "en";
                         _configuration.IncomingTargetLanguage = uiLang;
@@ -245,11 +241,7 @@ namespace EchoXIV
 
                 // Si ya estamos logueados (ej: recarga de plugin), iniciar ahora
                 if (ClientState.IsLoggedIn)
-                {
                     OnLogin();
-                }
-
-                PluginLog.Info($"{Name} cargado correctamente.");
             }
             catch (Exception ex)
             {

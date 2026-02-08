@@ -3,7 +3,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
-using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using EchoXIV.Services;
@@ -11,17 +10,17 @@ using EchoXIV.Services;
 namespace EchoXIV.GameFunctions
 {
     /// <summary>
-    /// Hook nativo para interceptar mensajes ANTES del envío
-    /// Permite traducción sin cancelar el mensaje original (sin error rojo)
-    /// </summary>
-    /// <summary>
-    /// Hook nativo para interceptar mensajes ANTES del envío
-    /// Permite traducción sin cancelar el mensaje original (sin error rojo)
+    /// Hook nativo para interceptar mensajes ANTES del envío.
+    /// Permite traducción sin cancelar el mensaje original (sin error rojo).
+    /// Usa siempre la dirección de UIModule.ProcessChatBoxEntry resuelta por Dalamud/FFXIVClientStructs;
+    /// no hace falta mantener firmas manualmente al actualizar el juego.
     /// </summary>
     internal unsafe class ChatBoxHook : IDisposable
     {
-        // Delegate oficial de ClientStructs si estuviera disponible, o mantenemos el nuestro pero saneado
-        public delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, void* unused, byte a4);
+        /// <summary>
+        /// Delegate que coincide con ProcessChatBoxEntry(UIModule* this, Utf8String* message, nint a4, bool saveToHistory).
+        /// </summary>
+        public delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, nint a4, bool saveToHistory);
         
         public delegate void OutgoingTranslationDelegate(string original, string translated);
         public event OutgoingTranslationDelegate? OnMessageTranslated;
@@ -71,15 +70,9 @@ namespace EchoXIV.GameFunctions
         {
             try
             {
-                // Intentar hookear ProcessChatBoxEntry
-                // Signature compatible con 7.x
-                _processChatBoxHook = _gameInteropProvider.HookFromSignature<ProcessChatBoxDelegate>(
-                    "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 48 8B FA 48 8B D9",
-                    ProcessChatBoxDetour
-                );
-                
-                _processChatBoxHook?.Enable();
-                _pluginLog.Info("✅ Hook nativo de ProcessChatBoxEntry habilitado");
+                nint address = (nint)UIModule.Addresses.ProcessChatBoxEntry.Value;
+                _processChatBoxHook = _gameInteropProvider.HookFromAddress<ProcessChatBoxDelegate>(address, ProcessChatBoxDetour);
+                _processChatBoxHook.Enable();
             }
             catch (Exception ex)
             {
@@ -89,16 +82,16 @@ namespace EchoXIV.GameFunctions
         }
         
         /// <summary>
-        /// Detour function: intercepta mensajes ANTES de procesarlos
+        /// Detour: intercepta mensajes ANTES de procesarlos. Parámetros = ProcessChatBoxEntry real.
         /// </summary>
-        private void ProcessChatBoxDetour(UIModule* uiModule, Utf8String* message, void* unused, byte a4)
+        private void ProcessChatBoxDetour(UIModule* uiModule, Utf8String* message, nint a4, bool saveToHistory)
         {
             try
             {
                 // Si la traducción está deshabilitada, pasar directamente
                 if (!_configuration.TranslationEnabled)
                 {
-                    _processChatBoxHook!.Original(uiModule, message, unused, a4);
+                    _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
                     return;
                 }
                 
@@ -107,7 +100,7 @@ namespace EchoXIV.GameFunctions
                 // No traducir si está vacío, es comando o está en la lista de exclusión
                 if (string.IsNullOrWhiteSpace(originalText) || originalText.StartsWith("/") || _configuration.ExcludedMessages.Contains(originalText))
                 {
-                    _processChatBoxHook!.Original(uiModule, message, unused, a4);
+                    _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
                     return;
                 }
                 
@@ -145,7 +138,7 @@ namespace EchoXIV.GameFunctions
                 if (string.IsNullOrWhiteSpace(translatedText) || translatedText == originalText)
                 {
                     // Si no se tradujo, enviar original
-                    _processChatBoxHook!.Original(uiModule, message, unused, a4);
+                    _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
                     return;
                 }
                 
@@ -164,7 +157,7 @@ namespace EchoXIV.GameFunctions
                 try
                 {
                     // Pasar mensaje TRADUCIDO a la función original
-                    _processChatBoxHook!.Original(uiModule, translatedUtf8, unused, a4);
+                    _processChatBoxHook!.Original(uiModule, translatedUtf8, a4, saveToHistory);
                 }
                 finally
                 {
@@ -177,13 +170,13 @@ namespace EchoXIV.GameFunctions
                 _pluginLog.Warning("⚠️ Límite de DeepL alcanzado durante interceptación. Activando conmutación...");
                 OnRequestEngineFailover?.Invoke();
                 // Enviar mensaje original
-                _processChatBoxHook!.Original(uiModule, message, unused, a4);
+                _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
             }
             catch (Exception ex)
             {
                 _pluginLog.Error(ex, "❌ Error en detour de ProcessChatBox");
                 // En caso de error, enviar mensaje original para no perder el mensaje
-                _processChatBoxHook!.Original(uiModule, message, unused, a4);
+                _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
             }
         }
 
@@ -210,7 +203,6 @@ namespace EchoXIV.GameFunctions
         public void Dispose()
         {
             _processChatBoxHook?.Dispose();
-            _pluginLog.Info("🔌 Hook nativo de ProcessChatBoxEntry deshabilitado");
         }
     }
 }

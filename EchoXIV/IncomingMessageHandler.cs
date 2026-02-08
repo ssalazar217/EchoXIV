@@ -81,20 +81,16 @@ namespace EchoXIV
             _pluginLog = pluginLog;
 
             _chatGui.ChatMessage += OnChatMessage;
-            _pluginLog.Info($"✅ IncomingMessageHandler inicializado con motor: {_primaryTranslator.Name}");
         }
 
         public void UpdateTranslator(ITranslationService newService)
         {
             _primaryTranslator = newService;
-            _pluginLog.Info($"IncomingMessageHandler: Motor principal actualizado a {_primaryTranslator.Name}");
         }
 
         public void UpdateSecondaryTranslator(ITranslationService? newService)
         {
             _secondaryTranslator = newService;
-            if (_secondaryTranslator != null)
-                _pluginLog.Info($"IncomingMessageHandler: Motor secundario actualizado a {_secondaryTranslator.Name}");
         }
 
         public void RegisterPendingOutgoing(string translated, string original)
@@ -108,16 +104,32 @@ namespace EchoXIV
 
         private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
         {
-            // Solo procesar si las traducciones entrantes están habilitadas.
-            if (!_configuration.IncomingTranslationEnabled)
-                return;
-
-            // Verificar si el canal está en la lista de canales a traducir
-            if (!_configuration.IncomingChannels.Contains((int)type))
-                return;
-
             // Obtener texto del mensaje
             var messageText = message.TextValue;
+
+            // DEDUPLICACIÓN: Verificar si es una traducción que nosotros mismos enviamos
+            // Esto tiene prioridad sobre los filtros de canales para asegurar que /tl funcione siempre
+            string? originalFromPending = null;
+            lock (_pendingOutgoingTranslations)
+            {
+                if (_pendingOutgoingTranslations.TryGetValue(messageText, out originalFromPending))
+                {
+                    _pendingOutgoingTranslations.Remove(messageText);
+                }
+            }
+
+            // Si NO es una traducción pendiente explícita, aplicar filtros de configuración
+            if (originalFromPending == null)
+            {
+                // Solo procesar si las traducciones entrantes están habilitadas.
+                if (!_configuration.IncomingTranslationEnabled)
+                    return;
+
+                // Verificar si el canal está en la lista de canales a traducir
+                if (!_configuration.IncomingChannels.Contains((int)type))
+                    return;
+            }
+
             var senderName = sender.TextValue;
 
             // Formatear nombre: Nombre Apellido@Servidor
@@ -206,15 +218,8 @@ namespace EchoXIV
             if (isLocalPlayer && !_configuration.ShowOutgoingMessages)
                 return;
 
-            // DEDUPLICACIÓN: Verificar si es una traducción que nosotros mismos enviamos
-            string? originalFromPending = null;
-            lock (_pendingOutgoingTranslations)
-            {
-                if (_pendingOutgoingTranslations.TryGetValue(messageText, out originalFromPending))
-                {
-                    _pendingOutgoingTranslations.Remove(messageText);
-                }
-            }
+            // DEDUPLICACIÓN: Ya verificada al inicio del método
+            // string? originalFromPending = null; (Ya declarado arriba)
 
             if (originalFromPending != null)
             {
