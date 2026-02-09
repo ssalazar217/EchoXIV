@@ -666,6 +666,14 @@ namespace EchoXIV
                 }
                 
                 var mes = FFXIVClientStructs.FFXIV.Client.System.String.Utf8String.FromSequence(bytes);
+                mes->SanitizeString(
+                    FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.UppercaseLetters |
+                    FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.LowercaseLetters |
+                    FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.Numbers |
+                    FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.SpecialCharacters |
+                    FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.Payloads |
+                    FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.CJK
+                );
                 FFXIVClientStructs.FFXIV.Client.UI.UIModule.Instance()->ProcessChatBoxEntry(mes);
                 mes->Dtor(true);
             }

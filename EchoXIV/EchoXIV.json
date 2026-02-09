@@ -14,7 +14,7 @@
     "plugin"
   ],
   "Punchline": "Bidirectional (Outgoing+Incoming) chat translation with Auto-Failover. / Traducción de chat bidireccional con Failover automático.",
-  "AssemblyVersion": "0.1.0.23",
-  "Changelog": "v0.1.0.23: Cleanup & Fixes\n- Removed redundant window positioning logic.\n- Fixed double-scaling issues.\n- Improved focus detection.\n- Code cleanup.",
+  "AssemblyVersion": "0.1.0.24",
+  "Changelog": "v0.1.0.24: Native SanitizeString\n- Implemented native Utf8String.SanitizeString() for chat messages.\n- Enhanced security by using game's native text validation.\n- Applied to both outgoing translation commands and chat box messages.",
   "AcceptsFeedback": true
 }

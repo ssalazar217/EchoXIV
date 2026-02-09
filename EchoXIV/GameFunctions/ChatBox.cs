@@ -28,6 +28,14 @@ namespace EchoXIV.GameFunctions
         private static void SendMessageUnsafe(byte[] message)
         {
             var mes = Utf8String.FromSequence(message);
+            mes->SanitizeString(
+                AllowedEntities.UppercaseLetters |
+                AllowedEntities.LowercaseLetters |
+                AllowedEntities.Numbers |
+                AllowedEntities.SpecialCharacters |
+                AllowedEntities.Payloads |
+                AllowedEntities.CJK
+            );
             UIModule.Instance()->ProcessChatBoxEntry(mes);
             mes->Dtor(true);
         }
