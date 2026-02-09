@@ -23,6 +23,8 @@ namespace EchoXIV.Services
         // Smart Visibility
         private DispatcherTimer? _visibilityTimer;
         private IntPtr _gameWindowHandle;
+        private DateTime _lastFocusLost = DateTime.MinValue;
+        private const int HIDE_GRACE_PERIOD_MS = 1500; // Delay generoso antes de ocultar
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
@@ -35,6 +37,9 @@ namespace EchoXIV.Services
 
         [DllImport("user32.dll")]
         private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+        
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetParent(IntPtr hWnd);
 
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
@@ -106,9 +111,9 @@ namespace EchoXIV.Services
                 _gameWindowHandle = GetGameWindowHandle();
                 _chatWindowHandle = _chatWindow.GetHandle();
 
-                // Timer de visibilidad inteligente
+                // Timer de visibilidad - visible cuando foco está en FFXIV o WPF
                 _visibilityTimer = new DispatcherTimer();
-                _visibilityTimer.Interval = TimeSpan.FromMilliseconds(500);
+                _visibilityTimer.Interval = TimeSpan.FromMilliseconds(1000);
                 _visibilityTimer.Tick += VisibilityTimer_Tick;
                 _visibilityTimer.Start();
             }
@@ -138,33 +143,72 @@ namespace EchoXIV.Services
             }
         }
 
+        /// <summary>
+        /// Verifica recursivamente si hWnd es hijo de targetParent
+        /// </summary>
+        private bool IsChildOfWindow(IntPtr hWnd, IntPtr targetParent)
+        {
+            if (hWnd == IntPtr.Zero || targetParent == IntPtr.Zero) return false;
+            
+            var current = hWnd;
+            const int MAX_DEPTH = 10; // Prevenir loops infinitos
+            
+            for (int depth = 0; depth < MAX_DEPTH; depth++)
+            {
+                if (current == targetParent) return true;
+                
+                var parent = GetParent(current);
+                if (parent == IntPtr.Zero) return false; // Llegamos al root
+                
+                current = parent;
+            }
+            
+            return false;
+        }
+        
         private void VisibilityTimer_Tick(object? sender, EventArgs e)
         {
             if (_chatWindow == null || !_isRunning) return;
             if (!_configuration.OverlayVisible) return;
             
-            bool isChatVisible = Plugin.IsChatVisible();
-            bool shouldBeVisible = isChatVisible;
+            // Por defecto visible si SmartVisibility está OFF
+            bool shouldBeVisible = true;
 
-            if (_configuration.SmartVisibility && isChatVisible)
+            if (_configuration.SmartVisibility)
             {
                 if (_gameWindowHandle == IntPtr.Zero)
                 {
                     _gameWindowHandle = GetGameWindowHandle();
                 }
+                
+                // CRÍTICO: Recapturar handle de WPF si es Zero
+                if (_chatWindowHandle == IntPtr.Zero)
+                {
+                    _chatWindowHandle = _chatWindow.GetHandle();
+                }
 
                 var foreground = GetForegroundWindow();
+                
                 if (foreground != IntPtr.Zero)
                 {
-                    // Strict Handle Check: Solo visible si el foco está en la ventana del juego o la del chat.
-                    shouldBeVisible = (foreground == _gameWindowHandle) || (foreground == _chatWindowHandle);
+                    // Verificar si es FFXIV o ventana WPF
+                    bool hasFocus = (foreground == _gameWindowHandle) || (foreground == _chatWindowHandle);
                     
-                    // Fallback de seguridad si el Handle cambió.
-                    if (!shouldBeVisible && _gameWindowHandle == IntPtr.Zero)
+                    // Verificar si es child de WPF recursivamente
+                    if (!hasFocus && _chatWindowHandle != IntPtr.Zero)
                     {
-                         GetWindowThreadProcessId(foreground, out uint foregroundPid);
-                         shouldBeVisible = (foregroundPid == _currentPid);
+                        hasFocus = IsChildOfWindow(foreground, _chatWindowHandle);
                     }
+                    
+                    // Fallback: verificar si es mismo proceso
+                    if (!hasFocus && _gameWindowHandle == IntPtr.Zero)
+                    {
+                        GetWindowThreadProcessId(foreground, out uint foregroundPid);
+                        hasFocus = (foregroundPid == _currentPid);
+                    }
+                    
+                    // MODIFICADO: Si tiene foco en FFXIV o WPF → SIEMPRE visible (no ocultar)
+                    shouldBeVisible = hasFocus;
                 }
                 else
                 {
@@ -173,7 +217,7 @@ namespace EchoXIV.Services
             }
 
             bool isVisible = _chatWindow.IsVisible();
-
+            
             if (shouldBeVisible && !isVisible)
             {
                 _chatWindow.Show();
@@ -183,6 +227,7 @@ namespace EchoXIV.Services
                 _chatWindow.Hide();
             }
         }
+        
 
         public void AddMessage(TranslatedChatMessage msg) => _chatWindow?.AddMessage(msg);
         public void UpdateMessage(TranslatedChatMessage msg) => _chatWindow?.UpdateMessage(msg);
@@ -190,9 +235,7 @@ namespace EchoXIV.Services
         public void ResetWindow() => _chatWindow?.ResetPosition();
         public void SetOpacity(float opacity) => _chatWindow?.SetOpacity(opacity);
         public void SetSmartVisibility(bool enabled) => VisibilityTimer_Tick(null, EventArgs.Empty);
-        // Asumiendo que SetLock existe en ChatOverlayWindow, si no la compilación fallará
         public void SetLock(bool locked) => _chatWindow?.SetLock(locked); 
-        // Asumiendo que UpdateVisuals existe en ChatOverlayWindow
         public void UpdateVisuals() => _chatWindow?.UpdateVisuals();
 
         private IntPtr GetGameWindowHandle()
