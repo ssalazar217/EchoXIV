@@ -24,6 +24,7 @@ namespace EchoXIV.UI
         private bool _autoScroll = true;
         private bool _resetPending = false;
 
+
         public TranslatedChatWindow(Configuration configuration, MessageHistoryManager historyManager)
             : base(Resources.ChatWindow_Title + "###TranslatedChatWindow")
         {
@@ -45,11 +46,9 @@ namespace EchoXIV.UI
             Flags = ImGuiWindowFlags.NoScrollbar 
                   | ImGuiWindowFlags.NoScrollWithMouse;
 
-            // Cargar posición y tamaño desde configuración para independencia total
-            Position = _configuration.ImGuiPosition;
-            Size = _configuration.ImGuiSize;
-            PositionCondition = ImGuiCond.Appearing;
-            SizeCondition = ImGuiCond.Appearing;
+            // Cargar posición y tamaño desde configuración (WindowSystem aplica GlobalScale)
+            PositionCondition = ImGuiCond.FirstUseEver;
+            SizeCondition = ImGuiCond.FirstUseEver;
 
             // Sincronizar visibilidad inicial
             IsOpen = _configuration.OverlayVisible;
@@ -116,21 +115,7 @@ namespace EchoXIV.UI
             // Lista de mensajes
             DrawMessageList();
 
-            // Sincronizar posición y tamaño con la configuración de EchoXIV
-            // (Hacemos esto manualmente para que sea independiente de imgui.ini y de WPF)
-            var currentPos = ImGui.GetWindowPos();
-            var currentSize = ImGui.GetWindowSize();
-
-            if (currentPos != _configuration.ImGuiPosition)
-            {
-                _configuration.ImGuiPosition = currentPos;
-                _configuration.Save();
-            }
-            if (currentSize != _configuration.ImGuiSize)
-            {
-                _configuration.ImGuiSize = currentSize;
-                _configuration.Save();
-            }
+            // Guardar configuración de visibilidad si cambió (no pos/size, eso lo maneja WindowSystem)
 
             if (_resetPending)
             {
@@ -154,8 +139,8 @@ namespace EchoXIV.UI
             if (_configuration.OverlayVisible)
             {
                 _configuration.OverlayVisible = false;
-                _configuration.Save();
             }
+            _configuration.Save();
         }
 
         public void ResetPosition()

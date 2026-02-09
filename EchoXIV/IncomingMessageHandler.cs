@@ -250,11 +250,10 @@ namespace EchoXIV
                     TranslatedText = messageText, 
                     IsTranslating = false
                 };
-                OnMessageTranslated?.Invoke(excludedMsg);
+                OnTranslationStarted?.Invoke(excludedMsg);
                 return;
             }
 
-            // Crear mensaje inicial (mostrando "traduciendo...")
             var translatedMessage = new TranslatedChatMessage
             {
                 Timestamp = DateTime.Now,
@@ -265,10 +264,8 @@ namespace EchoXIV
                 IsTranslating = true
             };
 
-            // Notificar que se inició la traducción
             OnTranslationStarted?.Invoke(translatedMessage);
 
-            // Traducir async
             _ = TranslateAsync(translatedMessage);
         }
 

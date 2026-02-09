@@ -32,3 +32,5 @@ Test*.ps1
 # Distribution
 *.zip
 DISTRIBUTION.md
+
+EchoXIV/docs/

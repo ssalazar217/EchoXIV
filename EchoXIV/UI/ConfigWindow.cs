@@ -47,27 +47,27 @@ public class ConfigWindow : Window, IDisposable
         {
             if (tabBar)
             {
-                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.Cog.ToIconString()} {Resources.Tab_General}###GeneralTab"))
+                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_General}###GeneralTab"))
                 {
                     if (tabItem) DrawGeneralTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.Palette.ToIconString()} {Resources.Tab_Visuals}###VisualsTab"))
+                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_Visuals}###VisualsTab"))
                 {
                     if (tabItem) DrawVisualsTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.Filter.ToIconString()} {Resources.Tab_ExcludedMessages}###ExcludedTab"))
+                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_ExcludedMessages}###ExcludedTab"))
                 {
                     if (tabItem) DrawExcludedMessagesTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.Comments.ToIconString()} {Resources.Tab_IncomingChannels}###IncomingTab"))
+                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_IncomingChannels}###IncomingTab"))
                 {
                     if (tabItem) DrawIncomingChannelsTab();
                 }
 
-                using (var tabItem = ImRaii.TabItem($"{FontAwesomeIcon.History.ToIconString()} {Resources.Tab_History}###HistoryTab"))
+                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_History}###HistoryTab"))
                 {
                     if (tabItem) DrawHistoryTab();
                 }
@@ -84,7 +84,6 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
             
-            // Toggle de traducción
             var enabled = _configuration.TranslationEnabled;
             if (ImGui.Checkbox(Resources.General_EnableTranslation, ref enabled))
             {
@@ -96,7 +95,6 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
             
-            // Selector de Motor de Traducción
             ImGui.Text(Resources.General_Engine);
             ImGui.SetNextItemWidth(200);
             
@@ -342,7 +340,6 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
 
-            // Font Size
             int fontSize = _configuration.FontSize;
             if (ImGui.SliderInt(Resources.Visuals_FontSize, ref fontSize, 10, 32))
             {
@@ -351,7 +348,6 @@ public class ConfigWindow : Window, IDisposable
                 OnVisualsChanged?.Invoke();
             }
             
-            // Spacing
             int spacing = _configuration.ChatMessageSpacing;
             if (ImGui.SliderInt(Resources.Visuals_Spacing, ref spacing, 0, 20))
             {
@@ -362,7 +358,6 @@ public class ConfigWindow : Window, IDisposable
 
             ImGui.Spacing();
             
-            // Timestamp Format
             ImGui.Text(Resources.Visuals_TimeFormat);
             string[] formats = { "HH:mm", "HH:mm:ss", "h:mm tt" };
             string[] formatNames = { Resources.Visuals_TimeFormatShort, Resources.Visuals_TimeFormatLong, Resources.Visuals_TimeFormatAMPM };

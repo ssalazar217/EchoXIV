@@ -148,12 +148,7 @@ namespace EchoXIV
                 // Inicializar sistema de ventanas
                 // NOTA: No iniciamos WpfHost aquí para evitar que aparezca en la pantalla de título.
                 // Se iniciará en OnLogin solo si estamos realmente en el juego.
-                /*
-                if (_configuration.UseNativeWindow)
-                {
-                    // Crear ventana nativa (WPF) - ELIMINADO DE AQUÍ
-                }
-                */
+
                 
                 if (!_configuration.UseNativeWindow)
                 {
@@ -297,8 +292,7 @@ namespace EchoXIV
                 _configWindow.Dispose();
             }
             
-            // Limpiar eventos de login (desuscripción manual no es posible con delegados anónimos, 
-            // pero Dalamud maneja la limpieza al descargar el plugin en la mayoría de casos)
+
 
             _wpfHost?.Dispose();
             _wpfHost = null;
@@ -335,24 +329,24 @@ namespace EchoXIV
                 case "on":
                     _configuration.TranslationEnabled = true;
                     _configuration.Save();
-                    ChatGui.Print($"[EchoXIV] Traducción activada. {_configuration.SourceLanguage.ToUpper()} → {_configuration.TargetLanguage.ToUpper()}");
+                    ChatGui.Print($"Traducción activada. {_configuration.SourceLanguage.ToUpper()} → {_configuration.TargetLanguage.ToUpper()}");
                     break;
                 
                 case "off":
                     _configuration.TranslationEnabled = false;
                     _configuration.Save();
-                    ChatGui.Print("[EchoXIV] Traducción desactivada");
+                    ChatGui.Print("Traducción desactivada");
                     break;
                 
                 case "lock":
                     if (_configuration.UseNativeWindow && _wpfHost != null)
                     {
                         _wpfHost.SetLock(true);
-                        ChatGui.Print("[EchoXIV] Ventana nativa BLOQUEADA (Click-Through activado). Usa '/tl unlock' para desbloquear.");
+                        ChatGui.Print("Ventana nativa BLOQUEADA (Click-Through activado). Usa '/tl unlock' para desbloquear.");
                     }
                     else
                     {
-                        ChatGui.Print("[EchoXIV] La ventana nativa no está activa.");
+                        ChatGui.Print("La ventana nativa no está activa.");
                     }
                     break;
 
@@ -360,11 +354,11 @@ namespace EchoXIV
                     if (_configuration.UseNativeWindow && _wpfHost != null)
                     {
                          _wpfHost.SetLock(false);
-                         ChatGui.Print("[EchoXIV] Ventana nativa DESBLOQUEADA.");
+                         ChatGui.Print("Ventana nativa DESBLOQUEADA.");
                     }
                     else
                     {
-                         ChatGui.Print("[EchoXIV] La ventana nativa no está activa.");
+                         ChatGui.Print("La ventana nativa no está activa.");
                     }
                     break;
                 
@@ -384,7 +378,7 @@ namespace EchoXIV
                 
                 case "help":
                 case "?":
-                    ChatGui.Print("[EchoXIV] Comandos disponibles:");
+                    ChatGui.Print("Comandos disponibles:");
                     ChatGui.Print("/translate <mensaje> - Traduce al canal activo.");
                     ChatGui.Print("/translate on/off - Activa/desactiva traducción auto.");
                     ChatGui.Print("/translate config - Abre los ajustes.");
@@ -395,7 +389,7 @@ namespace EchoXIV
                 case "input":
                 case "i":
                      // Legacy
-                     ChatGui.Print("[EchoXIV] La ventana de input ha sido reemplazada. Usa /tl mensaje");
+                     ChatGui.Print("La ventana de input ha sido reemplazada. Usa /tl mensaje");
                      break;
                 
                 default:
@@ -409,7 +403,7 @@ namespace EchoXIV
         {
             if (_configWindow != null)
             {
-                _configWindow.IsOpen = !_configWindow.IsOpen;
+                _configWindow.Toggle();
             }
         }
         
@@ -422,20 +416,20 @@ namespace EchoXIV
             {
                 if (_wpfHost == null)
                 {
-                     ChatGui.PrintError("[EchoXIV] ⚠️ La ventana nativa está activada pero no iniciada. Por favor reinicia el plugin.");
+                     ChatGui.PrintError("⚠️ La ventana nativa está activada pero no iniciada. Por favor reinicia el plugin.");
                      return;
                 }
 
                 _wpfHost.ToggleWindow();
-                ChatGui.Print("[EchoXIV] 👁️ Alternando visibilidad de ventana nativa.");
+                ChatGui.Print("👁️ Alternando visibilidad de ventana nativa.");
             }
             else if (_translatedChatWindow != null)
             {
-                _translatedChatWindow.IsOpen = !_translatedChatWindow.IsOpen;
+                _translatedChatWindow.Toggle();
                  if (_translatedChatWindow.IsOpen)
-                    ChatGui.Print("[EchoXIV] 💬 Ventana de traducciones abierta. Usa /tl reset si no la ves.");
+                    ChatGui.Print("💬 Ventana de traducciones abierta. Usa /tl reset si no la ves.");
                 else
-                    ChatGui.Print("[EchoXIV] 💬 Ventana de traducciones cerrada.");
+                    ChatGui.Print("💬 Ventana de traducciones cerrada.");
             }
         }
         
@@ -447,12 +441,12 @@ namespace EchoXIV
             if (_configuration.UseNativeWindow)
             {
                  _wpfHost?.ResetWindow();
-                 ChatGui.Print("[EchoXIV] 📍 Posición de ventana nativa reseteada a (100, 100).");
+                 ChatGui.Print("📍 Posición de ventana nativa reseteada a (100, 100).");
             }
             else if (_translatedChatWindow != null)
             {
                 _translatedChatWindow.ResetPosition();
-                ChatGui.Print("[EchoXIV] 📍 Posición de ventana reseteada a (100, 100). Ya debería ser visible.");
+                ChatGui.Print("📍 Posición de ventana reseteada a (100, 100). Ya debería ser visible.");
             }
         }
 
@@ -467,7 +461,7 @@ namespace EchoXIV
 
                     if (string.IsNullOrWhiteSpace(message))
                     {
-                         _ = Framework.RunOnFrameworkThread(() => ChatGui.Print("[EchoXIV] ⚠️ No hay mensaje para traducir"));
+                         _ = Framework.RunOnFrameworkThread(() => ChatGui.Print("⚠️ No hay mensaje para traducir"));
                          return;
                     }
 
@@ -523,7 +517,7 @@ namespace EchoXIV
                     PluginLog.Error(ex, "Error al traducir mensaje");
                     _ = Framework.RunOnFrameworkThread(() =>
                     {
-                        ChatGui.PrintError("[EchoXIV] ❌ Error al traducir");
+                        ChatGui.PrintError("❌ Error al traducir");
                     });
                 }
             });
@@ -678,7 +672,7 @@ namespace EchoXIV
             catch (Exception ex)
             {
                 PluginLog.Error(ex, "Error al enviar mensaje");
-                ChatGui.PrintError("[EchoXIV] ❌ Error al enviar mensaje");
+                ChatGui.PrintError("❌ Error al enviar mensaje");
             }
         }
         
@@ -780,7 +774,7 @@ namespace EchoXIV
             // Solo cambiar si no estamos ya en Google
             if (_configuration.SelectedEngine == TranslationEngine.Google) return;
 
-            PluginLog.Warning("🔄 [EchoXIV] Cambiando automáticamente a Google Translate (Límite de Papago alcanzado).");
+            PluginLog.Warning("🔄 Cambiando automáticamente a Google Translate (Límite de Papago alcanzado).");
             _configuration.SelectedEngine = TranslationEngine.Google;
             _configuration.Save();
             
@@ -790,7 +784,7 @@ namespace EchoXIV
             // Notificar al usuario por el chat del juego
             _ = Framework.RunOnFrameworkThread(() => 
             {
-                ChatGui.Print("[EchoXIV] 🔄 Se ha alcanzado el límite de Papago. Cambiando automáticamente a Google Translate.");
+                ChatGui.Print("🔄 Se ha alcanzado el límite de Papago. Cambiando automáticamente a Google Translate.");
             });
         }
 

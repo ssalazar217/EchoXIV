@@ -33,6 +33,12 @@ namespace EchoXIV.Services
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+
         private readonly Dalamud.Plugin.Services.IPluginLog _logger;
         private readonly MessageHistoryManager _historyManager;
         private IntPtr _chatWindowHandle = IntPtr.Zero;
@@ -142,11 +148,23 @@ namespace EchoXIV.Services
 
             if (_configuration.SmartVisibility && isChatVisible)
             {
+                if (_gameWindowHandle == IntPtr.Zero)
+                {
+                    _gameWindowHandle = GetGameWindowHandle();
+                }
+
                 var foreground = GetForegroundWindow();
                 if (foreground != IntPtr.Zero)
                 {
-                    GetWindowThreadProcessId(foreground, out uint foregroundPid);
-                    shouldBeVisible = (foregroundPid == _currentPid);
+                    // Strict Handle Check: Solo visible si el foco está en la ventana del juego o la del chat.
+                    shouldBeVisible = (foreground == _gameWindowHandle) || (foreground == _chatWindowHandle);
+                    
+                    // Fallback de seguridad si el Handle cambió.
+                    if (!shouldBeVisible && _gameWindowHandle == IntPtr.Zero)
+                    {
+                         GetWindowThreadProcessId(foreground, out uint foregroundPid);
+                         shouldBeVisible = (foregroundPid == _currentPid);
+                    }
                 }
                 else
                 {
@@ -181,12 +199,39 @@ namespace EchoXIV.Services
         {
             try
             {
-                var mainHandle = Process.GetCurrentProcess().MainWindowHandle;
-                if (mainHandle != IntPtr.Zero) return mainHandle;
-                return FindWindow("FFXIVGAME", null);
+                // 1. Intentar obtenerlo directamente del proceso actual
+                using var process = Process.GetCurrentProcess();
+                process.Refresh(); // Asegurar datos frescos
+                var mainHandle = process.MainWindowHandle;
+                
+                if (mainHandle != IntPtr.Zero) 
+                    return mainHandle;
+
+                // 2. Fallback: Enumerar ventanas y buscar la que coincida con nuestro PID
+                // Esto evita encontrar ventanas de OTROS clientes FFXIV.
+                IntPtr foundHandle = IntPtr.Zero;
+                uint myPid = (uint)process.Id;
+
+                EnumWindows((hwnd, lParam) => 
+                {
+                    GetWindowThreadProcessId(hwnd, out uint pid);
+                    if (pid == myPid)
+                    {
+                        // Encontrar la ventana visible principal podría requerir más filtros (ej: title, style),
+                        // pero por PID ya filtramos otros clientes.
+                        // Asumiremos la primera ventana válida del PID como candidata si MainWindowHandle falló.
+                        // Se podría refinar checking 'IsWindowVisible'.
+                        foundHandle = hwnd;
+                        return false; // Stop enumeration
+                    }
+                    return true; // Continue
+                }, IntPtr.Zero);
+
+                return foundHandle;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Warning($"WpfHost: Error obteniendo GameWindowHandle: {ex.Message}");
                 return IntPtr.Zero;
             }
         }
