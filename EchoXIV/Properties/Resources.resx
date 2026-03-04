@@ -201,6 +201,12 @@
     <data name="ChatWindow_Translating">
         <value>Translating...</value>
     </data>
+    <data name="ChatWindow_Retry">
+        <value>Retry</value>
+    </data>
+    <data name="ChatWindow_RetryTooltip">
+        <value>Retry translations that failed or remained pending</value>
+    </data>
     <data name="ChatWindow_Original">
         <value>Original:</value>
     </data>

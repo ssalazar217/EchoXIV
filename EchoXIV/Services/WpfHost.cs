@@ -20,6 +20,8 @@ namespace EchoXIV.Services
         // Evento para señalizar que el host está listo
         private readonly ManualResetEvent _readyEvent = new(false);
         
+        public event Action<TranslatedChatMessage>? OnRequestTranslation;
+        
         // Smart Visibility
         private DispatcherTimer? _visibilityTimer;
         private IntPtr _gameWindowHandle;
@@ -102,6 +104,7 @@ namespace EchoXIV.Services
 
                 _logger.Info("WpfHost: Inicializando ChatOverlayWindow...");
                 _chatWindow = new ChatOverlayWindow(_configuration, _historyManager);
+                _chatWindow.OnRequestTranslation += (m) => OnRequestTranslation?.Invoke(m);
                 _chatWindow.Show();
                 
                 IsInitialized = true;
@@ -169,7 +172,15 @@ namespace EchoXIV.Services
         private void VisibilityTimer_Tick(object? sender, EventArgs e)
         {
             if (_chatWindow == null || !_isRunning) return;
-            if (!_configuration.OverlayVisible) return;
+            // Si la configuración dice que debe estar oculto, forzamos ocultar y salimos.
+            if (!_configuration.OverlayVisible)
+            {
+                if (_chatWindow.IsVisible())
+                {
+                    _chatWindow.Hide();
+                }
+                return;
+            }
             
             // Por defecto visible si SmartVisibility está OFF
             bool shouldBeVisible = true;

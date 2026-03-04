@@ -187,5 +187,7 @@ namespace EchoXIV.Properties {
         public static string Welcome_WindowModeImGui { get { return ResourceManager.GetString("Welcome_WindowModeImGui", resourceCulture); } }
         public static string Welcome_RecommendationFullscreen { get { return ResourceManager.GetString("Welcome_RecommendationFullscreen", resourceCulture); } }
         public static string Welcome_RecommendationWindowed { get { return ResourceManager.GetString("Welcome_RecommendationWindowed", resourceCulture); } }
+        public static string ChatWindow_Retry { get { return ResourceManager.GetString("ChatWindow_Retry", resourceCulture); } }
+        public static string ChatWindow_RetryTooltip { get { return ResourceManager.GetString("ChatWindow_RetryTooltip", resourceCulture); } }
     }
 }

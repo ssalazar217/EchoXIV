@@ -140,7 +140,10 @@ namespace EchoXIV
                 // Suscribirse a cambios de opacidad
                 _configWindow.OnOpacityChanged += OnOpacityChangedHandler;
                 _configWindow.OnSmartVisibilityChanged += (enabled) => _wpfHost?.SetSmartVisibility(enabled);
-                _configWindow.OnVisualsChanged += () => _wpfHost?.UpdateVisuals();
+                _configWindow.OnVisualsChanged += () => 
+                {
+                    _wpfHost?.UpdateVisuals();
+                };
                 _configWindow.OnUnlockNativeRequested += () => _wpfHost?.SetLock(false);
                 _configWindow.OnTranslationEngineChanged += (engine) => UpdateTranslationService();
                 _configWindow.OnWindowModeChanged += OnWindowModeChangedHandler;
@@ -150,13 +153,7 @@ namespace EchoXIV
                 // Se iniciará en OnLogin solo si estamos realmente en el juego.
 
                 
-                if (!_configuration.UseNativeWindow)
-                {
-                    // Crear ventana interna (ImGui/Dalamud)
-                    _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
-                    _windowSystem.AddWindow(_translatedChatWindow);
-                    if (_configuration.VerboseLogging) PluginLog.Info("🖥️ Ventana interna Dalamud iniciada");
-                }
+                // (Motores ya inicializados arriba)
                 
                 // (Motores ya inicializados arriba)
 
@@ -250,11 +247,41 @@ namespace EchoXIV
         {
             // Ya no es necesaria la validación aquí, el timer de WPF y DrawConditions de ImGui 
             // se encargarán de ocultar la ventana dinámicamente según el estado del juego.
-            if (_configuration.UseNativeWindow && _wpfHost == null)
+            if (_configuration.UseNativeWindow)
             {
-                if (_configuration.VerboseLogging) PluginLog.Info("Jugador logueado. Iniciando host de ventana nativa...");
-                _wpfHost = new WpfHost(_configuration, PluginLog, _historyManager);
-                _wpfHost.Start();
+                // Modo WPF
+                if (_translatedChatWindow != null)
+                {
+                    _windowSystem.RemoveWindow(_translatedChatWindow);
+                    _translatedChatWindow.Dispose();
+                    _translatedChatWindow = null;
+                }
+
+                if (_wpfHost == null)
+                {
+                    if (_configuration.VerboseLogging) PluginLog.Info("Jugador logueado. Iniciando host de ventana nativa...");
+                    _wpfHost = new WpfHost(_configuration, PluginLog, _historyManager);
+                    _wpfHost.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
+                    _wpfHost.Start();
+                }
+            }
+            else
+            {
+                // Modo ImGui
+                if (_wpfHost != null)
+                {
+                    _wpfHost.Dispose();
+                    _wpfHost = null;
+                }
+
+                if (_translatedChatWindow == null)
+                {
+                    _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
+                    _translatedChatWindow.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
+                    _windowSystem.AddWindow(_translatedChatWindow);
+                }
+                
+                _translatedChatWindow.IsOpen = _configuration.OverlayVisible;
             }
         }
 
@@ -407,31 +434,7 @@ namespace EchoXIV
             }
         }
         
-        /// <summary>
-        /// Muestra/oculta la ventana de chat traducido
-        /// </summary>
-        private void ToggleTranslatedChatWindow()
-        {
-            if (_configuration.UseNativeWindow)
-            {
-                if (_wpfHost == null)
-                {
-                     ChatGui.PrintError("⚠️ La ventana nativa está activada pero no iniciada. Por favor reinicia el plugin.");
-                     return;
-                }
 
-                _wpfHost.ToggleWindow();
-                ChatGui.Print("👁️ Alternando visibilidad de ventana nativa.");
-            }
-            else if (_translatedChatWindow != null)
-            {
-                _translatedChatWindow.Toggle();
-                 if (_translatedChatWindow.IsOpen)
-                    ChatGui.Print("💬 Ventana de traducciones abierta. Usa /tl reset si no la ves.");
-                else
-                    ChatGui.Print("💬 Ventana de traducciones cerrada.");
-            }
-        }
         
         /// <summary>
         /// Resetea la posición de la ventana de chat traducido al centro
@@ -732,9 +735,43 @@ namespace EchoXIV
                 if (_translatedChatWindow == null)
                 {
                     _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
+                    _translatedChatWindow.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
                     _windowSystem.AddWindow(_translatedChatWindow);
                 }
+                
+                _translatedChatWindow.IsOpen = true;
+                _configuration.OverlayVisible = true;
+                _configuration.Save();
             }
+        }
+
+        public void ToggleTranslatedChatWindow()
+        {
+            if (_configuration.UseNativeWindow)
+            {
+                // Modo Nativo: Solo cambiamos la configuración. WpfHost lo detectará en su timer.
+                _configuration.OverlayVisible = !_configuration.OverlayVisible;
+                
+                // Feedback visual inmediato (opcional, pero útil)
+                var status = _configuration.OverlayVisible ? "VISIBLE" : "OCULTO";
+                if (_configuration.VerboseLogging) PluginLog.Info($"ToggleNative: {status}");
+            }
+            else
+            {
+                // Modo ImGui: Manejo estándar de ventana Dalamud
+                if (_translatedChatWindow == null)
+                {
+                    _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
+                    _translatedChatWindow.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
+                    _windowSystem.AddWindow(_translatedChatWindow);
+                }
+
+                _translatedChatWindow.IsOpen = !_translatedChatWindow.IsOpen;
+                _configuration.OverlayVisible = _translatedChatWindow.IsOpen;
+            }
+            
+            _configuration.Save();
+            ChatGui.Print($"Chat traducido: {(_configuration.OverlayVisible ? "VISIBLE" : "OCULTO")}");
         }
 
         private void UpdateTranslationService()

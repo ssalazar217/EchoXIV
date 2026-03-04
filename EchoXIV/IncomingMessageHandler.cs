@@ -141,12 +141,15 @@ namespace EchoXIV
                localPlayerWorldName = _playerState.HomeWorld.Value.Name.ToString();
             }
 
+            // Separador (Arroba)
+            const string worldIcon = "@";
+
             var nameParts = senderName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             
             if (nameParts.Length == 3)
             {
                 // Formato Cross-World estándar: First Last World
-                senderName = $"{nameParts[0]} {nameParts[1]}@{nameParts[2]}";
+                senderName = $"{nameParts[0]} {nameParts[1]}{worldIcon}{nameParts[2]}";
             }
             else if (nameParts.Length == 2)
             {
@@ -162,13 +165,13 @@ namespace EchoXIV
                  // Si es el mismo mundo que nosotros, agregar nuestro mundo
                  if (!string.IsNullOrEmpty(localPlayerWorldName) && localPlayerName == senderName)
                  {
-                     senderName = $"{senderName}@{localPlayerWorldName}";
+                     senderName = $"{senderName}{worldIcon}{localPlayerWorldName}";
                  }
                  else if (!string.IsNullOrEmpty(localPlayerWorldName))
                  {
                      // Lógica heurística simplificada
                      // Asumimos mismo mundo si no hay indicador de otro mundo.
-                     senderName = $"{senderName}@{localPlayerWorldName}";
+                     senderName = $"{senderName}{worldIcon}{localPlayerWorldName}";
                  }
 
                  for (int i = 1; i < lastPart.Length; i++)
@@ -183,17 +186,17 @@ namespace EchoXIV
                  if (worldSplitIndex != -1)
                  {
                      // Es First LastWorld -> First Last@World
-                     senderName = $"{nameParts[0]} {lastPart.Substring(0, worldSplitIndex)}@{lastPart.Substring(worldSplitIndex)}";
+                     senderName = $"{nameParts[0]} {lastPart.Substring(0, worldSplitIndex)}{worldIcon}{lastPart.Substring(worldSplitIndex)}";
                  }
                  else if (!string.IsNullOrEmpty(localPlayerName) && senderName == localPlayerName && !string.IsNullOrEmpty(localPlayerWorldName))
                  {
                      // Jugador local: añadir mundo
-                     senderName = $"{localPlayerName}@{localPlayerWorldName}";
+                     senderName = $"{localPlayerName}{worldIcon}{localPlayerWorldName}";
                  }
                  else if (!string.IsNullOrEmpty(localPlayerName) && !string.IsNullOrEmpty(localPlayerWorldName))
                  {
                      // Otro jugador mismo mundo: añadir mundo local
-                     senderName = $"{senderName}@{localPlayerWorldName}";
+                     senderName = $"{senderName}{worldIcon}{localPlayerWorldName}";
                  }
             }
 
@@ -201,21 +204,12 @@ namespace EchoXIV
             if (string.IsNullOrWhiteSpace(messageText))
                 return;
 
-            // FILTRO RMT/SPAM: Evitar gastar API en basura
-            if (IsRmtSpam(messageText))
-            {
-                if (_configuration.VerboseLogging) _pluginLog.Info($"🚫 Spam RMT detectado y omitido: {messageText.Substring(0, Math.Min(20, messageText.Length))}...");
-                return;
-            }
-
-            // Ignorar comandos
-            if (messageText.StartsWith("/"))
-                return;
-
             // Verificar si es del jugador local
             var isLocalPlayer = !string.IsNullOrEmpty(localPlayerName) && (senderName.StartsWith(localPlayerName));
             
-            if (isLocalPlayer && !_configuration.ShowOutgoingMessages)
+            // Si es un mensaje del jugador local y no queremos mostrar nuestros propios mensajes,
+            // LO DESCARTAMOS AQUÍ MISMO a menos que sea una traducción explícita
+            if (isLocalPlayer && !_configuration.ShowOutgoingMessages && originalFromPending == null)
                 return;
 
             // DEDUPLICACIÓN: Ya verificada al inicio del método
@@ -236,6 +230,17 @@ namespace EchoXIV
                 OnMessageTranslated?.Invoke(pendingMsg);
                 return;
             }
+
+            // FILTRO RMT/SPAM: Evitar gastar API en basura
+            if (IsRmtSpam(messageText))
+            {
+                if (_configuration.VerboseLogging) _pluginLog.Info($"🚫 Spam RMT detectado y omitido: {messageText.Substring(0, Math.Min(20, messageText.Length))}...");
+                return;
+            }
+
+            // Ignorar comandos
+            if (messageText.StartsWith("/"))
+                return;
 
             // Verificar lista de exclusión (insensible a mayúsculas gracias al HashSet configurado)
             if (_configuration.ExcludedMessages.Contains(messageText))
@@ -267,6 +272,15 @@ namespace EchoXIV
             OnTranslationStarted?.Invoke(translatedMessage);
 
             _ = TranslateAsync(translatedMessage);
+        }
+
+        public async Task ProcessMessageAsync(TranslatedChatMessage message)
+        {
+            if (message == null) return;
+            
+            _pluginLog.Info($"[Retry] Iniciando reintento para: {message.OriginalText.Substring(0, Math.Min(20, message.OriginalText.Length))}...");
+            message.IsTranslating = true;
+            await TranslateAsync(message);
         }
 
         private async Task TranslateAsync(TranslatedChatMessage message)

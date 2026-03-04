@@ -201,6 +201,12 @@
     <data name="ChatWindow_Translating">
         <value>Traduciendo...</value>
     </data>
+    <data name="ChatWindow_Retry">
+        <value>Reintentar</value>
+    </data>
+    <data name="ChatWindow_RetryTooltip">
+        <value>Reintentar traducciones que fallaron o quedaron pendientes</value>
+    </data>
     <data name="ChatWindow_Original">
         <value>Original:</value>
     </data>

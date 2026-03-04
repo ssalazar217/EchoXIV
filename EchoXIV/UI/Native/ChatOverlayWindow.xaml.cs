@@ -37,6 +37,8 @@ namespace EchoXIV.UI.Native
             }
         }
 
+        public event Action<TranslatedChatMessage>? OnRequestTranslation;
+
         private void InitializeDynamicWindow()
         {
             var xaml = NativeUiLoader.GetEmbeddedResource("EchoXIV.UI.Native.ChatOverlayWindow.xaml");
@@ -52,6 +54,7 @@ namespace EchoXIV.UI.Native
             _btnLock = _window.FindName("BtnLock");
 
             HookEvent(_window.FindName("BtnLock"), "Click", (Action<object, dynamic>)((s, e) => Lock_Click(s, e)));
+            HookEvent(_window.FindName("BtnRetry"), "Click", (Action<object, dynamic>)((s, e) => Retry_Click(s, e)));
             HookEvent(_window.FindName("BtnUnlockOverlay"), "Click", (Action<object, dynamic>)((s, e) => UnlockOverlay_Click(s, e)));
             HookEvent(_window.FindName("BtnClear"), "Click", (Action<object, dynamic>)((s, e) => Clear_Click(s, e)));
             HookEvent(_window.FindName("BtnHide"), "Click", (Action<object, dynamic>)((s, e) => Hide_Click(s, e)));
@@ -95,6 +98,8 @@ namespace EchoXIV.UI.Native
             if (_btnLock != null) _btnLock.ToolTip = Resources.ChatWindow_LockTooltip;
             var btnHide = _window!.FindName("BtnHide");
             if (btnHide != null) btnHide.ToolTip = Resources.ChatWindow_HideTooltip;
+            var btnRetry = _window!.FindName("BtnRetry");
+            if (btnRetry != null) btnRetry.ToolTip = Resources.ChatWindow_RetryTooltip;
             var btnClear = _window!.FindName("BtnClear");
             if (btnClear != null) {
                 btnClear.Content = Resources.ChatWindow_Clear;
@@ -383,6 +388,33 @@ namespace EchoXIV.UI.Native
         private void UnlockOverlay_Click(object? sender, EventArgs e) => SetLock(false);
         private void Clear_Click(object? sender, EventArgs e) { if (_chatOutput != null) { _chatOutput!.Document.Blocks.Clear(); UpdateTitle(); } }
         private void Hide_Click(object? sender, EventArgs e) { _configuration.OverlayVisible = false; _configuration.Save(); Hide(); }
+        private void Retry_Click(object? sender, EventArgs e) => RetryStuckTranslations();
+
+        private void RetryStuckTranslations()
+        {
+            if (_chatOutput == null) return;
+            
+            // Recorrer los bloques del documento (mensajes)
+            foreach (dynamic block in _chatOutput.Document.Blocks)
+            {
+                if (block.Tag is Guid id)
+                {
+                    // Buscar mensaje en historial por ID
+                    var history = _historyManager.GetHistory();
+                    var message = history.FirstOrDefault(m => m.Id == id);
+                    
+                    if (message != null)
+                    {
+                        // Si está traduciendo, está vacío, o es el placeholder...
+                        if (message.IsTranslating || string.IsNullOrEmpty(message.TranslatedText) || message.TranslatedText == Resources.ChatWindow_Translating)
+                        {
+                            // Solicitar reintento
+                            OnRequestTranslation?.Invoke(message);
+                        }
+                    }
+                }
+            }
+        }
 
         public void SetLock(bool state)
         {
