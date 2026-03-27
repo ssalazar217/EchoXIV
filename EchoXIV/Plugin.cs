@@ -185,14 +185,13 @@ namespace EchoXIV
                     _chatBoxHook = new GameFunctions.ChatBoxHook(
                          _configuration,
                          _translatorService,
-                         _glossaryService, // Added
-                         _translationCache, // Added
+                         _glossaryService,
+                         _translationCache,
+                         _incomingMessageHandler!,
                          PluginLog,
                          ClientState,
                          GameInteropProvider
                     );
-                    _chatBoxHook.OnMessageTranslated += (orig, trans) => _incomingMessageHandler?.RegisterPendingOutgoing(trans, orig);
-                    _chatBoxHook.OnRequestEngineFailover += SwitchToGoogleFailover;
                     _chatBoxHook.Enable();
                 }
                 catch (Exception ex)
@@ -490,7 +489,7 @@ namespace EchoXIV
 
                     var translated = await _translatorService.TranslateAsync(
                         message,
-                        _configuration.SourceLanguage,
+                        "auto",
                         _configuration.TargetLanguage
                     );
                     
@@ -501,6 +500,18 @@ namespace EchoXIV
                         _incomingMessageHandler?.RegisterPendingOutgoing(translated, message);
                         
                         SendToChannel(translated, prefix);
+
+                        // REGISTRO MANUAL en el historial para que aparezca en la ventana de traducción
+                        _historyManager.AddMessage(new TranslatedChatMessage
+                        {
+                            Timestamp = DateTime.Now,
+                            ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
+                            Recipient = recipient,
+                            Sender = PlayerState.CharacterName.ToString(),
+                            OriginalText = message, // Tooltip
+                            TranslatedText = translated, // Texto principal
+                            IsTranslating = false
+                        });
                         
                         if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}'");
                     });
@@ -553,6 +564,26 @@ namespace EchoXIV
                         return (command, remaining, XivChatType.Say, string.Empty);
                     case "/a": case "/alliance": 
                         return (command, remaining, XivChatType.Alliance, string.Empty);
+                    case "/e": case "/echo":
+                        return (command, remaining, XivChatType.Echo, string.Empty);
+                    
+                    case "/l1": case "/linkshell1": return (command, remaining, XivChatType.Ls1, string.Empty);
+                    case "/l2": case "/linkshell2": return (command, remaining, XivChatType.Ls2, string.Empty);
+                    case "/l3": case "/linkshell3": return (command, remaining, XivChatType.Ls3, string.Empty);
+                    case "/l4": case "/linkshell4": return (command, remaining, XivChatType.Ls4, string.Empty);
+                    case "/l5": case "/linkshell5": return (command, remaining, XivChatType.Ls5, string.Empty);
+                    case "/l6": case "/linkshell6": return (command, remaining, XivChatType.Ls6, string.Empty);
+                    case "/l7": case "/linkshell7": return (command, remaining, XivChatType.Ls7, string.Empty);
+                    case "/l8": case "/linkshell8": return (command, remaining, XivChatType.Ls8, string.Empty);
+
+                    case "/cwl1": case "/cwlinkshell1": return (command, remaining, XivChatType.CrossLinkShell1, string.Empty);
+                    case "/cwl2": case "/cwlinkshell2": return (command, remaining, XivChatType.CrossLinkShell2, string.Empty);
+                    case "/cwl3": case "/cwlinkshell3": return (command, remaining, XivChatType.CrossLinkShell3, string.Empty);
+                    case "/cwl4": case "/cwlinkshell4": return (command, remaining, XivChatType.CrossLinkShell4, string.Empty);
+                    case "/cwl5": case "/cwlinkshell5": return (command, remaining, XivChatType.CrossLinkShell5, string.Empty);
+                    case "/cwl6": case "/cwlinkshell6": return (command, remaining, XivChatType.CrossLinkShell6, string.Empty);
+                    case "/cwl7": case "/cwlinkshell7": return (command, remaining, XivChatType.CrossLinkShell7, string.Empty);
+                    case "/cwl8": case "/cwlinkshell8": return (command, remaining, XivChatType.CrossLinkShell8, string.Empty);
                     
                     case "/r": case "/reply":
                     {
@@ -669,6 +700,7 @@ namespace EchoXIV
                 }
                 
                 var mes = FFXIVClientStructs.FFXIV.Client.System.String.Utf8String.FromSequence(bytes);
+                /* SanitizeString a veces es demasiado restrictivo con alfabetos como el Cirílico
                 mes->SanitizeString(
                     FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.UppercaseLetters |
                     FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.LowercaseLetters |
@@ -677,6 +709,7 @@ namespace EchoXIV
                     FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.Payloads |
                     FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.CJK
                 );
+                */
                 FFXIVClientStructs.FFXIV.Client.UI.UIModule.Instance()->ProcessChatBoxEntry(mes);
                 mes->Dtor(true);
             }

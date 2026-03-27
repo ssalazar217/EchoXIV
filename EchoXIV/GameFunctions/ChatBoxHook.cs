@@ -6,6 +6,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using EchoXIV.Services;
+using EchoXIV;
 
 namespace EchoXIV.GameFunctions
 {
@@ -22,8 +23,6 @@ namespace EchoXIV.GameFunctions
         /// </summary>
         public delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, nint a4, bool saveToHistory);
         
-        public delegate void OutgoingTranslationDelegate(string original, string translated);
-        public event OutgoingTranslationDelegate? OnMessageTranslated;
 
         
         private readonly Configuration _configuration;
@@ -35,11 +34,8 @@ namespace EchoXIV.GameFunctions
         // Hook de ProcessChatBoxEntry - función que procesa mensajes del chat box
         private Hook<ProcessChatBoxDelegate>? _processChatBoxHook;
         
-        /// <summary>
-        /// Evento emitido cuando se solicita un cambio de motor por fallo (failover)
-        /// </summary>
-        public event Action? OnRequestEngineFailover;
         
+        private readonly IncomingMessageHandler _incomingMessageHandler;
         private readonly GlossaryService _glossaryService;
         private readonly TranslationCache _translationCache;
         
@@ -48,6 +44,7 @@ namespace EchoXIV.GameFunctions
             ITranslationService translatorService,
             GlossaryService glossaryService,
             TranslationCache translationCache,
+            IncomingMessageHandler incomingMessageHandler,
             IPluginLog pluginLog,
             IClientState clientState,
             IGameInteropProvider gameInteropProvider)
@@ -56,6 +53,7 @@ namespace EchoXIV.GameFunctions
             _translatorService = translatorService;
             _glossaryService = glossaryService;
             _translationCache = translationCache;
+            _incomingMessageHandler = incomingMessageHandler;
             _pluginLog = pluginLog;
             _clientState = clientState;
             _gameInteropProvider = gameInteropProvider;
@@ -82,7 +80,7 @@ namespace EchoXIV.GameFunctions
         }
         
         /// <summary>
-        /// Detour: intercepta mensajes ANTES de procesarlos. Parámetros = ProcessChatBoxEntry real.
+        /// Detour: intercepta mensajes ANTES de procesarlos.
         /// </summary>
         private void ProcessChatBoxDetour(UIModule* uiModule, Utf8String* message, nint a4, bool saveToHistory)
         {
@@ -97,97 +95,96 @@ namespace EchoXIV.GameFunctions
                 
                 var originalText = message->ToString();
                 
-                // No traducir si está vacío, es comando o está en la lista de exclusión
-                if (string.IsNullOrWhiteSpace(originalText) || originalText.StartsWith("/") || _configuration.ExcludedMessages.Contains(originalText))
+                // 1. BYPASS: Si es un comando, está vacío o es un mensaje que ya tradujimos nosotros (/tl)
+                // Usamos remove:false porque IncomingMessageHandler lo eliminará cuando llegue el mensaje al chat real.
+                if (string.IsNullOrWhiteSpace(originalText) || originalText.StartsWith("/") || 
+                    _configuration.ExcludedMessages.Contains(originalText) ||
+                    _incomingMessageHandler.IsPendingOutgoing(originalText, false))
                 {
                     _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
                     return;
                 }
                 
-                if (_configuration.VerboseLogging) _pluginLog.Info($"🎯 Hook interceptó: '{originalText}'");
+                if (_configuration.VerboseLogging) _pluginLog.Info($"🎯 Hook interceptó para traducir: '{originalText}'");
                 
-                // 1. Verificar caché persistente
+                // 2. Verificar caché persistente (Rápido)
                 var cached = _translationCache.Get(originalText, _configuration.SourceLanguage, _configuration.TargetLanguage);
-                string translatedText;
-
                 if (cached != null)
                 {
-                    translatedText = cached;
-                }
-                else
-                {
-                    // 2. Proteger términos con el Glosario
-                    var protectedText = _glossaryService.Protect(originalText);
-
-                    // 3. Traducir (sincrónico)
-                    var rawTranslation = _translatorService.TranslateAsync(
-                        protectedText,
-                        _configuration.SourceLanguage,
-                        _configuration.TargetLanguage
-                    ).Result;
-
-                    // 4. Restaurar términos y guardar en caché
-                    translatedText = _glossaryService.Restore(rawTranslation);
-                    
-                    if (translatedText != originalText && !string.IsNullOrEmpty(translatedText))
-                    {
-                        _translationCache.Add(originalText, _configuration.SourceLanguage, _configuration.TargetLanguage, translatedText);
-                    }
-                }
-                
-                if (string.IsNullOrWhiteSpace(translatedText) || translatedText == originalText)
-                {
-                    // Si no se tradujo, enviar original
-                    _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
+                    _incomingMessageHandler.RegisterPendingOutgoing(cached, originalText);
+                    SendTranslated(uiModule, cached, a4, saveToHistory);
                     return;
                 }
-                
-                if (_configuration.VerboseLogging) _pluginLog.Info($"✅ Traducido: '{originalText}' → '{translatedText}'");
-                
-                // Notificar traducción para deduplicación en el historial
-                OnMessageTranslated?.Invoke(originalText, translatedText);
 
-                
-                // SANEAMIENTO: Asegurar que el string sea válido y no exceda límites
-                var sanitized = SanitizeText(translatedText);
-                
-                // Crear nuevo Utf8String con el texto traducido
-                var translatedUtf8 = Utf8String.FromString(sanitized);
-                
-                try
-                {
-                    // Pasar mensaje TRADUCIDO a la función original
-                    _processChatBoxHook!.Original(uiModule, translatedUtf8, a4, saveToHistory);
-                }
-                finally
-                {
-                    // Limpiar Utf8String creado
-                    translatedUtf8->Dtor(true);
-                }
-            }
-            catch (AggregateException aggEx) when (aggEx.InnerException is TranslationRateLimitException)
-            {
-                _pluginLog.Warning("⚠️ Límite de DeepL alcanzado durante interceptación. Activando conmutación...");
-                OnRequestEngineFailover?.Invoke();
-                // Enviar mensaje original
-                _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
+                // 3. TRADUCCIÓN ASÍNCRONA (Sin congelar el juego)
+                ProcessAsync(uiModule, originalText, a4, saveToHistory);
             }
             catch (Exception ex)
             {
-                _pluginLog.Error(ex, "❌ Error en detour de ProcessChatBox");
-                // En caso de error, enviar mensaje original para no perder el mensaje
+                _pluginLog.Error(ex, "❌ Error crítico en detour de ProcessChatBox");
                 _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
+            }
+        }
+
+        private void ProcessAsync(UIModule* uiModule, string originalText, nint a4, bool saveToHistory)
+        {
+            // Capturar lo necesario para el callback
+            var context = new TranslationContext 
+            { 
+                UiModule = (nint)uiModule, 
+                OriginalText = originalText, 
+                A4 = a4, 
+                SaveToHistory = saveToHistory 
+            };
+
+            TranslationHelper.TranslateAsync(
+                _translatorService,
+                _glossaryService,
+                _translationCache,
+                _incomingMessageHandler,
+                _configuration,
+                _pluginLog,
+                context,
+                (ctx, translated) => 
+                {
+                    _ = Plugin.Framework.RunOnFrameworkThread(() =>
+                    {
+                        if (translated != null)
+                        {
+                            SendTranslated((UIModule*)ctx.UiModule, translated, ctx.A4, ctx.SaveToHistory);
+                        }
+                        else
+                        {
+                            var originalUtf8 = Utf8String.FromString(ctx.OriginalText);
+                            try {
+                                _processChatBoxHook!.Original((UIModule*)ctx.UiModule, originalUtf8, ctx.A4, ctx.SaveToHistory);
+                            } finally {
+                                originalUtf8->Dtor(true);
+                            }
+                        }
+                    });
+                }
+            );
+        }
+
+        private void SendTranslated(UIModule* uiModule, string text, nint a4, bool saveToHistory)
+        {
+            var sanitized = SanitizeText(text);
+            var translatedUtf8 = Utf8String.FromString(sanitized);
+            try
+            {
+                _processChatBoxHook!.Original(uiModule, translatedUtf8, a4, saveToHistory);
+            }
+            finally
+            {
+                translatedUtf8->Dtor(true);
             }
         }
 
         private string SanitizeText(string text)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
-            
-            // Eliminar caracteres de control o nulos que puedan romper el chat
             var sanitized = text.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
-            
-            // Limitar a ~450 para dejar margen al buffer de 500 bytes de FFXIV
             if (Encoding.UTF8.GetByteCount(sanitized) > 450)
             {
                 while (Encoding.UTF8.GetByteCount(sanitized) > 447)
@@ -196,13 +193,65 @@ namespace EchoXIV.GameFunctions
                 }
                 sanitized += "...";
             }
-            
             return sanitized;
         }
         
         public void Dispose()
         {
             _processChatBoxHook?.Dispose();
+        }
+    }
+
+    internal class TranslationContext
+    {
+        public nint UiModule { get; set; }
+        public string OriginalText { get; set; } = string.Empty;
+        public nint A4 { get; set; }
+        public bool SaveToHistory { get; set; }
+    }
+
+    internal static class TranslationHelper
+    {
+        public static void TranslateAsync(
+            ITranslationService translator,
+            GlossaryService glossary,
+            TranslationCache cache,
+            IncomingMessageHandler handler,
+            Configuration config,
+            IPluginLog log,
+            TranslationContext context,
+            Action<TranslationContext, string?> callback)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var protectedText = glossary.Protect(context.OriginalText);
+                    var rawTranslation = await translator.TranslateAsync(
+                        protectedText,
+                        "auto",
+                        config.TargetLanguage
+                    );
+
+                    var translatedText = glossary.Restore(rawTranslation);
+                    
+                    if (!string.IsNullOrEmpty(translatedText) && translatedText != context.OriginalText)
+                    {
+                        cache.Add(context.OriginalText, config.SourceLanguage, config.TargetLanguage, translatedText);
+                        handler.RegisterPendingOutgoing(translatedText, context.OriginalText);
+                        callback(context, translatedText);
+                    }
+                    else
+                    {
+                        callback(context, null);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Error(ex, "❌ Error en TranslationHelper");
+                    callback(context, null);
+                }
+            });
         }
     }
 }

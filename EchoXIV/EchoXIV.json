@@ -14,7 +14,7 @@
     "plugin"
   ],
   "Punchline": "Bidirectional (Outgoing+Incoming) chat translation with Auto-Failover. / Traducción de chat bidireccional con Failover automático.",
-  "AssemblyVersion": "0.1.0.25",
-  "Changelog": "v0.1.0.25: Fix command message display\n- Fixed an issue where explicit translated messages (/tl) were accidentally filtered out when 'Show Outgoing Messages' was disabled or evaluated incorrectly.",
+  "AssemblyVersion": "0.1.0.29",
+  "Changelog": "v0.1.0.29: Nueva versión estable para distribución vía Dalamud.\nv0.1.0.25: Fix command message display\n- Fixed an issue where explicit translated messages (/tl) were accidentally filtered out when 'Show Outgoing Messages' was disabled or evaluated incorrectly.",
   "AcceptsFeedback": true
 }

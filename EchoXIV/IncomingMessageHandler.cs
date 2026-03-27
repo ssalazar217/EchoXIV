@@ -102,21 +102,40 @@ namespace EchoXIV
             }
         }
 
+        public bool IsPendingOutgoing(string translated, bool remove)
+        {
+            if (string.IsNullOrEmpty(translated)) return false;
+            lock (_pendingOutgoingTranslations)
+            {
+                if (_pendingOutgoingTranslations.ContainsKey(translated))
+                {
+                    if (remove) _pendingOutgoingTranslations.Remove(translated);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public string? GetOriginalFromPending(string translated, bool remove)
+        {
+            if (string.IsNullOrEmpty(translated)) return null;
+            lock (_pendingOutgoingTranslations)
+            {
+                if (_pendingOutgoingTranslations.TryGetValue(translated, out var original))
+                {
+                    if (remove) _pendingOutgoingTranslations.Remove(translated);
+                    return original;
+                }
+            }
+            return null;
+        }
+
         private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
         {
             // Obtener texto del mensaje
             var messageText = message.TextValue;
 
-            // DEDUPLICACIÓN: Verificar si es una traducción que nosotros mismos enviamos
-            // Esto tiene prioridad sobre los filtros de canales para asegurar que /tl funcione siempre
-            string? originalFromPending = null;
-            lock (_pendingOutgoingTranslations)
-            {
-                if (_pendingOutgoingTranslations.TryGetValue(messageText, out originalFromPending))
-                {
-                    _pendingOutgoingTranslations.Remove(messageText);
-                }
-            }
+            string? originalFromPending = GetOriginalFromPending(messageText, true);
 
             // Si NO es una traducción pendiente explícita, aplicar filtros de configuración
             if (originalFromPending == null)
@@ -218,15 +237,24 @@ namespace EchoXIV
             if (originalFromPending != null)
             {
                 // Ya lo tenemos, no traducir otra vez y usar el original real
+                // IMPORTANTE: Para mensajes salientes, invertimos: Texto principal = Traducción, Tooltip = Original
                 var pendingMsg = new TranslatedChatMessage
                 {
                     Timestamp = DateTime.Now,
                     ChatType = type,
                     Sender = senderName,
-                    OriginalText = originalFromPending,
-                    TranslatedText = messageText,
+                    OriginalText = messageText, // La traducción que el juego captó
+                    TranslatedText = originalFromPending, // El original que guardamos
                     IsTranslating = false
                 };
+                
+                // Efectivamente, el UI debe saber que esto es saliente para mostrarlo al revés
+                // o simplemente guardamos TranslatedText como el original para que el tooltip lo muestre.
+                // En EchoXIV, TranslatedText se muestra en grande y OriginalText se muestra en el tooltip si no está vacío.
+                // Así que para salientes:
+                pendingMsg.TranslatedText = messageText; // La traducción (Texto grande)
+                pendingMsg.OriginalText = originalFromPending; // El original (Tooltip)
+                
                 OnMessageTranslated?.Invoke(pendingMsg);
                 return;
             }

@@ -89,10 +89,10 @@
         <value>Enable automatic translation</value>
     </data>
     <data name="General_SourceLanguage">
-        <value>Source language:</value>
+        <value>My Language (For reading and detection):</value>
     </data>
     <data name="General_TargetLanguage">
-        <value>Target language:</value>
+        <value>Target Language (For my messages):</value>
     </data>
     <data name="General_DefaultChannel">
         <value>Default channel (fallback):</value>
