@@ -14,7 +14,7 @@
     "plugin"
   ],
   "Punchline": "Bidirectional chat translation in Dalamud with auto-failover. / Traducción bidireccional de chat en Dalamud con failover automático.",
-  "AssemblyVersion": "0.1.0.31",
-  "Changelog": "v0.1.0.31: completed all localized resource sets, repaired damaged RESX files, and prepared synchronized debug/release outputs for local testing and experimental Git downloads.\nv0.1.0.30: UI language/defaults cleanup, WPF removal finalization, hook/API alignment, and localization consistency updates.\nv0.1.0.29: Nueva versión estable para distribución vía Dalamud.\nv0.1.0.25: Fix command message display\n- Fixed an issue where explicit translated messages (/tl) were accidentally filtered out when 'Show Outgoing Messages' was disabled or evaluated incorrectly.",
+  "AssemblyVersion": "0.1.0.32",
+  "Changelog": "v0.1.0.32: removed the unused automatic translation checkbox from settings, keeping the UI aligned with the current explicit /tl workflow and incoming translation controls.\nv0.1.0.31: completed all localized resource sets, repaired damaged RESX files, and prepared synchronized debug/release outputs for local testing and experimental Git downloads.\nv0.1.0.30: UI language/defaults cleanup, WPF removal finalization, hook/API alignment, and localization consistency updates.\nv0.1.0.29: Nueva versión estable para distribución vía Dalamud.\nv0.1.0.25: Fix command message display\n- Fixed an issue where explicit translated messages (/tl) were accidentally filtered out when 'Show Outgoing Messages' was disabled or evaluated incorrectly.",
   "AcceptsFeedback": true
 }

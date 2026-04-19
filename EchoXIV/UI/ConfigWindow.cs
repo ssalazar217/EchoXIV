@@ -77,16 +77,6 @@ public class ConfigWindow : Window, IDisposable
         if (child)
         {
             ImGui.TextWrapped(Resources.General_Description);
-            ImGui.Separator();
-            ImGui.Spacing();
-            
-            var enabled = _configuration.TranslationEnabled;
-            if (ImGui.Checkbox(Resources.General_EnableTranslation, ref enabled))
-            {
-                _configuration.TranslationEnabled = enabled;
-                _configuration.Save();
-            }
-            
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
