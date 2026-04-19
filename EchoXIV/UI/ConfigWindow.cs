@@ -18,12 +18,8 @@ public class ConfigWindow : Window, IDisposable
     private string _historyFilter = string.Empty;
     
     // Callback para actualizaciones en tiempo real
-    public Action<float>? OnOpacityChanged;
-    public Action<bool>? OnSmartVisibilityChanged;
-    public Action? OnUnlockNativeRequested;
     public Action? OnVisualsChanged;
     public Action<TranslationEngine>? OnTranslationEngineChanged;
-    public Action<bool>? OnWindowModeChanged;
     
     private string _newExcludedMessage = string.Empty;
     
@@ -168,64 +164,6 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
 
-            // Selector de modo de ventana (Movido a General para visibilidad)
-            ImGui.Text(Resources.General_WindowMode);
-            var useNative = _configuration.UseNativeWindow;
-            if (ImGui.Checkbox(Resources.Incoming_NativeWindow, ref useNative))
-            {
-                var oldMode = _configuration.UseNativeWindow;
-                _configuration.UseNativeWindow = useNative;
-                _configuration.Save();
-                if (oldMode != useNative)
-                {
-                    OnWindowModeChanged?.Invoke(useNative);
-                }
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(Resources.Incoming_NativeWindowTooltip);
-            }
-            
-            if (useNative)
-            {
-                var windowOpacity = _configuration.WindowOpacity;
-                ImGui.SetNextItemWidth(150);
-                if (ImGui.SliderFloat(Resources.Incoming_WindowOpacity, ref windowOpacity, 0.0f, 1.0f, "%.2f"))
-                {
-                    _configuration.WindowOpacity = windowOpacity;
-                    _configuration.Save();
-                    
-                    // Notificar cambio
-                    OnOpacityChanged?.Invoke(windowOpacity);
-                }
-
-                ImGui.SameLine();
-                if (ImGui.Button(Resources.General_RestoreWindow))
-                {
-                    OnUnlockNativeRequested?.Invoke();
-                }
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SetTooltip(Resources.General_RestoreWindowTip);
-                }
-            }
-            
-            ImGui.Spacing();
-            
-            // Smart Visibility Option (Ahora disponible para ambos modos)
-            var smartVis = _configuration.SmartVisibility;
-            if (ImGui.Checkbox(Resources.General_SmartVisibility, ref smartVis))
-            {
-                _configuration.SmartVisibility = smartVis;
-                _configuration.Save();
-                OnSmartVisibilityChanged?.Invoke(smartVis);
-            }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_SmartVisibilityTip);
-            
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
-
             // Opción de Logs Detallados
             var verboseLogs = _configuration.VerboseLogging;
             if (ImGui.Checkbox(Resources.General_VerboseLogs, ref verboseLogs))
@@ -234,11 +172,6 @@ public class ConfigWindow : Window, IDisposable
                 _configuration.Save();
             }
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_VerboseLogsTip);
-
-            if (useNative != _configuration.UseNativeWindow) 
-            {
-                ImGui.TextColored(new Vector4(1f, 0.5f, 0f, 1f), Resources.Incoming_RestartNote);
-            }
         }
     }
     private void DrawExcludedMessagesTab()
@@ -582,47 +515,6 @@ public class ConfigWindow : Window, IDisposable
             _configuration.ShowOutgoingMessages = showOutgoing;
             _configuration.Save();
         }
-        
-        
-        // Settings moved to General tab
-        /*
-        var windowOpacity = _configuration.WindowOpacity;
-        ImGui.SetNextItemWidth(150);
-        if (ImGui.SliderFloat(Resources.Incoming_WindowOpacity, ref windowOpacity, 0.0f, 1.0f, "%.2f"))
-        {
-            _configuration.WindowOpacity = windowOpacity;
-            _configuration.Save();
-            
-            // Notificar cambio
-            OnOpacityChanged?.Invoke(windowOpacity);
-        }
-        
-        ImGui.Spacing();
-        
-        // Selector de modo de ventana
-        var useNative = _configuration.UseNativeWindow;
-        if (ImGui.Checkbox(Resources.Incoming_NativeWindow, ref useNative))
-        {
-            _configuration.UseNativeWindow = useNative;
-            _configuration.Save();
-            
-            // Advertencia de reinicio necesario (simple o intentar swap hot reload?)
-            // Por ahora solo guardamos. El usuario necesita reiniciar plugin o usar comando para recargar.
-            // Una opción mejor es mostrar un tooltip o texto de aviso.
-        }
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip(Resources.Incoming_NativeWindowTooltip);
-        }
-        if (useNative != _configuration.UseNativeWindow) // Si acaba de cambiar (pero esto es post-render loop logic, no buena idea)
-        {
-             // Omitir lógica compleja aquí
-        }
-        
-        // Mostrar aviso si se cambió y difiere del estado actual (requiere tracking de estado en plugin)
-        // Simplificación: texto explicativo estático.
-        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Resources.Incoming_RestartNote);
-        */
         
         ImGui.Spacing();
         ImGui.Separator();

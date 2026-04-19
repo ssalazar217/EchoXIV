@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -9,7 +8,6 @@ using Dalamud.Plugin.Services;
 using EchoXIV.Services;
 using EchoXIV.UI;
 using EchoXIV.Properties;
-using Newtonsoft.Json;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 using FFXIVClientStructs.FFXIV.Client.System.String;
@@ -43,7 +41,6 @@ namespace EchoXIV
         [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
         [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
         [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
-        [PluginService] internal static IGameConfig GameConfig { get; private set; } = null!;
         
         private Configuration _configuration = null!;
         private ITranslationService _translatorService = null!;
@@ -55,7 +52,6 @@ namespace EchoXIV
         private ConfigWindow? _configWindow = null;
         private TranslatedChatWindow? _translatedChatWindow = null;
         private WelcomeWindow? _welcomeWindow = null;
-        private WpfHost? _wpfHost = null;
         private GameFunctions.ChatBoxHook? _chatBoxHook = null;
         private IncomingMessageHandler? _incomingMessageHandler = null;
         private MessageHistoryManager _historyManager = null!;
@@ -79,19 +75,12 @@ namespace EchoXIV
                 _showWelcomeWindow = _configuration.FirstRun;
                 if (_showWelcomeWindow)
                 {
-                    // Detect ScreenMode for initial UI recommendation
-                    if (GameConfig.System.TryGetUInt("ScreenMode", out uint screenMode))
-                    {
-                        if (screenMode == 2) // Fullscreen
-                            _configuration.UseNativeWindow = false;
-                    }
-
-                    var uiLang = PluginInterface.UiLanguage;
-                    if (uiLang != "en")
+                    var uiLang = NormalizeUiLanguage(PluginInterface.UiLanguage);
+                    if (!string.IsNullOrWhiteSpace(uiLang))
                     {
                         _configuration.SourceLanguage = uiLang;
                         _configuration.TargetLanguage = "en";
-                        _configuration.IncomingTargetLanguage = uiLang;
+                        _configuration.IncomingTargetLanguage = string.Empty;
                         // Mantenemos FirstRun = true para que se muestre la ventana de bienvenida
                         _configuration.Save();
                     }
@@ -116,25 +105,9 @@ namespace EchoXIV
                 // Manejar pantalla de bienvenida si sigue siendo FirstRun (ej: Dalamud está en Inglés)
                 if (_configuration.FirstRun)
                 {
-                    // Detect screen mode for welcome window recommendations
-                    uint screenMode = 0; // Default to Windowed
-                    if (GameConfig.System.TryGetUInt("ScreenMode", out uint detectedMode))
-                    {
-                        screenMode = detectedMode;
-                    }
-                    
-                    _welcomeWindow = CreateWelcomeWindow(screenMode);
+                    _welcomeWindow = CreateWelcomeWindow();
                     _welcomeWindow.IsOpen = true;
                 }
-                
-                // Inicializar sistema de ventanas
-                // NOTA: No iniciamos WpfHost aquí para evitar que aparezca en la pantalla de título.
-                // Se iniciará en OnLogin solo si estamos realmente en el juego.
-
-                
-                // (Motores ya inicializados arriba)
-                
-                // (Motores ya inicializados arriba)
 
                 // Crear manejador de mensajes entrantes
                 var secondaryTranslator = _configuration.SelectedEngine == TranslationEngine.Google 
@@ -175,7 +148,7 @@ namespace EchoXIV
                 }
                 catch (Exception ex)
                 {
-                    PluginLog.Error(ex, "❌ No se pudo habilitar el Hook de Chat (Traducción saliente deshabilitada).");
+                    PluginLog.Error(ex, "Failed to enable Chat Hook (outgoing translation disabled).");
                     // No relanzamos para que el resto del plugin funcione
                 }
                 
@@ -215,7 +188,7 @@ namespace EchoXIV
             }
             catch (Exception ex)
             {
-                PluginLog.Error(ex, "Error fatal al inicializar el plugin. Limpiando para evitar zombies...");
+                PluginLog.Error(ex, "Fatal error while initializing the plugin. Cleaning up to avoid dangling state...");
                 Dispose(); 
                 throw;
             }
@@ -224,19 +197,15 @@ namespace EchoXIV
         private ConfigWindow CreateConfigWindow()
         {
             var configWindow = new ConfigWindow(_configuration, _historyManager);
-            configWindow.OnOpacityChanged += OnOpacityChangedHandler;
-            configWindow.OnSmartVisibilityChanged += OnSmartVisibilityChangedHandler;
             configWindow.OnVisualsChanged += OnVisualsChangedHandler;
-            configWindow.OnUnlockNativeRequested += OnUnlockNativeRequestedHandler;
             configWindow.OnTranslationEngineChanged += OnTranslationEngineChangedHandler;
-            configWindow.OnWindowModeChanged += OnWindowModeChangedHandler;
             _windowSystem.AddWindow(configWindow);
             return configWindow;
         }
 
-        private WelcomeWindow CreateWelcomeWindow(uint screenMode)
+        private WelcomeWindow CreateWelcomeWindow()
         {
-            var welcomeWindow = new WelcomeWindow(_configuration, screenMode);
+            var welcomeWindow = new WelcomeWindow(_configuration);
             welcomeWindow.OnConfigurationComplete += OnWelcomeConfigurationComplete;
             _windowSystem.AddWindow(welcomeWindow);
             return welcomeWindow;
@@ -316,52 +285,16 @@ namespace EchoXIV
         {
             ApplyResourceCulture();
 
-            // Ya no es necesaria la validación aquí, el timer de WPF y DrawConditions de ImGui 
-            // se encargarán de ocultar la ventana dinámicamente según el estado del juego.
-            if (_configuration.UseNativeWindow)
+            if (_translatedChatWindow == null)
             {
-                // Modo WPF
-                if (_translatedChatWindow != null)
-                {
-                    _windowSystem.RemoveWindow(_translatedChatWindow);
-                    _translatedChatWindow.Dispose();
-                    _translatedChatWindow = null;
-                }
-
-                if (_wpfHost == null)
-                {
-                    if (_configuration.VerboseLogging) PluginLog.Info("Jugador logueado. Iniciando host de ventana nativa...");
-                    _wpfHost = new WpfHost(_configuration, PluginLog, _historyManager);
-                    _wpfHost.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
-                    _wpfHost.Start();
-                }
+                _translatedChatWindow = CreateTranslatedChatWindow();
             }
-            else
-            {
-                // Modo ImGui
-                if (_wpfHost != null)
-                {
-                    _wpfHost.Dispose();
-                    _wpfHost = null;
-                }
 
-                if (_translatedChatWindow == null)
-                {
-                    _translatedChatWindow = CreateTranslatedChatWindow();
-                }
-                
-                _translatedChatWindow.IsOpen = _configuration.OverlayVisible;
-            }
+            _translatedChatWindow.IsOpen = _configuration.OverlayVisible;
         }
 
         private void OnLogout()
         {
-            if (_wpfHost != null)
-            {
-                if (_configuration.VerboseLogging) PluginLog.Info("Jugador deslogueado. Cerrando ventana nativa...");
-                _wpfHost.Dispose();
-                _wpfHost = null;
-            }
         }
     
         
@@ -404,11 +337,6 @@ namespace EchoXIV
                 _incomingMessageHandler.OnRequestEngineFailover -= SwitchToGoogleFailover;
             }
             
-
-
-            _wpfHost?.Dispose();
-            _wpfHost = null;
-            
             _translationCache.Save(); // Added
             
             // Limpiar comandos
@@ -447,24 +375,12 @@ namespace EchoXIV
                 _windowSystem.RemoveWindow(_welcomeWindow);
                 _welcomeWindow.OnConfigurationComplete -= OnWelcomeConfigurationComplete;
 
-                uint screenMode = 0;
-                if (GameConfig.System.TryGetUInt("ScreenMode", out uint detectedMode))
-                {
-                    screenMode = detectedMode;
-                }
-
-                _welcomeWindow = CreateWelcomeWindow(screenMode);
+                _welcomeWindow = CreateWelcomeWindow();
                 _welcomeWindow.IsOpen = welcomeWasOpen;
             }
             else if (_showWelcomeWindow)
             {
-                uint screenMode = 0;
-                if (GameConfig.System.TryGetUInt("ScreenMode", out uint detectedMode))
-                {
-                    screenMode = detectedMode;
-                }
-
-                _welcomeWindow = CreateWelcomeWindow(screenMode);
+                _welcomeWindow = CreateWelcomeWindow();
                 _welcomeWindow.IsOpen = false;
             }
 
@@ -477,33 +393,16 @@ namespace EchoXIV
                 _translatedChatWindow = CreateTranslatedChatWindow();
                 _translatedChatWindow.IsOpen = chatWasOpen;
             }
-
-            _wpfHost?.UpdateLocalization();
         }
 
         private void DetachConfigWindowHandlers(ConfigWindow configWindow)
         {
-            configWindow.OnOpacityChanged -= OnOpacityChangedHandler;
-            configWindow.OnSmartVisibilityChanged -= OnSmartVisibilityChangedHandler;
             configWindow.OnVisualsChanged -= OnVisualsChangedHandler;
-            configWindow.OnUnlockNativeRequested -= OnUnlockNativeRequestedHandler;
             configWindow.OnTranslationEngineChanged -= OnTranslationEngineChangedHandler;
-            configWindow.OnWindowModeChanged -= OnWindowModeChangedHandler;
-        }
-
-        private void OnSmartVisibilityChangedHandler(bool enabled)
-        {
-            _wpfHost?.SetSmartVisibility(enabled);
         }
 
         private void OnVisualsChangedHandler()
         {
-            _wpfHost?.UpdateVisuals();
-        }
-
-        private void OnUnlockNativeRequestedHandler()
-        {
-            _wpfHost?.SetLock(false);
         }
 
         private void OnTranslationEngineChangedHandler(TranslationEngine engine)
@@ -571,27 +470,11 @@ namespace EchoXIV
                     break;
                 
                 case "lock":
-                    if (_configuration.UseNativeWindow && _wpfHost != null)
-                    {
-                        _wpfHost.SetLock(true);
-                        ChatGui.Print(GetResourceText("Command_NativeWindowLocked", "Native window locked (click-through enabled). Use '/tl unlock' to unlock it."));
-                    }
-                    else
-                    {
-                        ChatGui.Print(GetResourceText("Command_NativeWindowInactive", "The native window is not active."));
-                    }
+                    ChatGui.Print(GetResourceText("Command_DalamudWindowOnly", "Only the Dalamud window is available."));
                     break;
 
                 case "unlock":
-                    if (_configuration.UseNativeWindow && _wpfHost != null)
-                    {
-                         _wpfHost.SetLock(false);
-                         ChatGui.Print(GetResourceText("Command_NativeWindowUnlocked", "Native window unlocked."));
-                    }
-                    else
-                    {
-                         ChatGui.Print(GetResourceText("Command_NativeWindowInactive", "The native window is not active."));
-                    }
+                    ChatGui.Print(GetResourceText("Command_DalamudWindowOnly", "Only the Dalamud window is available."));
                     break;
                 
                 case "config":
@@ -646,12 +529,12 @@ namespace EchoXIV
         /// </summary>
         private void ResetTranslatedChatWindowPosition()
         {
-            if (_configuration.UseNativeWindow)
+            if (_translatedChatWindow == null)
             {
-                 _wpfHost?.ResetWindow();
-                 ChatGui.Print(GetResourceText("Command_PositionResetNative", "Native window position reset to (100, 100)."));
+                _translatedChatWindow = CreateTranslatedChatWindow();
             }
-            else if (_translatedChatWindow != null)
+
+            if (_translatedChatWindow != null)
             {
                 _translatedChatWindow.ResetPosition();
                 ChatGui.Print(GetResourceText("Command_PositionReset", "Window position reset to (100, 100). It should be visible now."));
@@ -721,7 +604,7 @@ namespace EchoXIV
                             IsTranslating = false
                         });
                         
-                        if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}'");
+                        if (_configuration.VerboseLogging) PluginLog.Info($"Translated and sent: '{message}' -> '{translated}'");
                     });
                 }
                 catch (OperationCanceledException ex)
@@ -750,7 +633,7 @@ namespace EchoXIV
                 }
                 catch (TranslationRateLimitException ex)
                 {
-                    PluginLog.Warning($"⚠️ {ex.Message}. Activando conmutación automática a Google...");
+                    PluginLog.Warning($"{ex.Message}. Enabling automatic failover to Google...");
                     _ = Framework.RunOnFrameworkThread(() =>
                     {
                         SwitchToGoogleFailover();
@@ -760,7 +643,7 @@ namespace EchoXIV
                 }
                 catch (Exception ex)
                 {
-                    PluginLog.Error(ex, "Error al traducir mensaje");
+                    PluginLog.Error(ex, "Error while translating message.");
                     _ = Framework.RunOnFrameworkThread(() =>
                     {
                         ChatGui.PrintError(GetResourceText("Command_TranslateError", "Translation error"));
@@ -947,7 +830,7 @@ namespace EchoXIV
             }
             catch (Exception ex)
             {
-                PluginLog.Error(ex, "Error al enviar mensaje");
+                PluginLog.Error(ex, "Error while sending message.");
                 ChatGui.PrintError(GetResourceText("Command_SendError", "Error sending message"));
             }
         }
@@ -963,72 +846,16 @@ namespace EchoXIV
             }
             return config;
         }
-        
-
-
-
-        private void OnOpacityChangedHandler(float opacity)
-        {
-            _wpfHost?.SetOpacity(opacity);
-        }
-
-        private void OnWindowModeChangedHandler(bool useNative)
-        {
-            if (useNative)
-            {
-                // Destruir ventana ImGui
-                if (_translatedChatWindow != null)
-                {
-                    _windowSystem.RemoveWindow(_translatedChatWindow);
-                    _translatedChatWindow.Dispose();
-                    _translatedChatWindow = null;
-                }
-
-                // Iniciar WPF si estamos logueados
-                if (ClientState.IsLoggedIn && _wpfHost == null)
-                {
-                    OnLogin();
-                }
-            }
-            else
-            {
-                // Destruir WPF
-                OnLogout();
-
-                // Crear ImGui
-                if (_translatedChatWindow == null)
-                {
-                    _translatedChatWindow = CreateTranslatedChatWindow();
-                }
-                
-                _translatedChatWindow.IsOpen = true;
-                _configuration.OverlayVisible = true;
-                _configuration.Save();
-            }
-        }
 
         public void ToggleTranslatedChatWindow()
         {
-            if (_configuration.UseNativeWindow)
+            if (_translatedChatWindow == null)
             {
-                // Modo Nativo: Solo cambiamos la configuración. WpfHost lo detectará en su timer.
-                _configuration.OverlayVisible = !_configuration.OverlayVisible;
-                
-                // Feedback visual inmediato (opcional, pero útil)
-                var status = _configuration.OverlayVisible ? "VISIBLE" : "OCULTO";
-                if (_configuration.VerboseLogging) PluginLog.Info($"ToggleNative: {status}");
+                _translatedChatWindow = CreateTranslatedChatWindow();
             }
-            else
-            {
-                // Modo ImGui: Manejo estándar de ventana Dalamud
-                if (_translatedChatWindow == null)
-                {
-                    _translatedChatWindow = CreateTranslatedChatWindow();
-                }
 
-                _translatedChatWindow.IsOpen = !_translatedChatWindow.IsOpen;
-                _configuration.OverlayVisible = _translatedChatWindow.IsOpen;
-            }
+            _translatedChatWindow.IsOpen = !_translatedChatWindow.IsOpen;
+            _configuration.OverlayVisible = _translatedChatWindow.IsOpen;
             
             _configuration.Save();
             ChatGui.Print(GetResourceText(
@@ -1048,12 +875,12 @@ namespace EchoXIV
             {
                 case TranslationEngine.Papago:
                     _translatorService = _papagoTranslator;
-                    if (_configuration.VerboseLogging) PluginLog.Info("Motor de traducción cambiado a: Papago (Naver)");
+                    if (_configuration.VerboseLogging) PluginLog.Info("Translation engine changed to: Papago (Naver)");
                     break;
                 case TranslationEngine.Google:
                 default:
                     _translatorService = _googleTranslator;
-                    if (_configuration.VerboseLogging) PluginLog.Info("Motor de traducción cambiado a: Google");
+                    if (_configuration.VerboseLogging) PluginLog.Info("Translation engine changed to: Google");
                     break;
             }
             
@@ -1072,7 +899,7 @@ namespace EchoXIV
             if (_chatBoxHook != null)
             {
                 _chatBoxHook.UpdateTranslator(_translatorService);
-                if (_configuration.VerboseLogging) PluginLog.Info("ChatBoxHook: Motor actualizado.");
+                if (_configuration.VerboseLogging) PluginLog.Info("ChatBoxHook: translator updated.");
             }
         }
 
@@ -1081,7 +908,7 @@ namespace EchoXIV
             // Solo cambiar si no estamos ya en Google
             if (_configuration.SelectedEngine == TranslationEngine.Google) return;
 
-            PluginLog.Warning("🔄 Cambiando automáticamente a Google Translate (Límite de Papago alcanzado).");
+            PluginLog.Warning("Automatically switching to Google Translate (Papago limit reached).");
             _configuration.SelectedEngine = TranslationEngine.Google;
             _configuration.Save();
             

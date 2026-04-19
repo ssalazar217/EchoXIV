@@ -89,10 +89,10 @@
         <value>Enable automatic translation</value>
     </data>
     <data name="General_SourceLanguage">
-        <value>My Language (For reading and detection):</value>
+        <value>Writing language:</value>
     </data>
     <data name="General_TargetLanguage">
-        <value>Target Language (For my messages):</value>
+        <value>Translate my messages into:</value>
     </data>
     <data name="General_DefaultChannel">
         <value>Default channel (fallback):</value>
@@ -118,7 +118,7 @@
         <value>(Source language is auto-detected)</value>
     </data>
     <data name="Incoming_UseWritingLanguage">
-        <value>(Use writing language)</value>
+        <value>(Use my writing language)</value>
     </data>
     <data name="Incoming_DisplayOptions">
         <value>Display options:</value>
@@ -242,14 +242,8 @@
     <data name="Command_TranslationEnabledWithLanguages">
         <value>Translation enabled. {0} -&gt; {1}</value>
     </data>
-    <data name="Command_NativeWindowLocked">
-        <value>Native window locked (click-through enabled). Use '/tl unlock' to unlock it.</value>
-    </data>
-    <data name="Command_NativeWindowUnlocked">
-        <value>Native window unlocked.</value>
-    </data>
-    <data name="Command_NativeWindowInactive">
-        <value>The native window is not active.</value>
+    <data name="Command_DalamudWindowOnly">
+        <value>Only the Dalamud window is available.</value>
     </data>
     <data name="Command_HelpHeader">
         <value>Available commands:</value>
@@ -277,9 +271,6 @@
     </data>
     <data name="Command_ChatHidden">
         <value>Translated chat: hidden</value>
-    </data>
-    <data name="Command_PositionResetNative">
-        <value>Native window position reset to (100, 100).</value>
     </data>
     <data name="Command_FailoverToGoogle">
         <value>Papago limit reached. Switching automatically to Google Translate.</value>
@@ -314,20 +305,6 @@
     <data name="Cache_PercentUsed">
         <value>{0}% used</value>
     </data>
-    <data name="Incoming_WindowOpacity">
-        <value>Window opacity</value>
-    </data>
-    <data name="Incoming_NativeWindow">
-        <value>Use Native Window (WPF / Better Multi-monitor)</value>
-    </data>
-    <data name="Incoming_NativeWindowTooltip">
-        <value>Activates an independent external window (better FPS performance).
-Disable to use the internal Dalamud window.
-Requires plugin reload to apply changes.</value>
-    </data>
-    <data name="Incoming_RestartNote">
-        <value>Note: Changing window mode requires plugin restart.</value>
-    </data>
     <data name="Cache_DisabledWarning">
         <value>Cache disabled - all translations will be new</value>
     </data>
@@ -357,21 +334,6 @@ Requires plugin reload to apply changes.</value>
     </data>
     <data name="General_EnginePapagoDesc">
         <value>Naver Papago Translator (Korean/Japanese focus)</value>
-    </data>
-    <data name="General_WindowMode">
-        <value>Window Mode</value>
-    </data>
-    <data name="General_RestoreWindow">
-        <value>Restore/Unlock Window</value>
-    </data>
-    <data name="General_RestoreWindowTip">
-        <value>Use if the native window is locked or lost.</value>
-    </data>
-    <data name="General_SmartVisibility">
-        <value>Smart Visibility (Hide on focus loss)</value>
-    </data>
-    <data name="General_SmartVisibilityTip">
-        <value>Automatically hides the window when the game is not in the foreground.</value>
     </data>
     <data name="General_VerboseLogs">
         <value>Verbose Logging</value>
@@ -410,19 +372,19 @@ Requires plugin reload to apply changes.</value>
         <value>Thank you for installing EchoXIV! Please set your initial languages to get started.</value>
     </data>
     <data name="Welcome_SourceQuestion">
-        <value>What language do you speak?</value>
+        <value>What language will you write in?</value>
     </data>
     <data name="Welcome_SourceTip">
-        <value>(The language you will use to write in chat)</value>
+        <value>(Used for your outgoing messages and as the default reading language)</value>
     </data>
     <data name="Welcome_TargetQuestion">
-        <value>What language do you want to translate your messages to?</value>
+        <value>What language should your messages be translated into?</value>
     </data>
     <data name="Welcome_TargetTip">
-        <value>(What other users will see)</value>
+        <value>(Other players will receive your message in this language)</value>
     </data>
     <data name="Welcome_ReadQuestion">
-        <value>In what language do you want to read others?</value>
+        <value>What language should incoming messages be translated into?</value>
     </data>
     <data name="Welcome_SaveStart">
         <value>Save and Start</value>
@@ -504,20 +466,5 @@ Requires plugin reload to apply changes.</value>
     </data>
     <data name="History_Title">
         <value>Message History</value>
-    </data>
-    <data name="Welcome_WindowModeQuestion">
-        <value>Which window mode do you prefer for translations?</value>
-    </data>
-    <data name="Welcome_WindowModeWpf">
-        <value>Native Window (WPF - Better performance)</value>
-    </data>
-    <data name="Welcome_WindowModeImGui">
-        <value>Dalamud Window (Integrated - Better compatibility)</value>
-    </data>
-    <data name="Welcome_RecommendationFullscreen">
-        <value>⚠️ Recommendation: Since you are in Fullscreen mode, the Integrated Dalamud window is recommended for better compatibility.</value>
-    </data>
-    <data name="Welcome_RecommendationWindowed">
-        <value>💡 Recommendation: Since you are in Borderless/Windowed mode, the Native WPF window offers better performance.</value>
     </data>
 </root>

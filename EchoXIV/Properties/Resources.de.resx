@@ -81,10 +81,10 @@
         <value>Automatische Übersetzung aktivieren</value>
     </data>
     <data name="General_SourceLanguage">
-        <value>Quellsprache:</value>
+        <value>Schreibsprache:</value>
     </data>
     <data name="General_TargetLanguage">
-        <value>Zielsprache:</value>
+        <value>Meine Nachrichten ubersetzen nach:</value>
     </data>
     <data name="General_DefaultChannel">
         <value>Standardkanal (Fallback):</value>
@@ -108,7 +108,7 @@
         <value>(Quellsprache wird automatisch erkannt)</value>
     </data>
     <data name="Incoming_UseWritingLanguage">
-        <value>(Schreibsprache verwenden)</value>
+        <value>(Meine Schreibsprache verwenden)</value>
     </data>
     <data name="Incoming_DisplayOptions">
         <value>Anzeigeoptionen:</value>
@@ -233,18 +233,6 @@
     <data name="Cache_PercentUsed">
         <value>{0}% verwendet</value>
     </data>
-    <data name="Incoming_WindowOpacity">
-        <value>Fensterdeckkraft</value>
-    </data>
-    <data name="Incoming_NativeWindow">
-        <value>Natives Fenster verwenden (WPF / Besserer Multi-Monitor-Support)</value>
-    </data>
-    <data name="Incoming_NativeWindowTooltip">
-        <value>Aktiviert ein unabhängiges externes Fenster (bessere FPS-Leistung). Deaktivieren, um das interne Dalamud-Fenster zu verwenden. Erfordert ein Plugin-Neuladen, um Änderungen zu übernehmen.</value>
-    </data>
-    <data name="Incoming_RestartNote">
-        <value>Hinweis: Das Ändern des Fenstermodus erfordert einen Plugin-Neustart.</value>
-    </data>
     <data name="Cache_DisabledWarning">
         <value>Cache deaktiviert - alle Übersetzungen werden neu erstellt</value>
     </data>
@@ -274,21 +262,6 @@
     </data>
     <data name="General_EnginePapagoDesc">
         <value>Naver Papago Translator (Koreanisch/Japanisch Fokus)</value>
-    </data>
-    <data name="General_WindowMode">
-        <value>Fenstermodus</value>
-    </data>
-    <data name="General_RestoreWindow">
-        <value>Fenster wiederherstellen/entsperren</value>
-    </data>
-    <data name="General_RestoreWindowTip">
-        <value>Verwenden Sie dies, wenn das native Fenster gesperrt oder verloren gegangen ist.</value>
-    </data>
-    <data name="General_SmartVisibility">
-        <value>Smarte Sichtbarkeit (Ausblenden bei Fokusverlust)</value>
-    </data>
-    <data name="General_SmartVisibilityTip">
-        <value>Blendet das Fenster automatisch aus, wenn das Spiel nicht im Vordergrund ist.</value>
     </data>
     <data name="General_VerboseLogs">
         <value>Ausführliche Protokollierung</value>
@@ -327,19 +300,19 @@
         <value>Vielen Dank für die Installation von EchoXIV! Bitte stellen Sie Ihre Ausgangssprachen ein, um zu beginnen.</value>
     </data>
     <data name="Welcome_SourceQuestion">
-        <value>Welche Sprache sprechen Sie?</value>
+        <value>In welcher Sprache werden Sie schreiben?</value>
     </data>
     <data name="Welcome_SourceTip">
-        <value>(Die Sprache, die Sie zum Schreiben im Chat verwenden werden)</value>
+        <value>(Wird fur Ihre ausgehenden Nachrichten und als Standardsprache zum Lesen verwendet)</value>
     </data>
     <data name="Welcome_TargetQuestion">
-        <value>In welche Sprache sollen Ihre Nachrichten übersetzt werden?</value>
+        <value>In welche Sprache sollen Ihre Nachrichten ubersetzt werden?</value>
     </data>
     <data name="Welcome_TargetTip">
-        <value>(Was andere Benutzer sehen werden)</value>
+        <value>(Andere Spieler erhalten Ihre Nachricht in dieser Sprache)</value>
     </data>
     <data name="Welcome_ReadQuestion">
-        <value>In welcher Sprache möchten Sie andere lesen?</value>
+        <value>In welche Sprache sollen eingehende Nachrichten ubersetzt werden?</value>
     </data>
     <data name="Welcome_SaveStart">
         <value>Speichern und Starten</value>
@@ -410,20 +383,5 @@
     </data>
     <data name="Channel_Linkshell">
         <value>Linkshell</value>
-    </data>
-    <data name="Welcome_WindowModeQuestion">
-        <value>Welchen Fenstermodus bevorzugen Sie für Übersetzungen?</value>
-    </data>
-    <data name="Welcome_WindowModeWpf">
-        <value>Natives Fenster (WPF - Bessere Leistung)</value>
-    </data>
-    <data name="Welcome_WindowModeImGui">
-        <value>Dalamud-Fenster (Integriert - Bessere Kompatibilität)</value>
-    </data>
-    <data name="Welcome_RecommendationFullscreen">
-        <value>⚠️ Empfehlung: Da Sie im Vollbildmodus sind, wird das integrierte Dalamud-Fenster für bessere Kompatibilität empfohlen.</value>
-    </data>
-    <data name="Welcome_RecommendationWindowed">
-        <value>💡 Empfehlung: Da Sie im Fenster-/Randlos-Modus sind, bietet das native WPF-Fenster bessere Leistung.</value>
     </data>
 </root>

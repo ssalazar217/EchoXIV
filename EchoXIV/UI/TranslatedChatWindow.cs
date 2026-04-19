@@ -379,7 +379,7 @@ namespace EchoXIV.UI
                 }
             }
             
-            Plugin.PluginLog.Info($"[Retry] Escaneados {total} mensajes, solicitados {sent} para reintento.");
+            Plugin.PluginLog.Info($"[Retry] Scanned {total} messages, requested retry for {sent}.");
         }
     }
 }

@@ -14,18 +14,11 @@ namespace EchoXIV.GameFunctions
     /// <summary>
     /// Hook nativo para interceptar mensajes ANTES del envío.
     /// Permite traducción sin cancelar el mensaje original (sin error rojo).
-    /// Usa siempre la dirección de UIModule.ProcessChatBoxEntry resuelta por Dalamud/FFXIVClientStructs;
-    /// no hace falta mantener firmas manualmente al actualizar el juego.
+    /// Usa siempre el member function y delegate generados por FFXIVClientStructs para
+    /// evitar duplicar firmas manuales al actualizar el juego.
     /// </summary>
     internal unsafe class ChatBoxHook : IDisposable
     {
-        /// <summary>
-        /// Delegate que coincide con ProcessChatBoxEntry(UIModule* this, Utf8String* message, nint a4, bool saveToHistory).
-        /// </summary>
-        public delegate void ProcessChatBoxDelegate(UIModule* uiModule, Utf8String* message, nint a4, bool saveToHistory);
-        
-
-        
         private readonly Configuration _configuration;
         private ITranslationService _translatorService;
         private readonly IPluginLog _pluginLog;
@@ -33,7 +26,7 @@ namespace EchoXIV.GameFunctions
         private readonly IGameInteropProvider _gameInteropProvider;
         
         // Hook de ProcessChatBoxEntry - función que procesa mensajes del chat box
-        private Hook<ProcessChatBoxDelegate>? _processChatBoxHook;
+        private Hook<UIModule.Delegates.ProcessChatBoxEntry>? _processChatBoxHook;
         
         
         private readonly IncomingMessageHandler _incomingMessageHandler;
@@ -69,13 +62,12 @@ namespace EchoXIV.GameFunctions
         {
             try
             {
-                nint address = (nint)UIModule.Addresses.ProcessChatBoxEntry.Value;
-                _processChatBoxHook = _gameInteropProvider.HookFromAddress<ProcessChatBoxDelegate>(address, ProcessChatBoxDetour);
+                _processChatBoxHook = _gameInteropProvider.HookFromAddress<UIModule.Delegates.ProcessChatBoxEntry>((nint)UIModule.MemberFunctionPointers.ProcessChatBoxEntry, ProcessChatBoxDetour);
                 _processChatBoxHook.Enable();
             }
             catch (Exception ex)
             {
-                _pluginLog.Error(ex, "❌ Error al crear hook de ProcessChatBoxEntry");
+                _pluginLog.Error(ex, "Failed to create ProcessChatBoxEntry hook.");
                 throw;
             }
         }
@@ -106,7 +98,7 @@ namespace EchoXIV.GameFunctions
                     return;
                 }
                 
-                if (_configuration.VerboseLogging) _pluginLog.Info($"🎯 Hook interceptó para traducir: '{originalText}'");
+                if (_configuration.VerboseLogging) _pluginLog.Info($"Hook intercepted message for translation: '{originalText}'");
                 
                 // 2. Verificar caché persistente (Rápido)
                 var cached = _translationCache.Get(originalText, _configuration.SourceLanguage, _configuration.TargetLanguage);
@@ -122,7 +114,7 @@ namespace EchoXIV.GameFunctions
             }
             catch (Exception ex)
             {
-                _pluginLog.Error(ex, "❌ Error crítico en detour de ProcessChatBox");
+                _pluginLog.Error(ex, "Critical error in ProcessChatBox detour.");
                 _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
             }
         }

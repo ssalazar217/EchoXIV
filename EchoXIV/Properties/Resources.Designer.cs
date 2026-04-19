@@ -113,16 +113,13 @@ namespace EchoXIV.Properties {
         public static string Command_MessageTooLong { get { return ResourceManager.GetString("Command_MessageTooLong", resourceCulture); } }
         public static string Command_TranslateError { get { return ResourceManager.GetString("Command_TranslateError", resourceCulture); } }
         public static string Command_SendError { get { return ResourceManager.GetString("Command_SendError", resourceCulture); } }
+        public static string Command_DalamudWindowOnly { get { return ResourceManager.GetString("Command_DalamudWindowOnly", resourceCulture); } }
         public static string General_ChangesAppliedImmediately { get { return ResourceManager.GetString("General_ChangesAppliedImmediately", resourceCulture); } }
         public static string Excluded_InputLabel { get { return ResourceManager.GetString("Excluded_InputLabel", resourceCulture); } }
         public static string Excluded_Remove { get { return ResourceManager.GetString("Excluded_Remove", resourceCulture); } }
         public static string Excluded_RestoreDefault { get { return ResourceManager.GetString("Excluded_RestoreDefault", resourceCulture); } }
         public static string Cache_CharLimit { get { return ResourceManager.GetString("Cache_CharLimit", resourceCulture); } }
         public static string Cache_PercentUsed { get { return ResourceManager.GetString("Cache_PercentUsed", resourceCulture); } }
-        public static string Incoming_WindowOpacity { get { return ResourceManager.GetString("Incoming_WindowOpacity", resourceCulture); } }
-        public static string Incoming_NativeWindow { get { return ResourceManager.GetString("Incoming_NativeWindow", resourceCulture); } }
-        public static string Incoming_NativeWindowTooltip { get { return ResourceManager.GetString("Incoming_NativeWindowTooltip", resourceCulture); } }
-        public static string Incoming_RestartNote { get { return ResourceManager.GetString("Incoming_RestartNote", resourceCulture); } }
         public static string Cache_DisabledWarning { get { return ResourceManager.GetString("Cache_DisabledWarning", resourceCulture); } }
         public static string ChatWindow_LockTooltip { get { return ResourceManager.GetString("ChatWindow_LockTooltip", resourceCulture); } }
         public static string ChatWindow_UnlockTooltip { get { return ResourceManager.GetString("ChatWindow_UnlockTooltip", resourceCulture); } }
@@ -133,11 +130,6 @@ namespace EchoXIV.Properties {
         public static string General_Engine { get { return ResourceManager.GetString("General_Engine", resourceCulture); } }
         public static string General_EngineGoogleDesc { get { return ResourceManager.GetString("General_EngineGoogleDesc", resourceCulture); } }
         public static string General_EnginePapagoDesc { get { return ResourceManager.GetString("General_EnginePapagoDesc", resourceCulture); } }
-        public static string General_WindowMode { get { return ResourceManager.GetString("General_WindowMode", resourceCulture); } }
-        public static string General_RestoreWindow { get { return ResourceManager.GetString("General_RestoreWindow", resourceCulture); } }
-        public static string General_RestoreWindowTip { get { return ResourceManager.GetString("General_RestoreWindowTip", resourceCulture); } }
-        public static string General_SmartVisibility { get { return ResourceManager.GetString("General_SmartVisibility", resourceCulture); } }
-        public static string General_SmartVisibilityTip { get { return ResourceManager.GetString("General_SmartVisibilityTip", resourceCulture); } }
         public static string General_VerboseLogs { get { return ResourceManager.GetString("General_VerboseLogs", resourceCulture); } }
         public static string General_VerboseLogsTip { get { return ResourceManager.GetString("General_VerboseLogsTip", resourceCulture); } }
         public static string Visuals_Description { get { return ResourceManager.GetString("Visuals_Description", resourceCulture); } }
@@ -182,11 +174,6 @@ namespace EchoXIV.Properties {
         public static string History_NoMessages { get { return ResourceManager.GetString("History_NoMessages", resourceCulture); } }
         public static string History_Clear { get { return ResourceManager.GetString("History_Clear", resourceCulture); } }
         public static string History_Title { get { return ResourceManager.GetString("History_Title", resourceCulture); } }
-        public static string Welcome_WindowModeQuestion { get { return ResourceManager.GetString("Welcome_WindowModeQuestion", resourceCulture); } }
-        public static string Welcome_WindowModeWpf { get { return ResourceManager.GetString("Welcome_WindowModeWpf", resourceCulture); } }
-        public static string Welcome_WindowModeImGui { get { return ResourceManager.GetString("Welcome_WindowModeImGui", resourceCulture); } }
-        public static string Welcome_RecommendationFullscreen { get { return ResourceManager.GetString("Welcome_RecommendationFullscreen", resourceCulture); } }
-        public static string Welcome_RecommendationWindowed { get { return ResourceManager.GetString("Welcome_RecommendationWindowed", resourceCulture); } }
         public static string ChatWindow_Retry { get { return ResourceManager.GetString("ChatWindow_Retry", resourceCulture); } }
         public static string ChatWindow_RetryTooltip { get { return ResourceManager.GetString("ChatWindow_RetryTooltip", resourceCulture); } }
     }

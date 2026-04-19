@@ -81,10 +81,10 @@
         <value>自動翻訳を有効にする</value>
     </data>
     <data name="General_SourceLanguage">
-        <value>元の言語:</value>
+        <value>自分が書く言語:</value>
     </data>
     <data name="General_TargetLanguage">
-        <value>翻訳先の言語:</value>
+        <value>自分のメッセージの翻訳先:</value>
     </data>
     <data name="General_DefaultChannel">
         <value>デフォルトチャンネル (フォールバック):</value>
@@ -108,7 +108,7 @@
         <value>(元の言語は自動判別されます)</value>
     </data>
     <data name="Incoming_UseWritingLanguage">
-        <value>(入力言語を使用する)</value>
+        <value>(自分が書く言語を使う)</value>
     </data>
     <data name="Incoming_DisplayOptions">
         <value>表示オプション:</value>
@@ -233,18 +233,6 @@
     <data name="Cache_PercentUsed">
         <value>使用率 {0}%</value>
     </data>
-    <data name="Incoming_WindowOpacity">
-        <value>ウィンドウの不透明度</value>
-    </data>
-    <data name="Incoming_NativeWindow">
-        <value>ネイティブウィンドウを使用 (WPF / マルチモニター対応)</value>
-    </data>
-    <data name="Incoming_NativeWindowTooltip">
-        <value>独立した外部ウィンドウを有効にします (FPSパフォーマンスが向上します)。Dalamudの内部ウィンドウを使用する場合は無効にしてください。変更を適用するにはプラグインの再読み込みが必要です。</value>
-    </data>
-    <data name="Incoming_RestartNote">
-        <value>注意: ウィンドウモードを変更するには、プラグインの再起動が必要です。</value>
-    </data>
     <data name="Cache_DisabledWarning">
         <value>キャッシュ無効 - すべての翻訳が新規作成されます</value>
     </data>
@@ -274,21 +262,6 @@
     </data>
     <data name="General_EnginePapagoDesc">
         <value>Naver Papago 翻訳 (韓国語/日本語 特化)</value>
-    </data>
-    <data name="General_WindowMode">
-        <value>ウィンドウモード</value>
-    </data>
-    <data name="General_RestoreWindow">
-        <value>ウィンドウの復元/ロック解除</value>
-    </data>
-    <data name="General_RestoreWindowTip">
-        <value>ネイティブウィンドウがロックされた場合や見失った場合に使用します。</value>
-    </data>
-    <data name="General_SmartVisibility">
-        <value>スマート表示 (フォーカス喪失時に隠す)</value>
-    </data>
-    <data name="General_SmartVisibilityTip">
-        <value>ゲームが前面にないとき、自動的にウィンドウを非表示にします。</value>
     </data>
     <data name="General_VerboseLogs">
         <value>詳細ログの記録</value>
@@ -327,19 +300,19 @@
         <value>EchoXIVをインストールしていただきありがとうございます！まずは初期言語の設定を行ってください。</value>
     </data>
     <data name="Welcome_SourceQuestion">
-        <value>あなたの話す言語は何ですか？</value>
+        <value>どの言語でチャットを書きますか？</value>
     </data>
     <data name="Welcome_SourceTip">
-        <value>(チャットで入力に使用する言語)</value>
+        <value>(送信メッセージと既定の閲覧言語に使われます)</value>
     </data>
     <data name="Welcome_TargetQuestion">
         <value>自分のメッセージをどの言語に翻訳しますか？</value>
     </data>
     <data name="Welcome_TargetTip">
-        <value>(他のプレイヤーに見える言語)</value>
+        <value>(他のプレイヤーにはこの言語で届きます)</value>
     </data>
     <data name="Welcome_ReadQuestion">
-        <value>他のプレイヤーのメッセージをどの言語で読みますか？</value>
+        <value>受信メッセージをどの言語に翻訳しますか？</value>
     </data>
     <data name="Welcome_SaveStart">
         <value>保存して開始</value>
@@ -409,20 +382,5 @@
     </data>
     <data name="Channel_Linkshell">
         <value>LS</value>
-    </data>
-    <data name="Welcome_WindowModeQuestion">
-        <value>翻訳にどのウィンドウモードを使用しますか？</value>
-    </data>
-    <data name="Welcome_WindowModeWpf">
-        <value>ネイティブウィンドウ（WPF - より高いパフォーマンス）</value>
-    </data>
-    <data name="Welcome_WindowModeImGui">
-        <value>Dalamudウィンドウ（統合 - より高い互換性）</value>
-    </data>
-    <data name="Welcome_RecommendationFullscreen">
-        <value>⚠️ 推奨：フルスクリーンモードのため、互換性向上のため統合Dalamudウィンドウを推奨します。</value>
-    </data>
-    <data name="Welcome_RecommendationWindowed">
-        <value>💡 推奨：ウィンドウ/ボーダーレスモードのため、ネイティブWPFウィンドウがより高いパフォーマンスを提供します。</value>
     </data>
 </root>

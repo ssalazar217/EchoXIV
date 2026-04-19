@@ -291,7 +291,7 @@ namespace EchoXIV
             // FILTRO RMT/SPAM: Evitar gastar API en basura
             if (IsRmtSpam(messageText))
             {
-                if (_configuration.VerboseLogging) _pluginLog.Info($"🚫 Spam RMT detectado y omitido: {messageText.Substring(0, Math.Min(20, messageText.Length))}...");
+                if (_configuration.VerboseLogging) _pluginLog.Info($"RMT spam detected and skipped: {messageText.Substring(0, Math.Min(20, messageText.Length))}...");
                 return;
             }
 
@@ -335,7 +335,7 @@ namespace EchoXIV
         {
             if (message == null) return;
             
-            _pluginLog.Info($"[Retry] Iniciando reintento para: {message.OriginalText.Substring(0, Math.Min(20, message.OriginalText.Length))}...");
+            _pluginLog.Info($"[Retry] Starting retry for: {message.OriginalText.Substring(0, Math.Min(20, message.OriginalText.Length))}...");
             message.IsTranslating = true;
             await TranslateAsync(message);
         }
@@ -345,9 +345,7 @@ namespace EchoXIV
             try
             {
                 // 1. Verificar Caché
-                var targetLanguage = string.IsNullOrEmpty(_configuration.IncomingTargetLanguage)
-                    ? _configuration.SourceLanguage
-                    : _configuration.IncomingTargetLanguage;
+                var targetLanguage = _configuration.GetReadingLanguage();
 
                 var cached = _translationCache.Get(message.OriginalText, "auto", targetLanguage);
                 if (cached != null)
@@ -378,7 +376,7 @@ namespace EchoXIV
                 message.TranslatedText = finalTranslation;
                 message.IsTranslating = false;
 
-                if (_configuration.VerboseLogging) _pluginLog.Info($"[{message.ChatType}] 📥 Traducido entrante: '{message.OriginalText}' → '{message.TranslatedText}'");
+                if (_configuration.VerboseLogging) _pluginLog.Info($"[{message.ChatType}] Incoming translated: '{message.OriginalText}' -> '{message.TranslatedText}'");
 
                 // Notificar que la traducción está lista
                 OnMessageTranslated?.Invoke(message);
@@ -392,16 +390,14 @@ namespace EchoXIV
             }
             catch (TranslationRateLimitException ex)
             {
-                _pluginLog.Warning($"⚠️ {ex.Message}. Intentando failover inmediato...");
+                _pluginLog.Warning($"{ex.Message}. Attempting immediate failover...");
                 
                 try
                 {
                     if (_secondaryTranslator != null)
                     {
                         var protectedText = _glossaryService.Protect(message.OriginalText);
-                        var targetLanguage = string.IsNullOrEmpty(_configuration.IncomingTargetLanguage)
-                            ? _configuration.SourceLanguage
-                            : _configuration.IncomingTargetLanguage;
+                        var targetLanguage = _configuration.GetReadingLanguage();
 
                         using var secondaryTimeout = TranslationDefaults.CreateTimeoutTokenSource();
                         var translation = await _secondaryTranslator.TranslateAsync(protectedText, "auto", targetLanguage, secondaryTimeout.Token);
@@ -423,7 +419,7 @@ namespace EchoXIV
                 }
                 catch (Exception secondaryEx)
                 {
-                    _pluginLog.Error(secondaryEx, "Error en el motor secundario durante failover");
+                    _pluginLog.Error(secondaryEx, "Error in secondary translator during failover.");
                 }
 
                 message.TranslatedText = message.OriginalText; // Fallback final
@@ -432,7 +428,7 @@ namespace EchoXIV
             }
             catch (Exception ex)
             {
-                _pluginLog.Error(ex, "Error traduciendo mensaje entrante");
+                _pluginLog.Error(ex, "Error while translating incoming message.");
                 message.TranslatedText = message.OriginalText; // Fallback
                 message.IsTranslating = false;
                 OnMessageTranslated?.Invoke(message);
@@ -510,7 +506,7 @@ namespace EchoXIV
         public void Dispose()
         {
             _chatGui.ChatMessage -= OnChatMessage;
-            if (_configuration.VerboseLogging) _pluginLog.Info("🔌 IncomingMessageHandler desconectado");
+            if (_configuration.VerboseLogging) _pluginLog.Info("IncomingMessageHandler disconnected.");
         }
     }
 }
