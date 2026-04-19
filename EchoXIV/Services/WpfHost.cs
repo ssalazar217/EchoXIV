@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using EchoXIV.UI.Native;
+using EchoXIV.Properties;
 
 namespace EchoXIV.Services
 {
@@ -89,6 +90,12 @@ namespace EchoXIV.Services
             
             try
             {
+                var resourceCulture = Resources.Culture ?? System.Globalization.CultureInfo.GetCultureInfo("en");
+                System.Globalization.CultureInfo.CurrentUICulture = resourceCulture;
+                System.Globalization.CultureInfo.CurrentCulture = resourceCulture;
+                Thread.CurrentThread.CurrentUICulture = resourceCulture;
+                Thread.CurrentThread.CurrentCulture = resourceCulture;
+
                 // Gestionar Application de WPF
                 if (Application.Current != null)
                 {
@@ -248,6 +255,7 @@ namespace EchoXIV.Services
         public void SetSmartVisibility(bool enabled) => VisibilityTimer_Tick(null, EventArgs.Empty);
         public void SetLock(bool locked) => _chatWindow?.SetLock(locked); 
         public void UpdateVisuals() => _chatWindow?.UpdateVisuals();
+        public void UpdateLocalization() => _chatWindow?.UpdateLocalization();
 
         private IntPtr GetGameWindowHandle()
         {

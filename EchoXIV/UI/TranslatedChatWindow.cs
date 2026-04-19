@@ -163,7 +163,7 @@ namespace EchoXIV.UI
                 ImGui.TextDisabled(_isOnMainScreen ? "[Internal]" : "[External]");
                 if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip(_isOnMainScreen ? "La ventana está dentro del monitor del juego." : "La ventana está en un monitor secundario.");
+                    ImGui.SetTooltip(_isOnMainScreen ? "The window is inside the game monitor." : "The window is on a secondary monitor.");
                 }
             }
 

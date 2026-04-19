@@ -15,6 +15,8 @@ using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Globalization;
+using System.Threading;
 
 namespace EchoXIV
 {
@@ -57,6 +59,7 @@ namespace EchoXIV
         private IncomingMessageHandler? _incomingMessageHandler = null;
         private MessageHistoryManager _historyManager = null!;
         private static bool _chatVisible = false;
+        private string _activeUiCulture = string.Empty;
         
         public Plugin()
         {
@@ -91,12 +94,7 @@ namespace EchoXIV
                     }
                 }
 
-                // Inicializar localización basada en idioma del usuario
-                try 
-                {
-                    Resources.Culture = new System.Globalization.CultureInfo(_configuration.SourceLanguage ?? "en");
-                }
-                catch { }
+                ApplyResourceCulture();
                 
                 // Inicializar motores de traducción
                 _googleTranslator = new GoogleTranslatorService();
@@ -110,8 +108,7 @@ namespace EchoXIV
                 
 
                 // Crear ventana de configuración (SIEMPRE)
-                _configWindow = new ConfigWindow(_configuration, _historyManager);
-                _windowSystem.AddWindow(_configWindow);
+                _configWindow = CreateConfigWindow();
 
                 // Manejar pantalla de bienvenida si sigue siendo FirstRun (ej: Dalamud está en Inglés)
                 if (_configuration.FirstRun)
@@ -123,30 +120,9 @@ namespace EchoXIV
                         screenMode = detectedMode;
                     }
                     
-                    _welcomeWindow = new WelcomeWindow(_configuration, screenMode);
-                    _welcomeWindow.OnConfigurationComplete += () => 
-                    {
-                        try 
-                        {
-                            Resources.Culture = new System.Globalization.CultureInfo(_configuration.SourceLanguage ?? "en");
-                        }
-                        catch { }
-                        UpdateTranslationService();
-                    };
-                    _windowSystem.AddWindow(_welcomeWindow);
+                    _welcomeWindow = CreateWelcomeWindow(screenMode);
                     _welcomeWindow.IsOpen = true;
                 }
-                
-                // Suscribirse a cambios de opacidad
-                _configWindow.OnOpacityChanged += OnOpacityChangedHandler;
-                _configWindow.OnSmartVisibilityChanged += (enabled) => _wpfHost?.SetSmartVisibility(enabled);
-                _configWindow.OnVisualsChanged += () => 
-                {
-                    _wpfHost?.UpdateVisuals();
-                };
-                _configWindow.OnUnlockNativeRequested += () => _wpfHost?.SetLock(false);
-                _configWindow.OnTranslationEngineChanged += (engine) => UpdateTranslationService();
-                _configWindow.OnWindowModeChanged += OnWindowModeChangedHandler;
                 
                 // Inicializar sistema de ventanas
                 // NOTA: No iniciamos WpfHost aquí para evitar que aparezca en la pantalla de título.
@@ -201,7 +177,7 @@ namespace EchoXIV
                 }
                 
                 // Registrar WindowSystem
-                PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
+                PluginInterface.UiBuilder.Draw += DrawUi;
                 PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
                 
                 // Registrar comandos
@@ -242,8 +218,99 @@ namespace EchoXIV
             }
         }
 
+        private ConfigWindow CreateConfigWindow()
+        {
+            var configWindow = new ConfigWindow(_configuration, _historyManager);
+            configWindow.OnOpacityChanged += OnOpacityChangedHandler;
+            configWindow.OnSmartVisibilityChanged += (enabled) => _wpfHost?.SetSmartVisibility(enabled);
+            configWindow.OnVisualsChanged += () => _wpfHost?.UpdateVisuals();
+            configWindow.OnUnlockNativeRequested += () => _wpfHost?.SetLock(false);
+            configWindow.OnTranslationEngineChanged += (engine) => UpdateTranslationService();
+            configWindow.OnWindowModeChanged += OnWindowModeChangedHandler;
+            _windowSystem.AddWindow(configWindow);
+            return configWindow;
+        }
+
+        private WelcomeWindow CreateWelcomeWindow(uint screenMode)
+        {
+            var welcomeWindow = new WelcomeWindow(_configuration, screenMode);
+            welcomeWindow.OnConfigurationComplete += () => 
+            {
+                ApplyResourceCulture();
+                RefreshLocalizedWindows();
+                UpdateTranslationService();
+            }
+            ;
+            _windowSystem.AddWindow(welcomeWindow);
+            return welcomeWindow;
+        }
+
+        private void DrawUi()
+        {
+            if (ApplyResourceCulture())
+            {
+                RefreshLocalizedWindows();
+            }
+
+            _windowSystem.Draw();
+        }
+
+        private bool ApplyResourceCulture()
+        {
+            var cultureName = NormalizeUiLanguage(PluginInterface.UiLanguage);
+            var changed = !string.Equals(_activeUiCulture, cultureName, StringComparison.OrdinalIgnoreCase);
+
+            try
+            {
+                var culture = new CultureInfo(cultureName);
+                Resources.Culture = culture;
+                CultureInfo.DefaultThreadCurrentUICulture = culture;
+                CultureInfo.DefaultThreadCurrentCulture = culture;
+                CultureInfo.CurrentUICulture = culture;
+                CultureInfo.CurrentCulture = culture;
+                Thread.CurrentThread.CurrentUICulture = culture;
+                Thread.CurrentThread.CurrentCulture = culture;
+                _activeUiCulture = culture.Name;
+            }
+            catch
+            {
+                var fallbackCulture = new CultureInfo("en");
+                Resources.Culture = fallbackCulture;
+                CultureInfo.DefaultThreadCurrentUICulture = fallbackCulture;
+                CultureInfo.DefaultThreadCurrentCulture = fallbackCulture;
+                CultureInfo.CurrentUICulture = fallbackCulture;
+                CultureInfo.CurrentCulture = fallbackCulture;
+                Thread.CurrentThread.CurrentUICulture = fallbackCulture;
+                Thread.CurrentThread.CurrentCulture = fallbackCulture;
+                changed = !string.Equals(_activeUiCulture, fallbackCulture.Name, StringComparison.OrdinalIgnoreCase);
+                _activeUiCulture = fallbackCulture.Name;
+            }
+
+            return changed;
+        }
+
+        private static string NormalizeUiLanguage(string? uiLanguage)
+        {
+            if (string.IsNullOrWhiteSpace(uiLanguage))
+            {
+                return "en";
+            }
+
+            var normalized = uiLanguage.Trim();
+
+            if (normalized.StartsWith("es", StringComparison.OrdinalIgnoreCase)) return "es";
+            if (normalized.StartsWith("ja", StringComparison.OrdinalIgnoreCase)) return "ja";
+            if (normalized.StartsWith("fr", StringComparison.OrdinalIgnoreCase)) return "fr";
+            if (normalized.StartsWith("de", StringComparison.OrdinalIgnoreCase)) return "de";
+            if (normalized.StartsWith("en", StringComparison.OrdinalIgnoreCase)) return "en";
+
+            return "en";
+        }
+
         private void OnLogin()
         {
+            ApplyResourceCulture();
+
             // Ya no es necesaria la validación aquí, el timer de WPF y DrawConditions de ImGui 
             // se encargarán de ocultar la ventana dinámicamente según el estado del juego.
             if (_configuration.UseNativeWindow)
@@ -334,10 +401,51 @@ namespace EchoXIV
             Framework.Update -= OnFrameworkUpdate;
             if (_windowSystem != null)
             {
-                PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
+                PluginInterface.UiBuilder.Draw -= DrawUi;
             }
             PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
             PluginInterface.UiBuilder.OpenMainUi -= ToggleConfigUI;
+        }
+
+        private void RefreshLocalizedWindows()
+        {
+            var configWasOpen = _configWindow?.IsOpen ?? false;
+            if (_configWindow != null)
+            {
+                _windowSystem.RemoveWindow(_configWindow);
+                _configWindow.Dispose();
+            }
+
+            _configWindow = CreateConfigWindow();
+            _configWindow.IsOpen = configWasOpen;
+
+            if (_welcomeWindow != null)
+            {
+                var welcomeWasOpen = _welcomeWindow.IsOpen;
+                _windowSystem.RemoveWindow(_welcomeWindow);
+
+                uint screenMode = 0;
+                if (GameConfig.System.TryGetUInt("ScreenMode", out uint detectedMode))
+                {
+                    screenMode = detectedMode;
+                }
+
+                _welcomeWindow = CreateWelcomeWindow(screenMode);
+                _welcomeWindow.IsOpen = welcomeWasOpen;
+            }
+
+            if (_translatedChatWindow != null)
+            {
+                var chatWasOpen = _translatedChatWindow.IsOpen;
+                _windowSystem.RemoveWindow(_translatedChatWindow);
+                _translatedChatWindow.Dispose();
+                _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
+                _translatedChatWindow.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
+                _translatedChatWindow.IsOpen = chatWasOpen;
+                _windowSystem.AddWindow(_translatedChatWindow);
+            }
+
+            _wpfHost?.UpdateLocalization();
         }
         
         private void OnCommand(string command, string args)

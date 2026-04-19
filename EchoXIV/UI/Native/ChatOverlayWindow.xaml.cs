@@ -92,24 +92,41 @@ namespace EchoXIV.UI.Native
                 ApplyModernStyle();
             }
 
-            // Localizar elementos estáticos
-            if (_titleText != null) _titleText.Text = Resources.ChatWindow_Title;
-            if (_headerBorder != null) _headerBorder.ToolTip = Resources.ChatWindow_HideTooltip; // Opcional, o al botón X
-            if (_btnLock != null) _btnLock.ToolTip = Resources.ChatWindow_LockTooltip;
-            var btnHide = _window!.FindName("BtnHide");
-            if (btnHide != null) btnHide.ToolTip = Resources.ChatWindow_HideTooltip;
-            var btnRetry = _window!.FindName("BtnRetry");
-            if (btnRetry != null) btnRetry.ToolTip = Resources.ChatWindow_RetryTooltip;
-            var btnClear = _window!.FindName("BtnClear");
-            if (btnClear != null) {
-                btnClear.Content = Resources.ChatWindow_Clear;
-                btnClear.ToolTip = Resources.ChatWindow_ClearTooltip;
-            }
-            if (_btnUnlockOverlay != null) _btnUnlockOverlay.ToolTip = Resources.ChatWindow_UnlockTooltip;
-
-            UpdateTitle();
+            UpdateLocalization();
 
             foreach (var msg in _historyManager.GetHistory()) AddMessage(msg);
+        }
+
+        public void UpdateLocalization()
+        {
+            if (_window == null)
+            {
+                return;
+            }
+
+            _window.Dispatcher.InvokeAsync((Action)(() =>
+            {
+                if (_titleText != null) _titleText.Text = Resources.ChatWindow_Title;
+                if (_headerBorder != null) _headerBorder.ToolTip = Resources.ChatWindow_HideTooltip;
+                if (_btnLock != null) _btnLock.ToolTip = _isLocked ? Resources.ChatWindow_UnlockTooltip : Resources.ChatWindow_LockTooltip;
+
+                var btnHide = _window.FindName("BtnHide");
+                if (btnHide != null) btnHide.ToolTip = Resources.ChatWindow_HideTooltip;
+
+                var btnRetry = _window.FindName("BtnRetry");
+                if (btnRetry != null) btnRetry.ToolTip = Resources.ChatWindow_RetryTooltip;
+
+                var btnClear = _window.FindName("BtnClear");
+                if (btnClear != null)
+                {
+                    btnClear.Content = Resources.ChatWindow_Clear;
+                    btnClear.ToolTip = Resources.ChatWindow_ClearTooltip;
+                }
+
+                if (_btnUnlockOverlay != null) _btnUnlockOverlay.ToolTip = Resources.ChatWindow_UnlockTooltip;
+
+                UpdateTitle();
+            }));
         }
 
         private void HookEvent(dynamic element, string eventName, Action<object, dynamic> action)
