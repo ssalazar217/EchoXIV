@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Net;
@@ -26,7 +27,7 @@ public class PapagoTranslatorService : ITranslationService
 
     public string Name => "Papago";
 
-    public async Task<string> TranslateAsync(string text, string sourceLang, string targetLang)
+    public async Task<string> TranslateAsync(string text, string sourceLang, string targetLang, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(text)) return text;
 
@@ -72,7 +73,7 @@ public class PapagoTranslatorService : ITranslationService
 
             request.Content = new FormUrlEncodedContent(dict);
 
-            var response = await _httpClient.SendAsync(request);
+            var response = await _httpClient.SendAsync(request, cancellationToken);
             
             if (response.StatusCode == (HttpStatusCode)429)
                 throw new TranslationRateLimitException("Papago", "Papago rate limit reached");
@@ -80,7 +81,7 @@ public class PapagoTranslatorService : ITranslationService
             if (!response.IsSuccessStatusCode)
                 return text;
 
-            var responseJson = await response.Content.ReadAsStringAsync();
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
             var papagoResponse = JsonConvert.DeserializeObject<dynamic>(responseJson);
             
             if (papagoResponse == null) return text;
@@ -88,6 +89,7 @@ public class PapagoTranslatorService : ITranslationService
             return (string?)papagoResponse.translatedText ?? text;
         }
         catch (TranslationRateLimitException) { throw; }
+        catch (OperationCanceledException) { throw; }
         catch (Exception)
         {
             return text;
@@ -100,5 +102,10 @@ public class PapagoTranslatorService : ITranslationService
         using var hmac = new HMACMD5(Encoding.UTF8.GetBytes(key));
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
         return Convert.ToBase64String(hash);
+    }
+
+    public void Dispose()
+    {
+        // Intentionally left blank: shared HttpClient is process-wide.
     }
 }

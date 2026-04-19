@@ -17,6 +17,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace EchoXIV
 {
@@ -60,6 +61,7 @@ namespace EchoXIV
         private MessageHistoryManager _historyManager = null!;
         private static bool _chatVisible = false;
         private string _activeUiCulture = string.Empty;
+        private bool _showWelcomeWindow;
         
         public Plugin()
         {
@@ -74,7 +76,8 @@ namespace EchoXIV
                 _translationCache = new TranslationCache(PluginInterface.GetPluginConfigDirectory());
 
                 // Borrar si existiera para evitar configs corruptas si el usuario borró el JSON
-                if (_configuration.FirstRun)
+                _showWelcomeWindow = _configuration.FirstRun;
+                if (_showWelcomeWindow)
                 {
                     // Detect ScreenMode for initial UI recommendation
                     if (GameConfig.System.TryGetUInt("ScreenMode", out uint screenMode))
@@ -151,8 +154,8 @@ namespace EchoXIV
                     PluginLog
                 );
                 // Conectar eventos
-                _incomingMessageHandler.OnTranslationStarted += m => _historyManager.AddMessage(m);
-                _incomingMessageHandler.OnMessageTranslated += m => _historyManager.UpdateMessage(m);
+                _incomingMessageHandler.OnTranslationStarted += OnTranslationStarted;
+                _incomingMessageHandler.OnMessageTranslated += OnMessageTranslated;
                 _incomingMessageHandler.OnRequestEngineFailover += SwitchToGoogleFailover;
                 
                 // Inicializar Hook Nativo (para traducción saliente segura)
@@ -183,17 +186,17 @@ namespace EchoXIV
                 // Registrar comandos
                 CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
                 {
-                    HelpMessage = "Traduce y envía: /translate [mensaje/on/off/config/help]"
+                    HelpMessage = GetResourceText("Command_HelpMessageMain", "Translate and send: /translate [message/on/off/config/help]")
                 });
 
                 CommandManager.AddHandler(CommandNameShort, new CommandInfo(OnCommand)
                 {
-                    HelpMessage = "Atajo corto de /translate"
+                    HelpMessage = GetResourceText("Command_HelpMessageShort", "Short alias for /translate")
                 });
 
                 CommandManager.AddHandler(ConfigCommandName, new CommandInfo(OnCommand)
                 {
-                    HelpMessage = "Configuración de EchoXIV"
+                    HelpMessage = GetResourceText("Command_HelpMessageConfig", "Open EchoXIV configuration")
                 });
                 
                 // Registrar UI callback principal (botón "Abrir" abre configuración)
@@ -203,8 +206,8 @@ namespace EchoXIV
                 Framework.Update += OnFrameworkUpdate;
 
                 // Suscribirse a eventos de login/logout para manejar la ventana nativa
-                ClientState.Login += delegate { OnLogin(); };
-                ClientState.Logout += delegate { OnLogout(); };
+                ClientState.Login += OnClientLogin;
+                ClientState.Logout += OnClientLogout;
 
                 // Si ya estamos logueados (ej: recarga de plugin), iniciar ahora
                 if (ClientState.IsLoggedIn)
@@ -222,10 +225,10 @@ namespace EchoXIV
         {
             var configWindow = new ConfigWindow(_configuration, _historyManager);
             configWindow.OnOpacityChanged += OnOpacityChangedHandler;
-            configWindow.OnSmartVisibilityChanged += (enabled) => _wpfHost?.SetSmartVisibility(enabled);
-            configWindow.OnVisualsChanged += () => _wpfHost?.UpdateVisuals();
-            configWindow.OnUnlockNativeRequested += () => _wpfHost?.SetLock(false);
-            configWindow.OnTranslationEngineChanged += (engine) => UpdateTranslationService();
+            configWindow.OnSmartVisibilityChanged += OnSmartVisibilityChangedHandler;
+            configWindow.OnVisualsChanged += OnVisualsChangedHandler;
+            configWindow.OnUnlockNativeRequested += OnUnlockNativeRequestedHandler;
+            configWindow.OnTranslationEngineChanged += OnTranslationEngineChangedHandler;
             configWindow.OnWindowModeChanged += OnWindowModeChangedHandler;
             _windowSystem.AddWindow(configWindow);
             return configWindow;
@@ -234,15 +237,17 @@ namespace EchoXIV
         private WelcomeWindow CreateWelcomeWindow(uint screenMode)
         {
             var welcomeWindow = new WelcomeWindow(_configuration, screenMode);
-            welcomeWindow.OnConfigurationComplete += () => 
-            {
-                ApplyResourceCulture();
-                RefreshLocalizedWindows();
-                UpdateTranslationService();
-            }
-            ;
+            welcomeWindow.OnConfigurationComplete += OnWelcomeConfigurationComplete;
             _windowSystem.AddWindow(welcomeWindow);
             return welcomeWindow;
+        }
+
+        private TranslatedChatWindow CreateTranslatedChatWindow()
+        {
+            var translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
+            translatedChatWindow.OnRequestTranslation += OnTranslatedChatRequestTranslation;
+            _windowSystem.AddWindow(translatedChatWindow);
+            return translatedChatWindow;
         }
 
         private void DrawUi()
@@ -342,9 +347,7 @@ namespace EchoXIV
 
                 if (_translatedChatWindow == null)
                 {
-                    _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
-                    _translatedChatWindow.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
-                    _windowSystem.AddWindow(_translatedChatWindow);
+                    _translatedChatWindow = CreateTranslatedChatWindow();
                 }
                 
                 _translatedChatWindow.IsOpen = _configuration.OverlayVisible;
@@ -380,9 +383,25 @@ namespace EchoXIV
 
             if (_configWindow != null)
             {
-                _configWindow.OnOpacityChanged -= OnOpacityChangedHandler;
-                // lambda: _configWindow.OnUnlockNativeRequested -= ... (Not possible for anon lambda)
+                DetachConfigWindowHandlers(_configWindow);
                 _configWindow.Dispose();
+            }
+
+            if (_welcomeWindow != null)
+            {
+                _welcomeWindow.OnConfigurationComplete -= OnWelcomeConfigurationComplete;
+            }
+
+            if (_translatedChatWindow != null)
+            {
+                _translatedChatWindow.OnRequestTranslation -= OnTranslatedChatRequestTranslation;
+            }
+
+            if (_incomingMessageHandler != null)
+            {
+                _incomingMessageHandler.OnTranslationStarted -= OnTranslationStarted;
+                _incomingMessageHandler.OnMessageTranslated -= OnMessageTranslated;
+                _incomingMessageHandler.OnRequestEngineFailover -= SwitchToGoogleFailover;
             }
             
 
@@ -405,6 +424,8 @@ namespace EchoXIV
             }
             PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
             PluginInterface.UiBuilder.OpenMainUi -= ToggleConfigUI;
+            ClientState.Login -= OnClientLogin;
+            ClientState.Logout -= OnClientLogout;
         }
 
         private void RefreshLocalizedWindows()
@@ -413,6 +434,7 @@ namespace EchoXIV
             if (_configWindow != null)
             {
                 _windowSystem.RemoveWindow(_configWindow);
+                DetachConfigWindowHandlers(_configWindow);
                 _configWindow.Dispose();
             }
 
@@ -423,6 +445,7 @@ namespace EchoXIV
             {
                 var welcomeWasOpen = _welcomeWindow.IsOpen;
                 _windowSystem.RemoveWindow(_welcomeWindow);
+                _welcomeWindow.OnConfigurationComplete -= OnWelcomeConfigurationComplete;
 
                 uint screenMode = 0;
                 if (GameConfig.System.TryGetUInt("ScreenMode", out uint detectedMode))
@@ -433,19 +456,92 @@ namespace EchoXIV
                 _welcomeWindow = CreateWelcomeWindow(screenMode);
                 _welcomeWindow.IsOpen = welcomeWasOpen;
             }
+            else if (_showWelcomeWindow)
+            {
+                uint screenMode = 0;
+                if (GameConfig.System.TryGetUInt("ScreenMode", out uint detectedMode))
+                {
+                    screenMode = detectedMode;
+                }
+
+                _welcomeWindow = CreateWelcomeWindow(screenMode);
+                _welcomeWindow.IsOpen = false;
+            }
 
             if (_translatedChatWindow != null)
             {
                 var chatWasOpen = _translatedChatWindow.IsOpen;
                 _windowSystem.RemoveWindow(_translatedChatWindow);
+                _translatedChatWindow.OnRequestTranslation -= OnTranslatedChatRequestTranslation;
                 _translatedChatWindow.Dispose();
-                _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
-                _translatedChatWindow.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
+                _translatedChatWindow = CreateTranslatedChatWindow();
                 _translatedChatWindow.IsOpen = chatWasOpen;
-                _windowSystem.AddWindow(_translatedChatWindow);
             }
 
             _wpfHost?.UpdateLocalization();
+        }
+
+        private void DetachConfigWindowHandlers(ConfigWindow configWindow)
+        {
+            configWindow.OnOpacityChanged -= OnOpacityChangedHandler;
+            configWindow.OnSmartVisibilityChanged -= OnSmartVisibilityChangedHandler;
+            configWindow.OnVisualsChanged -= OnVisualsChangedHandler;
+            configWindow.OnUnlockNativeRequested -= OnUnlockNativeRequestedHandler;
+            configWindow.OnTranslationEngineChanged -= OnTranslationEngineChangedHandler;
+            configWindow.OnWindowModeChanged -= OnWindowModeChangedHandler;
+        }
+
+        private void OnSmartVisibilityChangedHandler(bool enabled)
+        {
+            _wpfHost?.SetSmartVisibility(enabled);
+        }
+
+        private void OnVisualsChangedHandler()
+        {
+            _wpfHost?.UpdateVisuals();
+        }
+
+        private void OnUnlockNativeRequestedHandler()
+        {
+            _wpfHost?.SetLock(false);
+        }
+
+        private void OnTranslationEngineChangedHandler(TranslationEngine engine)
+        {
+            UpdateTranslationService();
+        }
+
+        private void OnWelcomeConfigurationComplete()
+        {
+            _showWelcomeWindow = false;
+            ApplyResourceCulture();
+            RefreshLocalizedWindows();
+            UpdateTranslationService();
+        }
+
+        private void OnTranslatedChatRequestTranslation(TranslatedChatMessage message)
+        {
+            _ = _incomingMessageHandler?.ProcessMessageAsync(message);
+        }
+
+        private void OnTranslationStarted(TranslatedChatMessage message)
+        {
+            _historyManager.AddMessage(message);
+        }
+
+        private void OnMessageTranslated(TranslatedChatMessage message)
+        {
+            _historyManager.UpdateMessage(message);
+        }
+
+        private void OnClientLogin()
+        {
+            OnLogin();
+        }
+
+        private void OnClientLogout(int type, int code)
+        {
+            OnLogout();
         }
         
         private void OnCommand(string command, string args)
@@ -463,24 +559,26 @@ namespace EchoXIV
                 case "on":
                     _configuration.TranslationEnabled = true;
                     _configuration.Save();
-                    ChatGui.Print($"Traducción activada. {_configuration.SourceLanguage.ToUpper()} → {_configuration.TargetLanguage.ToUpper()}");
+                    ChatGui.Print(GetResourceText("Command_TranslationEnabledWithLanguages", "Translation enabled. {0} -> {1}")
+                        .Replace("{0}", _configuration.SourceLanguage.ToUpperInvariant())
+                        .Replace("{1}", _configuration.TargetLanguage.ToUpperInvariant()));
                     break;
                 
                 case "off":
                     _configuration.TranslationEnabled = false;
                     _configuration.Save();
-                    ChatGui.Print("Traducción desactivada");
+                    ChatGui.Print(GetResourceText("Command_TranslationDisabled", "Translation disabled"));
                     break;
                 
                 case "lock":
                     if (_configuration.UseNativeWindow && _wpfHost != null)
                     {
                         _wpfHost.SetLock(true);
-                        ChatGui.Print("Ventana nativa BLOQUEADA (Click-Through activado). Usa '/tl unlock' para desbloquear.");
+                        ChatGui.Print(GetResourceText("Command_NativeWindowLocked", "Native window locked (click-through enabled). Use '/tl unlock' to unlock it."));
                     }
                     else
                     {
-                        ChatGui.Print("La ventana nativa no está activa.");
+                        ChatGui.Print(GetResourceText("Command_NativeWindowInactive", "The native window is not active."));
                     }
                     break;
 
@@ -488,11 +586,11 @@ namespace EchoXIV
                     if (_configuration.UseNativeWindow && _wpfHost != null)
                     {
                          _wpfHost.SetLock(false);
-                         ChatGui.Print("Ventana nativa DESBLOQUEADA.");
+                         ChatGui.Print(GetResourceText("Command_NativeWindowUnlocked", "Native window unlocked."));
                     }
                     else
                     {
-                         ChatGui.Print("La ventana nativa no está activa.");
+                         ChatGui.Print(GetResourceText("Command_NativeWindowInactive", "The native window is not active."));
                     }
                     break;
                 
@@ -512,18 +610,18 @@ namespace EchoXIV
                 
                 case "help":
                 case "?":
-                    ChatGui.Print("Comandos disponibles:");
-                    ChatGui.Print("/translate <mensaje> - Traduce al canal activo.");
-                    ChatGui.Print("/translate on/off - Activa/desactiva traducción auto.");
-                    ChatGui.Print("/translate config - Abre los ajustes.");
-                    ChatGui.Print("/translate chat - Muestra/oculta ventana de chat.");
-                    ChatGui.Print("/translate reset - Restaura posición de ventana.");
+                    ChatGui.Print(GetResourceText("Command_HelpHeader", "Available commands:"));
+                    ChatGui.Print(GetResourceText("Command_HelpTranslateLine", "/translate <message> - Translate to the active channel."));
+                    ChatGui.Print(GetResourceText("Command_HelpToggleLine", "/translate on/off - Toggle automatic translation."));
+                    ChatGui.Print(GetResourceText("Command_HelpConfigLine", "/translate config - Open settings."));
+                    ChatGui.Print(GetResourceText("Command_HelpChatLine", "/translate chat - Show or hide the translated chat window."));
+                    ChatGui.Print(GetResourceText("Command_HelpResetLine", "/translate reset - Reset the translated chat window position."));
                     break;
                 
                 case "input":
                 case "i":
                      // Legacy
-                     ChatGui.Print("La ventana de input ha sido reemplazada. Usa /tl mensaje");
+                     ChatGui.Print(GetResourceText("Command_InputReplaced", "The input window was replaced. Use /tl <message>"));
                      break;
                 
                 default:
@@ -551,12 +649,12 @@ namespace EchoXIV
             if (_configuration.UseNativeWindow)
             {
                  _wpfHost?.ResetWindow();
-                 ChatGui.Print("📍 Posición de ventana nativa reseteada a (100, 100).");
+                 ChatGui.Print(GetResourceText("Command_PositionResetNative", "Native window position reset to (100, 100)."));
             }
             else if (_translatedChatWindow != null)
             {
                 _translatedChatWindow.ResetPosition();
-                ChatGui.Print("📍 Posición de ventana reseteada a (100, 100). Ya debería ser visible.");
+                ChatGui.Print(GetResourceText("Command_PositionReset", "Window position reset to (100, 100). It should be visible now."));
             }
         }
 
@@ -571,7 +669,7 @@ namespace EchoXIV
 
                     if (string.IsNullOrWhiteSpace(message))
                     {
-                         _ = Framework.RunOnFrameworkThread(() => ChatGui.Print("⚠️ No hay mensaje para traducir"));
+                        _ = Framework.RunOnFrameworkThread(() => ChatGui.Print(GetResourceText("Command_NoMessage", "No message to translate")));
                          return;
                     }
 
@@ -595,10 +693,12 @@ namespace EchoXIV
                         return;
                     }
 
+                    using var timeout = TranslationDefaults.CreateTimeoutTokenSource();
                     var translated = await _translatorService.TranslateAsync(
                         message,
                         "auto",
-                        _configuration.TargetLanguage
+                        _configuration.TargetLanguage,
+                        timeout.Token
                     );
                     
                     // Enviar en main thread
@@ -624,6 +724,30 @@ namespace EchoXIV
                         if (_configuration.VerboseLogging) PluginLog.Info($"✅ Traducido y enviado: '{message}' → '{translated}'");
                     });
                 }
+                catch (OperationCanceledException ex)
+                {
+                    PluginLog.Warning(ex, "Manual translation timed out. Sending original message instead.");
+                    _ = Framework.RunOnFrameworkThread(() =>
+                    {
+                        var (prefix, message, type, recipient) = ParseChannelAndMessage(input);
+                        if (string.IsNullOrWhiteSpace(message))
+                        {
+                            return;
+                        }
+
+                        SendToChannel(message, prefix);
+                        _historyManager.AddMessage(new TranslatedChatMessage
+                        {
+                            Timestamp = DateTime.Now,
+                            ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
+                            Recipient = recipient,
+                            Sender = PlayerState.CharacterName.ToString(),
+                            OriginalText = message,
+                            TranslatedText = message,
+                            IsTranslating = false
+                        });
+                    });
+                }
                 catch (TranslationRateLimitException ex)
                 {
                     PluginLog.Warning($"⚠️ {ex.Message}. Activando conmutación automática a Google...");
@@ -639,7 +763,7 @@ namespace EchoXIV
                     PluginLog.Error(ex, "Error al traducir mensaje");
                     _ = Framework.RunOnFrameworkThread(() =>
                     {
-                        ChatGui.PrintError("❌ Error al traducir");
+                        ChatGui.PrintError(GetResourceText("Command_TranslateError", "Translation error"));
                     });
                 }
             });
@@ -824,20 +948,19 @@ namespace EchoXIV
             catch (Exception ex)
             {
                 PluginLog.Error(ex, "Error al enviar mensaje");
-                ChatGui.PrintError("❌ Error al enviar mensaje");
+                ChatGui.PrintError(GetResourceText("Command_SendError", "Error sending message"));
             }
-        }
-        
-        private void OnConfigurationChanged()
-        {
-            _configuration.Save();
-            if (_configuration.VerboseLogging) PluginLog.Info($"Idioma destino cambiado a: {_configuration.TargetLanguage}");
         }
         
         private Configuration LoadConfiguration()
         {
             var config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             config.Initialize(PluginInterface);
+            var hasChanges = config.NormalizeDefaults();
+            if (hasChanges)
+            {
+                config.Save();
+            }
             return config;
         }
         
@@ -875,9 +998,7 @@ namespace EchoXIV
                 // Crear ImGui
                 if (_translatedChatWindow == null)
                 {
-                    _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
-                    _translatedChatWindow.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
-                    _windowSystem.AddWindow(_translatedChatWindow);
+                    _translatedChatWindow = CreateTranslatedChatWindow();
                 }
                 
                 _translatedChatWindow.IsOpen = true;
@@ -902,9 +1023,7 @@ namespace EchoXIV
                 // Modo ImGui: Manejo estándar de ventana Dalamud
                 if (_translatedChatWindow == null)
                 {
-                    _translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
-                    _translatedChatWindow.OnRequestTranslation += m => _ = _incomingMessageHandler?.ProcessMessageAsync(m);
-                    _windowSystem.AddWindow(_translatedChatWindow);
+                    _translatedChatWindow = CreateTranslatedChatWindow();
                 }
 
                 _translatedChatWindow.IsOpen = !_translatedChatWindow.IsOpen;
@@ -912,7 +1031,9 @@ namespace EchoXIV
             }
             
             _configuration.Save();
-            ChatGui.Print($"Chat traducido: {(_configuration.OverlayVisible ? "VISIBLE" : "OCULTO")}");
+            ChatGui.Print(GetResourceText(
+                _configuration.OverlayVisible ? "Command_ChatVisible" : "Command_ChatHidden",
+                _configuration.OverlayVisible ? "Translated chat: visible" : "Translated chat: hidden"));
         }
 
         private void UpdateTranslationService()
@@ -970,8 +1091,13 @@ namespace EchoXIV
             // Notificar al usuario por el chat del juego
             _ = Framework.RunOnFrameworkThread(() => 
             {
-                ChatGui.Print("🔄 Se ha alcanzado el límite de Papago. Cambiando automáticamente a Google Translate.");
+                ChatGui.Print(GetResourceText("Command_FailoverToGoogle", "Papago limit reached. Switching automatically to Google Translate."));
             });
+        }
+
+        private static string GetResourceText(string key, string fallback)
+        {
+            return Resources.ResourceManager.GetString(key, Resources.Culture) ?? fallback;
         }
 
         private void OnFrameworkUpdate(IFramework framework)

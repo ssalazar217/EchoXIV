@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
@@ -29,6 +31,25 @@ namespace EchoXIV
     /// </summary>
     public class IncomingMessageHandler : IDisposable
     {
+        private sealed class PendingOutgoingEntry
+        {
+            public required string OriginalText { get; init; }
+            public required DateTime CreatedAtUtc { get; init; }
+        }
+
+        private static readonly TimeSpan PendingOutgoingTtl = TimeSpan.FromMinutes(2);
+        private const int MaxPendingOutgoingEntries = 256;
+        private static readonly Regex[] RmtSpamPatterns =
+        {
+            new(@"g\s*u\s*l\s*d\s*2\s*v\s*i\s*p", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new(@"f\s*f\s*1\s*4\s*c\s*o\s*i\s*n", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new(@"p\s*v\s*p\s*b\s*a\s*n\s*k", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new(@"m\s*m\s*o\s*g\s*a\s*h", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new(@"\$\d+\s*=\s*\d+M", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new(@"FAST\s*DELIVERY", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new(@"CHEAP\s*GIL", RegexOptions.IgnoreCase | RegexOptions.Compiled)
+        };
+
         private readonly Configuration _configuration;
         private ITranslationService _primaryTranslator;
         private ITranslationService? _secondaryTranslator;
@@ -37,7 +58,7 @@ namespace EchoXIV
         private readonly IPlayerState _playerState;
         private readonly IObjectTable _objectTable;
         private readonly IPluginLog _pluginLog;
-        private readonly Dictionary<string, string> _pendingOutgoingTranslations = new(); // Translated -> Original
+        private readonly Dictionary<string, PendingOutgoingEntry> _pendingOutgoingTranslations = new(); // Translated -> Original
 
         /// <summary>
         /// Evento emitido cuando un mensaje ha sido traducido
@@ -98,7 +119,13 @@ namespace EchoXIV
             if (string.IsNullOrEmpty(translated)) return;
             lock (_pendingOutgoingTranslations)
             {
-                _pendingOutgoingTranslations[translated] = original;
+                PruneExpiredPendingOutgoingEntries();
+                PruneOverflowPendingOutgoingEntries();
+                _pendingOutgoingTranslations[translated] = new PendingOutgoingEntry
+                {
+                    OriginalText = original,
+                    CreatedAtUtc = DateTime.UtcNow
+                };
             }
         }
 
@@ -107,6 +134,7 @@ namespace EchoXIV
             if (string.IsNullOrEmpty(translated)) return false;
             lock (_pendingOutgoingTranslations)
             {
+                PruneExpiredPendingOutgoingEntries();
                 if (_pendingOutgoingTranslations.ContainsKey(translated))
                 {
                     if (remove) _pendingOutgoingTranslations.Remove(translated);
@@ -121,10 +149,11 @@ namespace EchoXIV
             if (string.IsNullOrEmpty(translated)) return null;
             lock (_pendingOutgoingTranslations)
             {
-                if (_pendingOutgoingTranslations.TryGetValue(translated, out var original))
+                PruneExpiredPendingOutgoingEntries();
+                if (_pendingOutgoingTranslations.TryGetValue(translated, out var pendingEntry))
                 {
                     if (remove) _pendingOutgoingTranslations.Remove(translated);
-                    return original;
+                    return pendingEntry.OriginalText;
                 }
             }
             return null;
@@ -333,10 +362,12 @@ namespace EchoXIV
                 var protectedText = _glossaryService.Protect(message.OriginalText);
                 
                 // 3. Traducir
+                using var primaryTimeout = TranslationDefaults.CreateTimeoutTokenSource();
                 var translation = await _primaryTranslator.TranslateAsync(
                     protectedText,
                     "auto",
-                    targetLanguage
+                    targetLanguage,
+                    primaryTimeout.Token
                 );
 
                 // 4. Restaurar términos y guardar en caché
@@ -352,6 +383,13 @@ namespace EchoXIV
                 // Notificar que la traducción está lista
                 OnMessageTranslated?.Invoke(message);
             }
+            catch (OperationCanceledException ex)
+            {
+                _pluginLog.Warning(ex, "Translation timed out for incoming message.");
+                message.TranslatedText = message.OriginalText;
+                message.IsTranslating = false;
+                OnMessageTranslated?.Invoke(message);
+            }
             catch (TranslationRateLimitException ex)
             {
                 _pluginLog.Warning($"⚠️ {ex.Message}. Intentando failover inmediato...");
@@ -365,7 +403,8 @@ namespace EchoXIV
                             ? _configuration.SourceLanguage
                             : _configuration.IncomingTargetLanguage;
 
-                        var translation = await _secondaryTranslator.TranslateAsync(protectedText, "auto", targetLanguage);
+                        using var secondaryTimeout = TranslationDefaults.CreateTimeoutTokenSource();
+                        var translation = await _secondaryTranslator.TranslateAsync(protectedText, "auto", targetLanguage, secondaryTimeout.Token);
                         var finalTranslation = SanitizeText(_glossaryService.Restore(translation));
                         
                         _translationCache.Add(message.OriginalText, "auto", targetLanguage, finalTranslation);
@@ -377,6 +416,10 @@ namespace EchoXIV
                         OnRequestEngineFailover?.Invoke();
                         return;
                     }
+                }
+                catch (OperationCanceledException secondaryTimeoutEx)
+                {
+                    _pluginLog.Warning(secondaryTimeoutEx, "Secondary translator timed out during failover.");
                 }
                 catch (Exception secondaryEx)
                 {
@@ -404,25 +447,52 @@ namespace EchoXIV
         private bool IsRmtSpam(string text)
         {
             if (string.IsNullOrEmpty(text)) return false;
-            
-            // Patrones comunes de RMT
-            var spamPatterns = new[] {
-                @"g\s*u\s*l\s*d\s*2\s*v\s*i\s*p", // guld2vip
-                @"f\s*f\s*1\s*4\s*c\s*o\s*i\s*n", // ff14coin
-                @"p\s*v\s*p\s*b\s*a\s*n\s*k",     // pvpbank
-                @"m\s*m\s*o\s*g\s*a\s*h",         // mmogah
-                @"\$\d+\s*=\s*\d+M",               // $10=100M (precios comunes)
-                @"FAST\s*DELIVERY",
-                @"CHEAP\s*GIL"
-            };
 
-            foreach (var pattern in spamPatterns)
+            foreach (var pattern in RmtSpamPatterns)
             {
-                if (Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase))
+                if (pattern.IsMatch(text))
                     return true;
             }
 
             return false;
+        }
+
+        private void PruneExpiredPendingOutgoingEntries()
+        {
+            var cutoff = DateTime.UtcNow - PendingOutgoingTtl;
+            var expiredKeys = new List<string>();
+
+            foreach (var entry in _pendingOutgoingTranslations)
+            {
+                if (entry.Value.CreatedAtUtc < cutoff)
+                {
+                    expiredKeys.Add(entry.Key);
+                }
+            }
+
+            foreach (var key in expiredKeys)
+            {
+                _pendingOutgoingTranslations.Remove(key);
+            }
+        }
+
+        private void PruneOverflowPendingOutgoingEntries()
+        {
+            if (_pendingOutgoingTranslations.Count < MaxPendingOutgoingEntries)
+            {
+                return;
+            }
+
+            var orderedKeys = _pendingOutgoingTranslations
+                .OrderBy(entry => entry.Value.CreatedAtUtc)
+                .Take(_pendingOutgoingTranslations.Count - MaxPendingOutgoingEntries + 1)
+                .Select(entry => entry.Key)
+                .ToArray();
+
+            foreach (var key in orderedKeys)
+            {
+                _pendingOutgoingTranslations.Remove(key);
+            }
         }
 
         private string SanitizeText(string text)

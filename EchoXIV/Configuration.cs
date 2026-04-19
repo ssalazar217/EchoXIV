@@ -18,7 +18,9 @@ namespace EchoXIV
     [Serializable]
     public class Configuration : IPluginConfiguration
     {
-        public int Version { get; set; } = 0;
+        private const int CurrentVersion = 1;
+
+        public int Version { get; set; } = CurrentVersion;
         
         /// <summary>
         /// Indica si es la primera vez que se ejecuta el plugin
@@ -41,15 +43,7 @@ namespace EchoXIV
         public string TargetLanguage { get; set; } = "en"; // English
         
         // Lista de mensajes que NO se traducen (expresiones universales, emoticonos, etc.)
-        public HashSet<string> ExcludedMessages { get; set; } = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "lol", "o/", "o7", "uwu", "gg", "ty", "thx", "xd", "omg", "wtf", 
-            "afk", "brb", "gn", "gm", "\\o/", "\\(^o^)/", "^_^", "^^", 
-            ":)", ":(", ":D", ";)", "<3", 
-            "P1", "P2", "P3", "P4", "dc", "PLD", "MCH", "DNC",
-            "m1s", "m2s", "m3s", "m4s", "m5s", "m6s", "m7s", "m8s", "m9s", "m10s", "m11s", "m12s",
-            "PF", "ilvl", "lb", "mb", "tyfp", "c:"
-        };
+        public HashSet<string> ExcludedMessages { get; set; } = CreateDefaultExcludedMessages();
         
 
         
@@ -137,35 +131,13 @@ namespace EchoXIV
         /// <summary>
         /// Canales de chat entrantes a traducir
         /// </summary>
-        public HashSet<int> IncomingChannels { get; set; } = new()
-        {
-            10,  // Say
-            11,  // Shout
-            30,  // Yell
-            14,  // Party
-            15,  // Alliance
-            24,  // FreeCompany
-            12,  // TellOutgoing
-            13,  // TellIncoming
-        };
+        public HashSet<int> IncomingChannels { get; set; } = CreateDefaultIncomingChannels();
 
         /// <summary>
         /// Colores personalizados para cada canal de chat (ARGB)
         /// Guardamos como uint para serialización simple
         /// </summary>
-        public Dictionary<int, uint> ChannelColors { get; set; } = new()
-        {
-            { 10, 0xFFF7F7F7 }, // Say
-            { 11, 0xFFFFA666 }, // Shout
-            { 30, 0xFFFFFF00 }, // Yell
-            { 14, 0xFF66E5FF }, // Party
-            { 15, 0xFFFF7F00 }, // Alliance
-            { 24, 0xFFABDBE5 }, // FreeCompany
-            { 13, 0xFFFFB8DE }, // TellIncoming
-            { 12, 0xFFFFB8DE }, // TellOutgoing
-            { 27, 0xFFD4FF7D }, // NoviceNetwork
-            { 16, 0xFFD4FF7D }, // Ls1 (y el resto de LS suelen ser iguales)
-        };
+        public Dictionary<int, uint> ChannelColors { get; set; } = CreateDefaultChannelColors();
 
 
         [NonSerialized]
@@ -176,9 +148,114 @@ namespace EchoXIV
             _pluginInterface = pluginInterface;
         }
 
+        public bool NormalizeDefaults()
+        {
+            var changed = false;
+
+            if (Version < CurrentVersion)
+            {
+                Version = CurrentVersion;
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(SourceLanguage))
+            {
+                SourceLanguage = "es";
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(TargetLanguage))
+            {
+                TargetLanguage = "en";
+                changed = true;
+            }
+
+            if (IncomingTargetLanguage == null)
+            {
+                IncomingTargetLanguage = string.Empty;
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(PapagoVersionKey))
+            {
+                PapagoVersionKey = Constants.DefaultPapagoVersionKey;
+                changed = true;
+            }
+
+            if (ExcludedMessages == null)
+            {
+                ExcludedMessages = CreateDefaultExcludedMessages();
+                changed = true;
+            }
+            else if (!ReferenceEquals(ExcludedMessages.Comparer, StringComparer.OrdinalIgnoreCase))
+            {
+                ExcludedMessages = new HashSet<string>(ExcludedMessages, StringComparer.OrdinalIgnoreCase);
+                changed = true;
+            }
+
+            if (IncomingChannels == null || IncomingChannels.Count == 0)
+            {
+                IncomingChannels = CreateDefaultIncomingChannels();
+                changed = true;
+            }
+
+            if (ChannelColors == null || ChannelColors.Count == 0)
+            {
+                ChannelColors = CreateDefaultChannelColors();
+                changed = true;
+            }
+
+            return changed;
+        }
+
         public void Save()
         {
             _pluginInterface!.SavePluginConfig(this);
+        }
+
+        private static HashSet<string> CreateDefaultExcludedMessages()
+        {
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "lol", "o/", "o7", "uwu", "gg", "ty", "thx", "xd", "omg", "wtf",
+                "afk", "brb", "gn", "gm", "\\o/", "\\(^o^)/", "^_^", "^^",
+                ":)", ":(", ":D", ";)", "<3",
+                "P1", "P2", "P3", "P4", "dc", "PLD", "MCH", "DNC",
+                "m1s", "m2s", "m3s", "m4s", "m5s", "m6s", "m7s", "m8s", "m9s", "m10s", "m11s", "m12s",
+                "PF", "ilvl", "lb", "mb", "tyfp", "c:"
+            };
+        }
+
+        private static HashSet<int> CreateDefaultIncomingChannels()
+        {
+            return new HashSet<int>
+            {
+                10,
+                11,
+                30,
+                14,
+                15,
+                24,
+                12,
+                13,
+            };
+        }
+
+        private static Dictionary<int, uint> CreateDefaultChannelColors()
+        {
+            return new Dictionary<int, uint>
+            {
+                { 10, 0xFFF7F7F7 },
+                { 11, 0xFFFFA666 },
+                { 30, 0xFFFFFF00 },
+                { 14, 0xFF66E5FF },
+                { 15, 0xFFFF7F00 },
+                { 24, 0xFFABDBE5 },
+                { 13, 0xFFFFB8DE },
+                { 12, 0xFFFFB8DE },
+                { 27, 0xFFD4FF7D },
+                { 16, 0xFFD4FF7D },
+            };
         }
     }
 }

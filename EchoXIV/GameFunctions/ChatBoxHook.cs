@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
@@ -187,6 +188,11 @@ namespace EchoXIV.GameFunctions
             var sanitized = text.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
             if (Encoding.UTF8.GetByteCount(sanitized) > 450)
             {
+                _ = Plugin.Framework.RunOnFrameworkThread(() =>
+                {
+                    Plugin.ChatGui.PrintError(GetResourceText("Command_MessageTruncated", "The translated message exceeded the chat limit and was truncated before sending."));
+                });
+
                 while (Encoding.UTF8.GetByteCount(sanitized) > 447)
                 {
                     sanitized = sanitized.Substring(0, sanitized.Length - 1);
@@ -199,6 +205,11 @@ namespace EchoXIV.GameFunctions
         public void Dispose()
         {
             _processChatBoxHook?.Dispose();
+        }
+
+        private static string GetResourceText(string key, string fallback)
+        {
+            return Properties.Resources.ResourceManager.GetString(key, Properties.Resources.Culture) ?? fallback;
         }
     }
 
@@ -227,10 +238,12 @@ namespace EchoXIV.GameFunctions
                 try
                 {
                     var protectedText = glossary.Protect(context.OriginalText);
+                    using var timeout = TranslationDefaults.CreateTimeoutTokenSource();
                     var rawTranslation = await translator.TranslateAsync(
                         protectedText,
                         "auto",
-                        config.TargetLanguage
+                        config.TargetLanguage,
+                        timeout.Token
                     );
 
                     var translatedText = glossary.Restore(rawTranslation);
@@ -245,6 +258,11 @@ namespace EchoXIV.GameFunctions
                     {
                         callback(context, null);
                     }
+                }
+                catch (OperationCanceledException ex)
+                {
+                    log.Warning(ex, "Outgoing translation timed out.");
+                    callback(context, null);
                 }
                 catch (Exception ex)
                 {

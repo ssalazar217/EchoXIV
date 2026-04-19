@@ -239,6 +239,63 @@
     <data name="Command_SendError">
         <value>Error al enviar mensaje</value>
     </data>
+    <data name="Command_TranslationEnabledWithLanguages">
+        <value>Traducción activada. {0} -&gt; {1}</value>
+    </data>
+    <data name="Command_NativeWindowLocked">
+        <value>Ventana nativa bloqueada (click-through activado). Usa '/tl unlock' para desbloquearla.</value>
+    </data>
+    <data name="Command_NativeWindowUnlocked">
+        <value>Ventana nativa desbloqueada.</value>
+    </data>
+    <data name="Command_NativeWindowInactive">
+        <value>La ventana nativa no está activa.</value>
+    </data>
+    <data name="Command_HelpHeader">
+        <value>Comandos disponibles:</value>
+    </data>
+    <data name="Command_HelpTranslateLine">
+        <value>/translate &lt;mensaje&gt; - Traduce al canal activo.</value>
+    </data>
+    <data name="Command_HelpToggleLine">
+        <value>/translate on/off - Activa o desactiva la traducción automática.</value>
+    </data>
+    <data name="Command_HelpConfigLine">
+        <value>/translate config - Abre los ajustes.</value>
+    </data>
+    <data name="Command_HelpChatLine">
+        <value>/translate chat - Muestra u oculta la ventana de chat traducido.</value>
+    </data>
+    <data name="Command_HelpResetLine">
+        <value>/translate reset - Restaura la posición de la ventana de chat traducido.</value>
+    </data>
+    <data name="Command_InputReplaced">
+        <value>La ventana de entrada fue reemplazada. Usa /tl &lt;mensaje&gt;</value>
+    </data>
+    <data name="Command_ChatVisible">
+        <value>Chat traducido: visible</value>
+    </data>
+    <data name="Command_ChatHidden">
+        <value>Chat traducido: oculto</value>
+    </data>
+    <data name="Command_PositionResetNative">
+        <value>Posición de la ventana nativa restablecida a (100, 100).</value>
+    </data>
+    <data name="Command_FailoverToGoogle">
+        <value>Se alcanzó el límite de Papago. Cambiando automáticamente a Google Translate.</value>
+    </data>
+    <data name="Command_MessageTruncated">
+        <value>El mensaje traducido superó el límite del chat y fue recortado antes de enviarse.</value>
+    </data>
+    <data name="Command_HelpMessageMain">
+        <value>Traduce y envía: /translate [mensaje/on/off/config/help]</value>
+    </data>
+    <data name="Command_HelpMessageShort">
+        <value>Alias corto de /translate</value>
+    </data>
+    <data name="Command_HelpMessageConfig">
+        <value>Abrir la configuración de EchoXIV</value>
+    </data>
     <data name="General_ChangesAppliedImmediately">
         <value>Los cambios se aplican inmediatamente.</value>
     </data>
