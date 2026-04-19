@@ -122,11 +122,11 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Text(Resources.General_SourceLanguage);
             ImGui.SetNextItemWidth(200);
             
-            var languages = new[] { "es", "en", "ja", "fr", "de", "pt", "ko", "zh-CN", "zh-TW", "ru", "it" };
+            var languages = new[] { "es", "en", "ja", "fr", "de", "it", "ko", "no", "pt", "ru", "zh-CN", "zh-TW" };
             var languageNames = new[] { 
                 Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, Resources.Lang_FR, 
-                Resources.Lang_DE, Resources.Lang_PT, Resources.Lang_KO, Resources.Lang_ZH_Simp, 
-                Resources.Lang_ZH_Trad, Resources.Lang_RU, Resources.Lang_IT 
+                Resources.Lang_DE, Resources.Lang_IT, Resources.Lang_KO, Resources.Lang_NO,
+                Resources.Lang_PT, Resources.Lang_RU, Resources.Lang_ZH_Simp, Resources.Lang_ZH_Trad
             };
             
             var currentSourceIdx = Array.IndexOf(languages, _configuration.SourceLanguage);
@@ -464,11 +464,12 @@ public class ConfigWindow : Window, IDisposable
         ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Resources.Incoming_AutoDetectNote);
         ImGui.SetNextItemWidth(200);
         
-        var languages = new[] { "", "es", "en", "ja", "fr", "de", "pt", "ko", "zh-CN", "zh-TW", "ru", "it" };
+        var languages = new[] { "", "es", "en", "ja", "fr", "de", "it", "ko", "no", "pt", "ru", "zh-CN", "zh-TW" };
         var languageNames = new[] { 
             Resources.Incoming_UseWritingLanguage, Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, 
-            Resources.Lang_FR, Resources.Lang_DE, Resources.Lang_PT, Resources.Lang_KO, 
-            Resources.Lang_ZH_Simp, Resources.Lang_ZH_Trad, Resources.Lang_RU, Resources.Lang_IT 
+            Resources.Lang_FR, Resources.Lang_DE, Resources.Lang_IT, Resources.Lang_KO,
+            Resources.Lang_NO, Resources.Lang_PT, Resources.Lang_RU, Resources.Lang_ZH_Simp,
+            Resources.Lang_ZH_Trad
         };
         
         var currentIdx = Array.IndexOf(languages, _configuration.IncomingTargetLanguage);

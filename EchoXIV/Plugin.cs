@@ -75,7 +75,7 @@ namespace EchoXIV
                 _showWelcomeWindow = _configuration.FirstRun;
                 if (_showWelcomeWindow)
                 {
-                    var uiLang = NormalizeUiLanguage(PluginInterface.UiLanguage);
+                    var uiLang = NormalizeTranslationLanguage(PluginInterface.UiLanguage);
                     if (!string.IsNullOrWhiteSpace(uiLang))
                     {
                         _configuration.SourceLanguage = uiLang;
@@ -272,10 +272,46 @@ namespace EchoXIV
 
             var normalized = uiLanguage.Trim();
 
+            if (normalized.StartsWith("zh-hant", StringComparison.OrdinalIgnoreCase)) return "zh-Hant";
+            if (normalized.StartsWith("zh-hans", StringComparison.OrdinalIgnoreCase)) return "zh-Hans";
+            if (normalized.StartsWith("tw", StringComparison.OrdinalIgnoreCase)) return "zh-Hant";
+            if (normalized.StartsWith("zh-tw", StringComparison.OrdinalIgnoreCase)) return "zh-Hant";
+            if (normalized.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh-Hans";
             if (normalized.StartsWith("es", StringComparison.OrdinalIgnoreCase)) return "es";
             if (normalized.StartsWith("ja", StringComparison.OrdinalIgnoreCase)) return "ja";
             if (normalized.StartsWith("fr", StringComparison.OrdinalIgnoreCase)) return "fr";
             if (normalized.StartsWith("de", StringComparison.OrdinalIgnoreCase)) return "de";
+            if (normalized.StartsWith("it", StringComparison.OrdinalIgnoreCase)) return "it";
+            if (normalized.StartsWith("ko", StringComparison.OrdinalIgnoreCase)) return "ko";
+            if (normalized.StartsWith("no", StringComparison.OrdinalIgnoreCase)) return "no";
+            if (normalized.StartsWith("ru", StringComparison.OrdinalIgnoreCase)) return "ru";
+            if (normalized.StartsWith("en", StringComparison.OrdinalIgnoreCase)) return "en";
+
+            return "en";
+        }
+
+        private static string NormalizeTranslationLanguage(string? uiLanguage)
+        {
+            if (string.IsNullOrWhiteSpace(uiLanguage))
+            {
+                return "en";
+            }
+
+            var normalized = uiLanguage.Trim();
+
+            if (normalized.StartsWith("zh-hant", StringComparison.OrdinalIgnoreCase)) return "zh-TW";
+            if (normalized.StartsWith("zh-hans", StringComparison.OrdinalIgnoreCase)) return "zh-CN";
+            if (normalized.StartsWith("zh-tw", StringComparison.OrdinalIgnoreCase)) return "zh-TW";
+            if (normalized.StartsWith("tw", StringComparison.OrdinalIgnoreCase)) return "zh-TW";
+            if (normalized.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh-CN";
+            if (normalized.StartsWith("es", StringComparison.OrdinalIgnoreCase)) return "es";
+            if (normalized.StartsWith("ja", StringComparison.OrdinalIgnoreCase)) return "ja";
+            if (normalized.StartsWith("fr", StringComparison.OrdinalIgnoreCase)) return "fr";
+            if (normalized.StartsWith("de", StringComparison.OrdinalIgnoreCase)) return "de";
+            if (normalized.StartsWith("it", StringComparison.OrdinalIgnoreCase)) return "it";
+            if (normalized.StartsWith("ko", StringComparison.OrdinalIgnoreCase)) return "ko";
+            if (normalized.StartsWith("ru", StringComparison.OrdinalIgnoreCase)) return "ru";
+            if (normalized.StartsWith("no", StringComparison.OrdinalIgnoreCase)) return "no";
             if (normalized.StartsWith("en", StringComparison.OrdinalIgnoreCase)) return "en";
 
             return "en";

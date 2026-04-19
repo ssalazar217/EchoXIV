@@ -72,7 +72,14 @@ namespace EchoXIV.Models
                 new() { Code = "ja", Name = "日本語", Flag = "🇯🇵" },
                 new() { Code = "de", Name = "Deutsch", Flag = "🇩🇪" },
                 new() { Code = "fr", Name = "Français", Flag = "🇫🇷" },
-                new() { Code = "es", Name = "Español", Flag = "🇪🇸" }
+                new() { Code = "es", Name = "Español", Flag = "🇪🇸" },
+                new() { Code = "it", Name = "Italiano", Flag = "🇮🇹" },
+                new() { Code = "ko", Name = "한국어", Flag = "🇰🇷" },
+                new() { Code = "no", Name = "Norsk", Flag = "🇳🇴" },
+                new() { Code = "pt", Name = "Português", Flag = "🇵🇹" },
+                new() { Code = "ru", Name = "Русский", Flag = "🇷🇺" },
+                new() { Code = "zh-CN", Name = "中文(简体)", Flag = "🇨🇳" },
+                new() { Code = "zh-TW", Name = "中文(繁體)", Flag = "🇹🇼" }
             };
         }
     }

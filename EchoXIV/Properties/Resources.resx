@@ -410,6 +410,9 @@
     <data name="Lang_KO">
         <value>Korean</value>
     </data>
+    <data name="Lang_NO">
+        <value>Norwegian</value>
+    </data>
     <data name="Lang_ZH_Simp">
         <value>Chinese (Simp)</value>
     </data>

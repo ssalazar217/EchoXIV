@@ -5,10 +5,12 @@
     { "code": "de", "name": "Deutsch", "flag": "🇩🇪" },
     { "code": "fr", "name": "Français", "flag": "🇫🇷" },
     { "code": "es", "name": "Español", "flag": "🇪🇸" },
+    { "code": "it", "name": "Italiano", "flag": "🇮🇹" },
+    { "code": "no", "name": "Norsk", "flag": "🇳🇴" },
     { "code": "pt", "name": "Português", "flag": "🇵🇹" },
     { "code": "ru", "name": "Русский", "flag": "🇷🇺" },
     { "code": "zh-CN", "name": "中文", "flag": "🇨🇳" },
-    { "code": "ko", "name": "한국어", "flag": "🇰🇷" },
-    { "code": "it", "name": "Italiano", "flag": "🇮🇹" }
+    { "code": "zh-TW", "name": "繁體中文", "flag": "🇹🇼" },
+    { "code": "ko", "name": "한국어", "flag": "🇰🇷" }
   ]
 }

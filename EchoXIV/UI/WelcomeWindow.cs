@@ -33,11 +33,11 @@ public class WelcomeWindow : Window
         ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.Welcome_SourceTip);
         ImGui.SetNextItemWidth(-1);
         
-        var languages = new[] { "es", "en", "ja", "fr", "de", "pt", "ko", "zh-CN", "zh-TW", "ru", "it" };
+        var languages = new[] { "es", "en", "ja", "fr", "de", "it", "ko", "no", "pt", "ru", "zh-CN", "zh-TW" };
         var languageNames = new[] { 
             Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, Resources.Lang_FR, 
-            Resources.Lang_DE, Resources.Lang_PT, Resources.Lang_KO, Resources.Lang_ZH_Simp, 
-            Resources.Lang_ZH_Trad, Resources.Lang_RU, Resources.Lang_IT 
+            Resources.Lang_DE, Resources.Lang_IT, Resources.Lang_KO, Resources.Lang_NO,
+            Resources.Lang_PT, Resources.Lang_RU, Resources.Lang_ZH_Simp, Resources.Lang_ZH_Trad
         };
         
         var currentSourceIdx = Array.IndexOf(languages, _configuration.SourceLanguage);
@@ -71,11 +71,12 @@ public class WelcomeWindow : Window
         ImGui.Text(Resources.Welcome_ReadQuestion);
         ImGui.SetNextItemWidth(-1);
 
-        var incomingLangs = new[] { "", "es", "en", "ja", "fr", "de", "pt", "ko", "zh-CN", "zh-TW", "ru", "it" };
+        var incomingLangs = new[] { "", "es", "en", "ja", "fr", "de", "it", "ko", "no", "pt", "ru", "zh-CN", "zh-TW" };
         var incomingLangNames = new[] { 
             Resources.Incoming_UseWritingLanguage, Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, 
-            Resources.Lang_FR, Resources.Lang_DE, Resources.Lang_PT, Resources.Lang_KO, 
-            Resources.Lang_ZH_Simp, Resources.Lang_ZH_Trad, Resources.Lang_RU, Resources.Lang_IT 
+            Resources.Lang_FR, Resources.Lang_DE, Resources.Lang_IT, Resources.Lang_KO,
+            Resources.Lang_NO, Resources.Lang_PT, Resources.Lang_RU, Resources.Lang_ZH_Simp,
+            Resources.Lang_ZH_Trad
         };
 
         var currentIncIdx = Array.IndexOf(incomingLangs, _configuration.IncomingTargetLanguage);

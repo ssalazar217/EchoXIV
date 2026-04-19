@@ -155,6 +155,7 @@ namespace EchoXIV.Properties {
         public static string Lang_DE { get { return ResourceManager.GetString("Lang_DE", resourceCulture); } }
         public static string Lang_PT { get { return ResourceManager.GetString("Lang_PT", resourceCulture); } }
         public static string Lang_KO { get { return ResourceManager.GetString("Lang_KO", resourceCulture); } }
+        public static string Lang_NO { get { return ResourceManager.GetString("Lang_NO", resourceCulture); } }
         public static string Lang_ZH_Simp { get { return ResourceManager.GetString("Lang_ZH_Simp", resourceCulture); } }
         public static string Lang_ZH_Trad { get { return ResourceManager.GetString("Lang_ZH_Trad", resourceCulture); } }
         public static string Lang_RU { get { return ResourceManager.GetString("Lang_RU", resourceCulture); } }
