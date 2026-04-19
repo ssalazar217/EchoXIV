@@ -640,7 +640,7 @@ namespace EchoXIV
                             IsTranslating = false
                         });
                         
-                        if (_configuration.VerboseLogging) PluginLog.Info($"Translated and sent: '{message}' -> '{translated}'");
+                        PluginLog.Info($"Translated and sent [{type}]: '{message}' -> '{translated}'");
                     });
                 }
                 catch (OperationCanceledException ex)
@@ -803,30 +803,75 @@ namespace EchoXIV
             var activeType = XivChatType.Debug;
             var activeRecipient = string.Empty;
             
-            var shell = RaptureShellModule.Instance();
             var agentChat = AgentChatLog.Instance();
+            var shell = RaptureShellModule.Instance();
+
+            if (agentChat != null)
+            {
+                switch (agentChat->CurrentChannel)
+                {
+                    case ChatChannel.Say:
+                        activeType = XivChatType.Say;
+                        break;
+                    case ChatChannel.Party:
+                        activeType = XivChatType.Party;
+                        break;
+                    case ChatChannel.Alliance:
+                        activeType = XivChatType.Alliance;
+                        break;
+                }
+            }
             
             if (shell != null)
             {
-                // Mapear el tipo de chat actual del shell del juego
                 var gameChatType = (uint)shell->ChatType;
-                
-                // 17 y 18 suelen ser Tell (Incoming/Outgoing)
-                if (gameChatType == 17 || gameChatType == 18)
+                if (activeType == XivChatType.Debug)
                 {
-                    activeType = XivChatType.TellOutgoing;
-                    if (agentChat != null)
-                    {
-                        activeRecipient = agentChat->TellPlayerName.ToString();
-                    }
+                    activeType = MapActiveInputChannelToChatType(gameChatType);
                 }
-                else
+
+                if (activeType == XivChatType.TellOutgoing && agentChat != null)
                 {
-                    activeType = (XivChatType)gameChatType;
+                    activeRecipient = agentChat->TellPlayerName.ToString();
                 }
             }
 
             return (null, trimmed, activeType, activeRecipient);
+        }
+
+        private static XivChatType MapActiveInputChannelToChatType(uint inputChannel)
+        {
+            return inputChannel switch
+            {
+                0 => XivChatType.TellOutgoing,
+                1 => XivChatType.Say,
+                2 => XivChatType.Party,
+                3 => XivChatType.Alliance,
+                4 => XivChatType.Yell,
+                5 => XivChatType.Shout,
+                6 => XivChatType.FreeCompany,
+                7 => XivChatType.PvPTeam,
+                8 => XivChatType.NoviceNetwork,
+                9 => XivChatType.CrossLinkShell1,
+                10 => XivChatType.CrossLinkShell2,
+                11 => XivChatType.CrossLinkShell3,
+                12 => XivChatType.CrossLinkShell4,
+                13 => XivChatType.CrossLinkShell5,
+                14 => XivChatType.CrossLinkShell6,
+                15 => XivChatType.CrossLinkShell7,
+                16 => XivChatType.CrossLinkShell8,
+                17 => XivChatType.TellOutgoing,
+                18 => XivChatType.TellOutgoing,
+                19 => XivChatType.Ls1,
+                20 => XivChatType.Ls2,
+                21 => XivChatType.Ls3,
+                22 => XivChatType.Ls4,
+                23 => XivChatType.Ls5,
+                24 => XivChatType.Ls6,
+                25 => XivChatType.Ls7,
+                26 => XivChatType.Ls8,
+                _ => XivChatType.Debug,
+            };
         }
 
         private unsafe void SendToChannel(string message, string? channel)
@@ -836,10 +881,8 @@ namespace EchoXIV
                // SANEAMIENTO
                var sanitized = message.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
                var fullMessage = string.IsNullOrEmpty(channel) ? sanitized : $"{channel} {sanitized}";
-               
-               var bytes = System.Text.Encoding.UTF8.GetBytes(fullMessage);
                 
-                if (bytes.Length > 500)
+                if (System.Text.Encoding.UTF8.GetByteCount(fullMessage) > 500)
                 {
                     // Truncar si es necesario
                     while (System.Text.Encoding.UTF8.GetByteCount(fullMessage) > 497)
@@ -847,10 +890,9 @@ namespace EchoXIV
                         fullMessage = fullMessage.Substring(0, fullMessage.Length - 1);
                     }
                     fullMessage += "...";
-                    bytes = System.Text.Encoding.UTF8.GetBytes(fullMessage);
                 }
                 
-                var mes = FFXIVClientStructs.FFXIV.Client.System.String.Utf8String.FromSequence(bytes);
+                var mes = FFXIVClientStructs.FFXIV.Client.System.String.Utf8String.FromString(fullMessage);
                 /* SanitizeString a veces es demasiado restrictivo con alfabetos como el Cirílico
                 mes->SanitizeString(
                     FFXIVClientStructs.FFXIV.Client.System.String.AllowedEntities.UppercaseLetters |

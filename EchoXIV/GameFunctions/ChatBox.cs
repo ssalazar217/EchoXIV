@@ -1,4 +1,3 @@
-using System.Text;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 
@@ -12,22 +11,23 @@ namespace EchoXIV.GameFunctions
     {
         public static void SendMessage(string message)
         {
-            var bytes = Encoding.UTF8.GetBytes(message);
-            if (bytes.Length == 0)
+            if (string.IsNullOrEmpty(message))
                 return;
             
-            if (bytes.Length > 500)
+            if (System.Text.Encoding.UTF8.GetByteCount(message) > 500)
             {
-                // Truncar si es muy largo
-                Array.Resize(ref bytes, 500);
+                while (message.Length > 0 && System.Text.Encoding.UTF8.GetByteCount(message) > 500)
+                {
+                    message = message[..^1];
+                }
             }
             
-            SendMessageUnsafe(bytes);
+            SendMessageUnsafe(message);
         }
         
-        private static void SendMessageUnsafe(byte[] message)
+        private static void SendMessageUnsafe(string message)
         {
-            var mes = Utf8String.FromSequence(message);
+            var mes = Utf8String.FromString(message);
             mes->SanitizeString(
                 AllowedEntities.UppercaseLetters |
                 AllowedEntities.LowercaseLetters |

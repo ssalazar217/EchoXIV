@@ -11,10 +11,6 @@ using EchoXIV.Services;
 
 namespace EchoXIV.UI
 {
-    /// <summary>
-    /// Ventana flotante para mostrar traducciones de mensajes entrantes.
-    /// Replicando el comportamiento de ChatTwo (Layout de Tabla de 2 Columnas).
-    /// </summary>
     public class TranslatedChatWindow : Window, IDisposable
     {
         private readonly Configuration _configuration;
