@@ -78,6 +78,7 @@ namespace EchoXIV
 
         private readonly GlossaryService _glossaryService;
         private readonly TranslationCache _translationCache;
+        private readonly Func<XivChatType, List<ConversationLine>?>? _conversationContextProvider;
 
         public IncomingMessageHandler(
             Configuration configuration,
@@ -89,7 +90,8 @@ namespace EchoXIV
             IClientState clientState,
             IPlayerState playerState,
             IObjectTable objectTable,
-            IPluginLog pluginLog)
+            IPluginLog pluginLog,
+            Func<XivChatType, List<ConversationLine>?>? conversationContextProvider = null)
         {
             _configuration = configuration;
             _primaryTranslator = primaryTranslator;
@@ -101,6 +103,7 @@ namespace EchoXIV
             _playerState = playerState;
             _objectTable = objectTable;
             _pluginLog = pluginLog;
+            _conversationContextProvider = conversationContextProvider;
 
             _chatGui.ChatMessage += OnChatMessage;
         }
@@ -262,9 +265,6 @@ namespace EchoXIV
             if (isLocalPlayer && !_configuration.ShowOutgoingMessages && originalFromPending == null)
                 return;
 
-            // DEDUPLICACIÓN: Ya verificada al inicio del método
-            // string? originalFromPending = null; (Ya declarado arriba)
-
             if (originalFromPending != null)
             {
                 // Ya lo tenemos, no traducir otra vez y usar el original real
@@ -279,10 +279,6 @@ namespace EchoXIV
                     IsTranslating = false
                 };
                 
-                // Efectivamente, el UI debe saber que esto es saliente para mostrarlo al revés
-                // o simplemente guardamos TranslatedText como el original para que el tooltip lo muestre.
-                // En EchoXIV, TranslatedText se muestra en grande y OriginalText se muestra en el tooltip si no está vacío.
-                // Así que para salientes:
                 pendingMsg.TranslatedText = messageText; // La traducción (Texto grande)
                 pendingMsg.OriginalText = originalFromPending; // El original (Tooltip)
                 
@@ -363,12 +359,30 @@ namespace EchoXIV
                 
                 // 3. Traducir
                 using var primaryTimeout = TranslationDefaults.CreateTimeoutTokenSource();
-                var translation = await _primaryTranslator.TranslateAsync(
-                    protectedText,
-                    "auto",
-                    targetLanguage,
-                    primaryTimeout.Token
-                );
+                string translation;
+
+                if (_primaryTranslator is LocalAiTranslatorService localAi &&
+                    _configuration.LocalAiUseConversationContext &&
+                    _conversationContextProvider != null)
+                {
+                    var context = _conversationContextProvider(message.ChatType);
+                    translation = await localAi.TranslateWithContextAsync(
+                        protectedText,
+                        "auto",
+                        targetLanguage,
+                        context,
+                        primaryTimeout.Token
+                    );
+                }
+                else
+                {
+                    translation = await _primaryTranslator.TranslateAsync(
+                        protectedText,
+                        "auto",
+                        targetLanguage,
+                        primaryTimeout.Token
+                    );
+                }
 
                 // 4. Restaurar términos y guardar en caché
                 var finalTranslation = SanitizeText(_glossaryService.Restore(translation));

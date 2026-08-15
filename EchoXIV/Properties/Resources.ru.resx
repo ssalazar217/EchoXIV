@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -49,6 +49,10 @@
   <data name="ChatWindow_Translating"><value>Перевод...</value></data>
   <data name="ChatWindow_Retry"><value>Повторить</value></data>
   <data name="ChatWindow_RetryTooltip"><value>Повторить переводы, которые завершились ошибкой или остались в ожидании</value></data>
+  <data name="ChatWindow_Internal"><value>[Внутренний]</value></data>
+  <data name="ChatWindow_External"><value>[Внешний]</value></data>
+  <data name="ChatWindow_InternalTooltip"><value>Окно находится внутри игрового монитора.</value></data>
+  <data name="ChatWindow_ExternalTooltip"><value>Окно находится на вторичном мониторе.</value></data>
   <data name="ChatWindow_Original"><value>Оригинал:</value></data>
   <data name="Command_TranslationEnabled"><value>Перевод включен.</value></data>
   <data name="Command_TranslationDisabled"><value>Перевод отключен</value></data>
@@ -60,7 +64,6 @@
   <data name="Command_TranslateError"><value>Ошибка перевода</value></data>
   <data name="Command_SendError"><value>Ошибка отправки сообщения</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>Перевод включен. {0} -&gt; {1}</value></data>
-  <data name="Command_DalamudWindowOnly"><value>Доступно только окно Dalamud.</value></data>
   <data name="Command_HelpHeader"><value>Доступные команды:</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;message&gt; - Перевести в активный канал.</value></data>
   <data name="Command_HelpToggleLine"><value>/translate on/off - Включить или отключить автоматический перевод.</value></data>
@@ -71,6 +74,15 @@
   <data name="Command_ChatVisible"><value>Переведенный чат: видим</value></data>
   <data name="Command_ChatHidden"><value>Переведенный чат: скрыт</value></data>
   <data name="Command_FailoverToGoogle"><value>Достигнут лимит Papago. Автоматическое переключение на Google Translate.</value></data>
+  <data name="Command_LocalAiFailoverToGoogle">
+    <value>Локальный сервер ИИ не отвечает. Автоматический переход на Google Translate.</value>
+  </data>
+  <data name="ChatWindow_IAOffline">
+    <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineTooltip">
+    <value>Локальный сервер ИИ недоступен. EchoXIV использует Google Translate, пока вы не вернётесь к локальному ИИ или сервер снова не станет доступен.</value>
+  </data>
   <data name="Command_MessageTruncated"><value>Переведенное сообщение превысило лимит чата и было обрезано перед отправкой.</value></data>
   <data name="Command_HelpMessageMain"><value>Перевести и отправить: /translate [message/on/off/config/help]</value></data>
   <data name="Command_HelpMessageShort"><value>Короткий псевдоним для /translate</value></data>
@@ -89,8 +101,35 @@
   <data name="ConfigWindow_Title"><value>EchoXIV - Настройки</value></data>
   <data name="Tab_Visuals"><value>Внешний вид</value></data>
   <data name="General_Engine"><value>Движок перевода</value></data>
+  <data name="General_InterfaceLanguage"><value>Язык интерфейса</value></data>
+  <data name="General_InterfaceLanguageTip"><value>Необязательно: выберите язык интерфейса EchoXIV. По умолчанию следует языку игры/Dalamud.</value></data>
+  <data name="General_InterfaceLanguageDefault"><value>По умолчанию (как игра/Dalamud)</value></data>
   <data name="General_EngineGoogleDesc"><value>Классический Google Translate (GTx JSON API)</value></data>
   <data name="General_EnginePapagoDesc"><value>Naver Papago Translator (акцент на корейском и японском)</value></data>
+  <data name="General_EngineLocalAIDesc"><value>Локальный ИИ через OpenAI-совместимый сервер (LM Studio, Ollama). Работает на вашей GPU.</value></data>
+  <data name="LocalAI_SectionTitle"><value>Настройки локального ИИ-сервера</value></data>
+  <data name="LocalAI_Endpoint"><value>URL сервера</value></data>
+  <data name="LocalAI_EndpointTip"><value>Базовый URL, совместимый с OpenAI. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
+  <data name="LocalAI_Model"><value>Название модели (необязательно)</value></data>
+  <data name="LocalAI_ModelTip"><value>Оставьте пустым, чтобы использовать загруженную модель. Для игрового чата (VRAM делится с игрой) используйте лёгкую модель: qwen3-4b или gemma-3-4b (Q4, ~3GB) — низкая задержка и свободная VRAM для FFXIV.</value></data>
+  <data name="LocalAI_ApiKey"><value>API-ключ (необязательно)</value></data>
+  <data name="LocalAI_ApiKeyTip"><value>Нужен только если сервер его требует. LM Studio и Ollama обычно не требуют.</value></data>
+  <data name="LocalAI_Temperature"><value>Температура</value></data>
+  <data name="LocalAI_Timeout"><value>Тайм-аут (секунды)</value></data>
+  <data name="LocalAI_DisableThinking"><value>Отключить «размышление» модели</value></data>
+  <data name="LocalAI_DisableThinkingTip"><value>Снижает задержку в живом чате для моделей с рассуждением (Gemma 3, Qwen3 и т.д.). Игнорируется моделями без поддержки.</value></data>
+  <data name="LocalAI_MaxTokens"><value>Макс. токенов ответа</value></data>
+  <data name="LocalAI_MaxTokensTip"><value>Ограничивает длину ответа для снижения задержки. 64 достаточно для строк чата; 0 = без ограничения.</value></data>
+  <data name="LocalAI_ContextTitle"><value>Контекст разговора</value></data>
+  <data name="LocalAI_ContextDesc"><value>Включает недавние сообщения канала как контекст, чтобы ИИ сохранял перевод согласованным с текущим разговором. Применяется только к локальному ИИ-движку и к каналам, включённым ниже.</value></data>
+  <data name="LocalAI_ContextEnable"><value>Включить контекст разговора для входящих сообщений</value></data>
+  <data name="LocalAI_ContextEnableTip"><value>При включении недавние сообщения из активных каналов отправляются ИИ как контекст перед переводом.</value></data>
+  <data name="LocalAI_ContextDisabled"><value>Контекст разговора отключён.</value></data>
+  <data name="LocalAI_ContextMessages"><value>Сообщений контекста</value></data>
+  <data name="LocalAI_ContextMessagesTip"><value>Количество недавних сообщений, включаемых как контекст. Большие значения улучшают согласованность, но добавляют задержку и используют больше контекста модели.</value></data>
+  <data name="LocalAI_ContextChannels"><value>Каналы с контекстом:</value></data>
+  <data name="LocalAI_ContextChannelsTip"><value>Только эти каналы отправляют контекст разговора. Держите их немного, чтобы избежать спама контекста в шумных каналах.</value></data>
+  <data name="LocalAI_ContextDefaultNote"><value>По умолчанию контекст используют только Party и Alliance. Say/Shout/Yell/FC/LS остаются без контекста.</value></data>
   <data name="General_VerboseLogs"><value>Подробные логи</value></data>
   <data name="General_VerboseLogsTip"><value>Включает дополнительную техническую информацию в лог Dalamud. Полезно для отладки.</value></data>
   <data name="Visuals_Description"><value>Настройте внешний вид окна переведенного чата.</value></data>
@@ -121,6 +160,11 @@
   <data name="Lang_ZH_Trad"><value>Китайский (традиционный)</value></data>
   <data name="Lang_RU"><value>Русский</value></data>
   <data name="Lang_IT"><value>Итальянский</value></data>
+  <data name="Lang_TR"><value>Турецкий</value></data>
+  <data name="Lang_PL"><value>Польский</value></data>
+  <data name="Lang_UK"><value>Украинский</value></data>
+  <data name="Lang_CS"><value>Чешский</value></data>
+  <data name="Lang_NL"><value>Нидерландский</value></data>
   <data name="Channel_Say"><value>Сказать</value></data>
   <data name="Channel_Shout"><value>Крик</value></data>
   <data name="Channel_Yell"><value>Громкий крик</value></data>

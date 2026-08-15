@@ -20,6 +20,7 @@ public class ConfigWindow : Window, IDisposable
     // Callback para actualizaciones en tiempo real
     public Action? OnVisualsChanged;
     public Action<TranslationEngine>? OnTranslationEngineChanged;
+    public Action? OnUiLanguageChanged;
     
     private string _newExcludedMessage = string.Empty;
     
@@ -80,7 +81,13 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
-            
+
+            DrawInterfaceLanguageSelector();
+
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
             ImGui.Text(Resources.General_Engine);
             ImGui.SetNextItemWidth(200);
             
@@ -102,7 +109,14 @@ public class ConfigWindow : Window, IDisposable
             ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), 
                 _configuration.SelectedEngine == TranslationEngine.Google 
                 ? Resources.General_EngineGoogleDesc 
+                : _configuration.SelectedEngine == TranslationEngine.LocalAI
+                ? Resources.General_EngineLocalAIDesc
                 : Resources.General_EnginePapagoDesc);
+
+            if (_configuration.SelectedEngine == TranslationEngine.LocalAI)
+            {
+                DrawLocalAiSettings();
+            }
 
             ImGui.Spacing();
             ImGui.Separator();
@@ -164,6 +178,38 @@ public class ConfigWindow : Window, IDisposable
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_VerboseLogsTip);
         }
     }
+
+    /// <summary>
+    /// UI language selector. Empty follows Dalamud.
+    /// </summary>
+    private void DrawInterfaceLanguageSelector()
+    {
+        ImGui.Text(Resources.General_InterfaceLanguage);
+        ImGui.SetNextItemWidth(200);
+
+        // Options: empty (follow Dalamud) plus supported languages.
+        var codes = new[] { "", "en", "es", "de", "fr", "ja", "it", "ko", "no", "ru", "pt-BR", "tr", "pl", "uk", "cs", "nl", "zh-CN", "zh-TW" };
+        var names = new[]
+        {
+            Resources.General_InterfaceLanguageDefault,
+            Resources.Lang_EN, Resources.Lang_ES, Resources.Lang_DE, Resources.Lang_FR, Resources.Lang_JA,
+            Resources.Lang_IT, Resources.Lang_KO, Resources.Lang_NO, Resources.Lang_RU, Resources.Lang_PT,
+            Resources.Lang_TR, Resources.Lang_PL, Resources.Lang_UK, Resources.Lang_CS, Resources.Lang_NL,
+            Resources.Lang_ZH_Simp, Resources.Lang_ZH_Trad
+        };
+
+        var currentIdx = Array.IndexOf(codes, _configuration.UiLanguage);
+        if (currentIdx == -1) currentIdx = 0;
+
+        if (ImGui.Combo("##UiLanguage", ref currentIdx, names, names.Length))
+        {
+            _configuration.UiLanguage = codes[currentIdx];
+            _configuration.Save();
+            OnUiLanguageChanged?.Invoke();
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_InterfaceLanguageTip);
+    }
+
     private void DrawExcludedMessagesTab()
     {
         using var child = ImRaii.Child("ExcludedScroll");
@@ -568,6 +614,86 @@ public class ConfigWindow : Window, IDisposable
         DrawChannelCheckbox("CWLS8", XivChatType.CrossLinkShell8);
         
         ImGui.Columns(1);
+        
+        if (_configuration.SelectedEngine == TranslationEngine.LocalAI)
+        {
+            DrawIncomingContextSettings();
+        }
+        }
+    }
+    
+    /// <summary>
+    /// Conversation context options for incoming messages.
+    /// Visible only when Local AI is selected.
+    /// </summary>
+    private void DrawIncomingContextSettings()
+    {
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        
+        ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.4f, 1f), Resources.LocalAI_ContextTitle);
+        ImGui.TextWrapped(Resources.LocalAI_ContextDesc);
+        ImGui.Spacing();
+
+        var useContext = _configuration.LocalAiUseConversationContext;
+        if (ImGui.Checkbox(Resources.LocalAI_ContextEnable, ref useContext))
+        {
+            _configuration.LocalAiUseConversationContext = useContext;
+            _configuration.Save();
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_ContextEnableTip);
+
+        if (!useContext)
+        {
+            ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Resources.LocalAI_ContextDisabled);
+            return;
+        }
+
+        ImGui.Spacing();
+        ImGui.Text(Resources.LocalAI_ContextMessages);
+        ImGui.SetNextItemWidth(150);
+        var contextMessages = _configuration.LocalAiContextMessages;
+        if (ImGui.SliderInt("##LocalAiContextMessages", ref contextMessages, 0, 20))
+        {
+            _configuration.LocalAiContextMessages = contextMessages;
+            _configuration.Save();
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_ContextMessagesTip);
+
+        ImGui.Spacing();
+        ImGui.Text(Resources.LocalAI_ContextChannels);
+        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Resources.LocalAI_ContextChannelsTip);
+        ImGui.Spacing();
+
+        ImGui.Columns(3, "ContextColumns", false);
+        DrawContextChannelCheckbox("Say", XivChatType.Say);
+        DrawContextChannelCheckbox("Yell", XivChatType.Yell);
+        DrawContextChannelCheckbox("Shout", XivChatType.Shout);
+        ImGui.NextColumn();
+        DrawContextChannelCheckbox("Party", XivChatType.Party);
+        DrawContextChannelCheckbox("Alliance", XivChatType.Alliance);
+        DrawContextChannelCheckbox("Free Company", XivChatType.FreeCompany);
+        ImGui.NextColumn();
+        DrawContextChannelCheckbox("Novice Network", XivChatType.NoviceNetwork);
+        DrawContextChannelCheckbox("Linkshell", XivChatType.Ls1);
+        DrawContextChannelCheckbox("Tell", XivChatType.TellIncoming);
+        ImGui.Columns(1);
+
+        ImGui.Spacing();
+        ImGui.TextWrapped(Resources.LocalAI_ContextDefaultNote);
+    }
+
+    private void DrawContextChannelCheckbox(string label, XivChatType chatType)
+    {
+        var enabled = _configuration.LocalAiContextChannels.Contains((int)chatType);
+        if (ImGui.Checkbox($"{label}##ctx{(int)chatType}", ref enabled))
+        {
+            if (enabled)
+                _configuration.LocalAiContextChannels.Add((int)chatType);
+            else
+                _configuration.LocalAiContextChannels.Remove((int)chatType);
+            _configuration.Save();
         }
     }
     
@@ -582,5 +708,85 @@ public class ConfigWindow : Window, IDisposable
                 _configuration.IncomingChannels.Remove((int)chatType);
             _configuration.Save();
         }
+    }
+
+    private void DrawLocalAiSettings()
+    {
+        ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.4f, 1f), Resources.LocalAI_SectionTitle);
+        ImGui.Spacing();
+
+        // Endpoint
+        var endpoint = _configuration.LocalAiEndpoint ?? string.Empty;
+        ImGui.Text(Resources.LocalAI_Endpoint);
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.InputText("##LocalAiEndpoint", ref endpoint, 200))
+        {
+            _configuration.LocalAiEndpoint = endpoint.Trim();
+            _configuration.Save();
+            OnTranslationEngineChanged?.Invoke(_configuration.SelectedEngine);
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_EndpointTip);
+
+        // Model.
+        var model = _configuration.LocalAiModel ?? string.Empty;
+        ImGui.Text(Resources.LocalAI_Model);
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.InputText("##LocalAiModel", ref model, 100))
+        {
+            _configuration.LocalAiModel = model.Trim();
+            _configuration.Save();
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_ModelTip);
+
+        // API Key
+        var apiKey = _configuration.LocalAiApiKey ?? string.Empty;
+        ImGui.Text(Resources.LocalAI_ApiKey);
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.InputText("##LocalAiApiKey", ref apiKey, 200, ImGuiInputTextFlags.Password))
+        {
+            _configuration.LocalAiApiKey = apiKey.Trim();
+            _configuration.Save();
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_ApiKeyTip);
+
+        // Temperature.
+        var temperature = _configuration.LocalAiTemperature;
+        ImGui.Text(Resources.LocalAI_Temperature);
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.SliderFloat("##LocalAiTemp", ref temperature, 0f, 1f))
+        {
+            _configuration.LocalAiTemperature = temperature;
+            _configuration.Save();
+        }
+
+        // Timeout
+        var timeout = _configuration.LocalAiTimeoutSeconds;
+        ImGui.Text(Resources.LocalAI_Timeout);
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.SliderInt("##LocalAiTimeout", ref timeout, 5, 120))
+        {
+            _configuration.LocalAiTimeoutSeconds = timeout;
+            _configuration.Save();
+        }
+
+        // Disable "think" mode.
+        var disableThinking = _configuration.LocalAiDisableThinking;
+        if (ImGui.Checkbox(Resources.LocalAI_DisableThinking, ref disableThinking))
+        {
+            _configuration.LocalAiDisableThinking = disableThinking;
+            _configuration.Save();
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_DisableThinkingTip);
+
+        // Max response tokens.
+        var maxTokens = _configuration.LocalAiMaxTokens;
+        ImGui.Text(Resources.LocalAI_MaxTokens);
+        ImGui.SetNextItemWidth(-1);
+        if (ImGui.SliderInt("##LocalAiMaxTokens", ref maxTokens, 0, 256))
+        {
+            _configuration.LocalAiMaxTokens = maxTokens;
+            _configuration.Save();
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_MaxTokensTip);
     }
 }

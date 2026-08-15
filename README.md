@@ -10,17 +10,7 @@
 - **Integrated Dalamud Window**: Displays translated chat inside the native Dalamud UI using ImGui.
 - **Localized UI**: Follows the language configured in Dalamud, including expanded support for the UI languages supported by Dalamud.
 - **Smooth First-Run Experience**: Initial setup is based on your Dalamud language, with a guided welcome screen.
-- **Privacy and Simplicity**: Supports **Google Translate** without an API key and **Papago** for fast, practical translation.
-
-## 📷 Screenshots
-
-|          Integrated Translated Chat           |
-| :-------------------------------------------: |
-| ![ImGui Chat](EchoXIV/images/imgui_chat.png)  |
-
-|             Configuration             |
-| :-----------------------------------: |
-| ![Config](EchoXIV/images/config.png) |
+- **Multiple Engines**: Supports **Google Translate** (no API key), **Papago**, and **Local AI** (LM Studio / Ollama) with automatic failover to Google when an engine is unavailable.
 
 ## 🚀 Installation
 
@@ -37,11 +27,16 @@ Once it is available in the testing channel:
 
 ## 📖 Commands
 
-| Command        | Description                                      |
-| -------------- | ------------------------------------------------ |
-| `/echoxiv`     | Opens the configuration window.                  |
-| `/tl <message>`| Translates and sends the message to the active channel. |
-| `/tl config`   | Shortcut to open the settings.                   |
+| Command               | Description                                             |
+| --------------------- | ------------------------------------------------------- |
+| `/translate` / `/tl`  | Opens the configuration window (no arguments).          |
+| `/tl <message>`       | Translates and sends the message to the active channel. |
+| `/tl on` / `/tl off`  | Enable or disable automatic translation.                |
+| `/tl config`          | Opens the settings.                                     |
+| `/tl chat`            | Shows or hides the translated chat window.              |
+| `/tl reset`           | Resets the translated chat window position.             |
+| `/tl help`            | Shows the available commands.                           |
+| `/echoxiv`            | Opens the configuration window.                         |
 
 ## 🔧 Configuration
 
@@ -49,7 +44,7 @@ Open the menu with `/echoxiv`:
 
 - **Welcome**: Initial screen to configure your languages in seconds.
 - **General**: Set your writing and target languages.
-- **Visuals**: Adjust font size, time format, per-channel colors, and translated chat window locking.
+- **Visuals**: Adjust font size, time format, per-channel colors, and translated chat window position.
 - **Filters**: Exclude messages or channels you do not want translated, including common game shorthand and recurring terms.
 
 ## 🙏 Credits

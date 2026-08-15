@@ -5,7 +5,7 @@ namespace EchoXIV.Services;
 
 internal static class TranslationDefaults
 {
-    public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
+    public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
 
     public static CancellationTokenSource CreateTimeoutTokenSource(CancellationToken cancellationToken = default)
     {

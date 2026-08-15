@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -49,6 +49,10 @@
   <data name="ChatWindow_Translating"><value>Oversetter...</value></data>
   <data name="ChatWindow_Retry"><value>Prøv igjen</value></data>
   <data name="ChatWindow_RetryTooltip"><value>Prøv på nytt oversettelser som feilet eller fortsatt venter</value></data>
+  <data name="ChatWindow_Internal"><value>[Intern]</value></data>
+  <data name="ChatWindow_External"><value>[Ekstern]</value></data>
+  <data name="ChatWindow_InternalTooltip"><value>Vinduet er inne i spillmonitoren.</value></data>
+  <data name="ChatWindow_ExternalTooltip"><value>Vinduet er på en sekundær monitor.</value></data>
   <data name="ChatWindow_Original"><value>Original:</value></data>
   <data name="Command_TranslationEnabled"><value>Oversettelse aktivert.</value></data>
   <data name="Command_TranslationDisabled"><value>Oversettelse deaktivert</value></data>
@@ -60,7 +64,6 @@
   <data name="Command_TranslateError"><value>Oversettelsesfeil</value></data>
   <data name="Command_SendError"><value>Feil ved sending av melding</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>Oversettelse aktivert. {0} -&gt; {1}</value></data>
-  <data name="Command_DalamudWindowOnly"><value>Bare Dalamud-vinduet er tilgjengelig.</value></data>
   <data name="Command_HelpHeader"><value>Tilgjengelige kommandoer:</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;message&gt; - Oversett til aktiv kanal.</value></data>
   <data name="Command_HelpToggleLine"><value>/translate on/off - Slå automatisk oversettelse av eller på.</value></data>
@@ -71,6 +74,15 @@
   <data name="Command_ChatVisible"><value>Oversatt chat: synlig</value></data>
   <data name="Command_ChatHidden"><value>Oversatt chat: skjult</value></data>
   <data name="Command_FailoverToGoogle"><value>Papago-grensen er nådd. Bytter automatisk til Google Translate.</value></data>
+  <data name="Command_LocalAiFailoverToGoogle">
+    <value>Den lokale AI-serveren svarer ikke. Byttet automatisk til Google Translate.</value>
+  </data>
+  <data name="ChatWindow_IAOffline">
+    <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineTooltip">
+    <value>Den lokale AI-serveren er ikke tilgjengelig. EchoXIV bruker Google Translate til du bytter tilbake til lokal AI eller serveren kommer tilbake på nett.</value>
+  </data>
   <data name="Command_MessageTruncated"><value>Den oversatte meldingen overskred chatgrensen og ble avkortet før sending.</value></data>
   <data name="Command_HelpMessageMain"><value>Oversett og send: /translate [message/on/off/config/help]</value></data>
   <data name="Command_HelpMessageShort"><value>Kort alias for /translate</value></data>
@@ -89,8 +101,35 @@
   <data name="ConfigWindow_Title"><value>EchoXIV - Konfigurasjon</value></data>
   <data name="Tab_Visuals"><value>Utseende</value></data>
   <data name="General_Engine"><value>Oversettelsesmotor</value></data>
+  <data name="General_InterfaceLanguage"><value>Grensesnittspråk</value></data>
+  <data name="General_InterfaceLanguageTip"><value>Valgfritt: velg språket for EchoXIV-grensesnittet. Standard følger spillets/Dalamuds språk.</value></data>
+  <data name="General_InterfaceLanguageDefault"><value>Standard (som spill/Dalamud)</value></data>
   <data name="General_EngineGoogleDesc"><value>Klassisk Google Translate (GTx JSON API)</value></data>
   <data name="General_EnginePapagoDesc"><value>Naver Papago Translator (fokus på koreansk/japansk)</value></data>
+  <data name="General_EngineLocalAIDesc"><value>Lokal KI via OpenAI-kompatibel server (LM Studio, Ollama). Kjører på din egen GPU.</value></data>
+  <data name="LocalAI_SectionTitle"><value>Innstillinger for lokal KI-server</value></data>
+  <data name="LocalAI_Endpoint"><value>Server-URL</value></data>
+  <data name="LocalAI_EndpointTip"><value>OpenAI-kompatibel base-URL. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
+  <data name="LocalAI_Model"><value>Modellnavn (valgfritt)</value></data>
+  <data name="LocalAI_ModelTip"><value>La stå tom for å bruke den innlastede modellen. For in-game chat (VRAM delt med spillet) bruk en lett modell: qwen3-4b eller gemma-3-4b (Q4, ~3GB) — lav latens og ledig VRAM for FFXIV.</value></data>
+  <data name="LocalAI_ApiKey"><value>API-nøkkel (valgfritt)</value></data>
+  <data name="LocalAI_ApiKeyTip"><value>Kun nødvendig hvis serveren krever det. LM Studio og Ollama krever vanligvis ikke.</value></data>
+  <data name="LocalAI_Temperature"><value>Temperatur</value></data>
+  <data name="LocalAI_Timeout"><value>Tidsavbrudd (sekunder)</value></data>
+  <data name="LocalAI_DisableThinking"><value>Deaktiver modellens "tenking"</value></data>
+  <data name="LocalAI_DisableThinkingTip"><value>Reduserer ventetid i direkte chat for modeller med resonnering (Gemma 3, Qwen3 osv.). Ignoreres av modeller uten støtte.</value></data>
+  <data name="LocalAI_MaxTokens"><value>Maks. svar-tokens</value></data>
+  <data name="LocalAI_MaxTokensTip"><value>Begrenser svarlengden for å kutte ventetid. 64 er nok for chat-linjer; 0 = ingen grense.</value></data>
+  <data name="LocalAI_ContextTitle"><value>Samtalekontekst</value></data>
+  <data name="LocalAI_ContextDesc"><value>Inkluderer nylige meldinger fra en kanal som kontekst slik at KI-en holder oversettelsen i tråd med samtalen som pågår. Gjelder bare lokale KI-motoren og kanalene som er aktivert nedenfor.</value></data>
+  <data name="LocalAI_ContextEnable"><value>Aktiver samtalekontekst for innkommende meldinger</value></data>
+  <data name="LocalAI_ContextEnableTip"><value>Når aktivert, sendes nylige meldinger fra aktive kanaler til KI-en som kontekst før oversettelse.</value></data>
+  <data name="LocalAI_ContextDisabled"><value>Samtalekontekst er deaktivert.</value></data>
+  <data name="LocalAI_ContextMessages"><value>Kontekstmeldinger</value></data>
+  <data name="LocalAI_ContextMessagesTip"><value>Antall nylige meldinger som inkluderes som kontekst. Høyere verdier forbedrer sammenhengen, men øker ventetiden og bruker mer modellkontekst.</value></data>
+  <data name="LocalAI_ContextChannels"><value>Kanaler med kontekst:</value></data>
+  <data name="LocalAI_ContextChannelsTip"><value>Bare disse kanalene sender samtalekontekst. Hold dem få for å unngå kontekstspam i støyende kanaler.</value></data>
+  <data name="LocalAI_ContextDefaultNote"><value>Som standard bruker bare Party og Alliance kontekst. Say/Shout/Yell/FC/LS forblir uten kontekst.</value></data>
   <data name="General_VerboseLogs"><value>Detaljerte logger</value></data>
   <data name="General_VerboseLogsTip"><value>Aktiverer ekstra teknisk informasjon i Dalamud-loggen. Nyttig ved feilsøking.</value></data>
   <data name="Visuals_Description"><value>Tilpass utseendet til vinduet med oversatt chat.</value></data>
@@ -121,6 +160,11 @@
   <data name="Lang_ZH_Trad"><value>Kinesisk (tradisjonell)</value></data>
   <data name="Lang_RU"><value>Russisk</value></data>
   <data name="Lang_IT"><value>Italiensk</value></data>
+  <data name="Lang_TR"><value>Tyrkisk</value></data>
+  <data name="Lang_PL"><value>Polsk</value></data>
+  <data name="Lang_UK"><value>Ukrainsk</value></data>
+  <data name="Lang_CS"><value>Tsjekkisk</value></data>
+  <data name="Lang_NL"><value>Nederlandsk</value></data>
   <data name="Channel_Say"><value>Si</value></data>
   <data name="Channel_Shout"><value>Rop</value></data>
   <data name="Channel_Yell"><value>Skrik</value></data>

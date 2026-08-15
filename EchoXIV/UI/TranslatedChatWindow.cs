@@ -21,6 +21,7 @@ namespace EchoXIV.UI
         private bool _autoScroll = true;
         private bool _resetPending = false;
         private bool _isOnMainScreen = true;
+        private bool _stickToBottom = true;
 
         public bool IsOnMainScreen => _isOnMainScreen;
 
@@ -99,6 +100,9 @@ namespace EchoXIV.UI
 
         public override void OnOpen()
         {
+            // On open, re-anchor to the bottom so recent messages are visible.
+            _stickToBottom = true;
+
             if (!_configuration.OverlayVisible)
             {
                 _configuration.OverlayVisible = true;
@@ -156,10 +160,10 @@ namespace EchoXIV.UI
             if (_configuration.VerboseLogging)
             {
                 ImGui.SameLine();
-                ImGui.TextDisabled(_isOnMainScreen ? "[Internal]" : "[External]");
+                ImGui.TextDisabled(_isOnMainScreen ? Resources.ChatWindow_Internal : Resources.ChatWindow_External);
                 if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip(_isOnMainScreen ? "The window is inside the game monitor." : "The window is on a secondary monitor.");
+                    ImGui.SetTooltip(_isOnMainScreen ? Resources.ChatWindow_InternalTooltip : Resources.ChatWindow_ExternalTooltip);
                 }
             }
 
@@ -168,6 +172,16 @@ namespace EchoXIV.UI
             {
                 var engineName = _configuration.SelectedEngine.ToString();
                 ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), $"[{engineName}] ({_messages.Count})");
+            }
+
+            if (_configuration.LocalAiUnavailable)
+            {
+                ImGui.SameLine();
+                ImGui.TextColored(new Vector4(1f, 0.6f, 0f, 1f), Resources.ChatWindow_IAOffline);
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip(Resources.ChatWindow_IAOfflineTooltip);
+                }
             }
         }
 
@@ -214,9 +228,24 @@ namespace EchoXIV.UI
                     }
                 }
 
-                if (_autoScroll && ImGui.GetScrollY() >= ImGui.GetScrollMaxY() - 20)
+                if (_autoScroll)
                 {
-                    ImGui.SetScrollHereY(1.0f);
+                // Keep the view pinned to the last line unless the user scrolls up.
+                    var scrollY = ImGui.GetScrollY();
+                    var scrollMaxY = ImGui.GetScrollMaxY();
+                    if (scrollMaxY <= 0f || scrollY >= scrollMaxY - 20f)
+                    {
+                        _stickToBottom = true;
+                    }
+                    else
+                    {
+                        _stickToBottom = false;
+                    }
+
+                    if (_stickToBottom)
+                    {
+                        ImGui.SetScrollHereY(1.0f);
+                    }
                 }
 
                 ImGui.EndTable();

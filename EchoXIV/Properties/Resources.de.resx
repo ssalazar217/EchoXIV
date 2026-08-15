@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
@@ -194,6 +194,18 @@
   <data name="ChatWindow_RetryTooltip">
     <value>Fehlgeschlagene oder ausstehende Übersetzungen erneut versuchen</value>
   </data>
+  <data name="ChatWindow_Internal">
+    <value>[Intern]</value>
+  </data>
+  <data name="ChatWindow_External">
+    <value>[Extern]</value>
+  </data>
+  <data name="ChatWindow_InternalTooltip">
+    <value>Das Fenster befindet sich im Spielmonitor.</value>
+  </data>
+  <data name="ChatWindow_ExternalTooltip">
+    <value>Das Fenster befindet sich auf einem sekundären Monitor.</value>
+  </data>
   <data name="ChatWindow_Original">
     <value>Original:</value>
   </data>
@@ -227,9 +239,6 @@
   <data name="Command_TranslationEnabledWithLanguages">
     <value>Übersetzung aktiviert. {0} -&gt; {1}</value>
   </data>
-  <data name="Command_DalamudWindowOnly">
-    <value>Nur das Dalamud-Fenster ist verfügbar.</value>
-  </data>
   <data name="Command_HelpHeader">
     <value>Verfügbare Befehle:</value>
   </data>
@@ -259,6 +268,15 @@
   </data>
   <data name="Command_FailoverToGoogle">
     <value>Papago-Limit erreicht. Automatischer Wechsel zu Google Translate.</value>
+  </data>
+  <data name="Command_LocalAiFailoverToGoogle">
+    <value>Der lokale KI-Server antwortet nicht. Wechsle automatisch zu Google Translate.</value>
+  </data>
+  <data name="ChatWindow_IAOffline">
+    <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineTooltip">
+    <value>Der lokale KI-Server ist nicht erreichbar. EchoXIV verwendet Google Translate, bis du wieder zur lokalen KI wechselst oder der Server wieder verfügbar ist.</value>
   </data>
   <data name="Command_MessageTruncated">
     <value>Die übersetzte Nachricht überschritt das Chat-Limit und wurde vor dem Senden gekürzt.</value>
@@ -312,13 +330,94 @@
     <value>Visualisierung</value>
   </data>
   <data name="General_Engine">
-    <value>Übersetzungs-Engine</value>
+    <value>Übersetzungsmodul</value>
+  </data>
+  <data name="General_InterfaceLanguage">
+    <value>Schnittstellensprache</value>
+  </data>
+  <data name="General_InterfaceLanguageTip">
+    <value>Optional: Wähle die Sprache der EchoXIV-Oberfläche. Standardmäßig folgt sie der Sprache des Spiels/Dalamud.</value>
+  </data>
+  <data name="General_InterfaceLanguageDefault">
+    <value>Standard (wie Spiel/Dalamud)</value>
   </data>
   <data name="General_EngineGoogleDesc">
     <value>Klassisches Google Translate (GTx JSON API)</value>
   </data>
   <data name="General_EnginePapagoDesc">
     <value>Naver Papago Translator (Koreanisch/Japanisch Fokus)</value>
+  </data>
+  <data name="General_EngineLocalAIDesc">
+    <value>Lokale KI über OpenAI-kompatiblen Server (LM Studio, Ollama). Läuft auf deiner eigenen GPU.</value>
+  </data>
+  <data name="LocalAI_SectionTitle">
+    <value>Einstellungen für den lokalen KI-Server</value>
+  </data>
+  <data name="LocalAI_Endpoint">
+    <value>Server-URL</value>
+  </data>
+  <data name="LocalAI_EndpointTip">
+    <value>OpenAI-kompatible Basis-URL. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value>
+  </data>
+  <data name="LocalAI_Model">
+    <value>Modellname (optional)</value>
+  </data>
+  <data name="LocalAI_ModelTip">
+    <value>Leer lassen, um das geladene Modell zu verwenden. Für den In-Game-Chat (VRAM mit dem Spiel geteilt) ein leichtes Modell verwenden: qwen3-4b oder gemma-3-4b (Q4, ~3GB) — hält die Latenz niedrig und lässt VRAM für FFXIV übrig.</value>
+  </data>
+  <data name="LocalAI_ApiKey">
+    <value>API-Schlüssel (optional)</value>
+  </data>
+  <data name="LocalAI_ApiKeyTip">
+    <value>Nur nötig, wenn dein Server einen verlangt. LM Studio und Ollama benötigen normalerweise keinen.</value>
+  </data>
+  <data name="LocalAI_Temperature">
+    <value>Temperatur</value>
+  </data>
+  <data name="LocalAI_Timeout">
+    <value>Timeout (Sekunden)</value>
+  </data>
+  <data name="LocalAI_DisableThinking">
+    <value>"Denken" des Modells deaktivieren</value>
+  </data>
+  <data name="LocalAI_DisableThinkingTip">
+    <value>Reduziert die Latenz im Live-Chat bei Modellen mit Reasoning (Gemma 3, Qwen3 usw.). Von Modellen ohne Denkunterstützung ignoriert.</value>
+  </data>
+  <data name="LocalAI_MaxTokens">
+    <value>Max. Antwort-Tokens</value>
+  </data>
+  <data name="LocalAI_MaxTokensTip">
+    <value>Begrenzt die Antwortlänge, um die Latenz zu senken. 64 reicht für Chat-Zeilen; 0 = kein Limit.</value>
+  </data>
+  <data name="LocalAI_ContextTitle">
+    <value>Gesprächskontext</value>
+  </data>
+  <data name="LocalAI_ContextDesc">
+    <value>Fügt kürzliche Nachrichten eines Kanals als Kontext hinzu, damit die KI die Übersetzung im Einklang mit dem laufenden Gespräch hält. Gilt nur für die lokale KI-Engine und für die unten aktivierten Kanäle.</value>
+  </data>
+  <data name="LocalAI_ContextEnable">
+    <value>Gesprächskontext für eingehende Nachrichten aktivieren</value>
+  </data>
+  <data name="LocalAI_ContextEnableTip">
+    <value>Wenn aktiviert, werden kürzliche Nachrichten aus aktivierten Kanälen vor der Übersetzung als Kontext an die KI gesendet.</value>
+  </data>
+  <data name="LocalAI_ContextDisabled">
+    <value>Der Gesprächskontext ist deaktiviert.</value>
+  </data>
+  <data name="LocalAI_ContextMessages">
+    <value>Kontext-Nachrichten</value>
+  </data>
+  <data name="LocalAI_ContextMessagesTip">
+    <value>Anzahl der als Kontext einbezogenen kürzlichen Nachrichten. Höhere Werte verbessern die Kohärenz, erhöhen aber die Latenz und nutzen mehr Modellkontext.</value>
+  </data>
+  <data name="LocalAI_ContextChannels">
+    <value>Kanäle mit Kontext:</value>
+  </data>
+  <data name="LocalAI_ContextChannelsTip">
+    <value>Nur diese Kanäle senden Gesprächskontext. Halte sie gering, um Kontext-Spam in lauten Kanälen zu vermeiden.</value>
+  </data>
+  <data name="LocalAI_ContextDefaultNote">
+    <value>Standardmäßig nutzen nur Party und Allianz Kontext. Say/Shout/Yell/FC/LS bleiben ohne Kontext.</value>
   </data>
   <data name="General_VerboseLogs">
     <value>Ausführliche Protokollierung</value>
@@ -409,6 +508,21 @@
   </data>
   <data name="Lang_IT">
     <value>Italienisch</value>
+  </data>
+  <data name="Lang_TR">
+    <value>Türkisch</value>
+  </data>
+  <data name="Lang_PL">
+    <value>Polnisch</value>
+  </data>
+  <data name="Lang_UK">
+    <value>Ukrainisch</value>
+  </data>
+  <data name="Lang_CS">
+    <value>Tschechisch</value>
+  </data>
+  <data name="Lang_NL">
+    <value>Niederländisch</value>
   </data>
   <data name="Channel_Say">
     <value>Sagen</value>

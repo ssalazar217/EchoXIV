@@ -121,7 +121,6 @@ namespace EchoXIV.Properties {
         public static string Command_MessageTooLong { get { return GetString("Command_MessageTooLong"); } }
         public static string Command_TranslateError { get { return GetString("Command_TranslateError"); } }
         public static string Command_SendError { get { return GetString("Command_SendError"); } }
-        public static string Command_DalamudWindowOnly { get { return GetString("Command_DalamudWindowOnly"); } }
         public static string General_ChangesAppliedImmediately { get { return GetString("General_ChangesAppliedImmediately"); } }
         public static string Excluded_InputLabel { get { return GetString("Excluded_InputLabel"); } }
         public static string Excluded_Remove { get { return GetString("Excluded_Remove"); } }
@@ -138,6 +137,33 @@ namespace EchoXIV.Properties {
         public static string General_Engine { get { return GetString("General_Engine"); } }
         public static string General_EngineGoogleDesc { get { return GetString("General_EngineGoogleDesc"); } }
         public static string General_EnginePapagoDesc { get { return GetString("General_EnginePapagoDesc"); } }
+        public static string General_EngineLocalAIDesc { get { return GetString("General_EngineLocalAIDesc"); } }
+        public static string General_InterfaceLanguage { get { return GetString("General_InterfaceLanguage"); } }
+        public static string General_InterfaceLanguageTip { get { return GetString("General_InterfaceLanguageTip"); } }
+        public static string General_InterfaceLanguageDefault { get { return GetString("General_InterfaceLanguageDefault"); } }
+        public static string LocalAI_SectionTitle { get { return GetString("LocalAI_SectionTitle"); } }
+        public static string LocalAI_Endpoint { get { return GetString("LocalAI_Endpoint"); } }
+        public static string LocalAI_EndpointTip { get { return GetString("LocalAI_EndpointTip"); } }
+        public static string LocalAI_Model { get { return GetString("LocalAI_Model"); } }
+        public static string LocalAI_ModelTip { get { return GetString("LocalAI_ModelTip"); } }
+        public static string LocalAI_ApiKey { get { return GetString("LocalAI_ApiKey"); } }
+        public static string LocalAI_ApiKeyTip { get { return GetString("LocalAI_ApiKeyTip"); } }
+        public static string LocalAI_Temperature { get { return GetString("LocalAI_Temperature"); } }
+        public static string LocalAI_Timeout { get { return GetString("LocalAI_Timeout"); } }
+        public static string LocalAI_DisableThinking { get { return GetString("LocalAI_DisableThinking"); } }
+        public static string LocalAI_DisableThinkingTip { get { return GetString("LocalAI_DisableThinkingTip"); } }
+        public static string LocalAI_MaxTokens { get { return GetString("LocalAI_MaxTokens"); } }
+        public static string LocalAI_MaxTokensTip { get { return GetString("LocalAI_MaxTokensTip"); } }
+        public static string LocalAI_ContextTitle { get { return GetString("LocalAI_ContextTitle"); } }
+        public static string LocalAI_ContextDesc { get { return GetString("LocalAI_ContextDesc"); } }
+        public static string LocalAI_ContextEnable { get { return GetString("LocalAI_ContextEnable"); } }
+        public static string LocalAI_ContextEnableTip { get { return GetString("LocalAI_ContextEnableTip"); } }
+        public static string LocalAI_ContextDisabled { get { return GetString("LocalAI_ContextDisabled"); } }
+        public static string LocalAI_ContextMessages { get { return GetString("LocalAI_ContextMessages"); } }
+        public static string LocalAI_ContextMessagesTip { get { return GetString("LocalAI_ContextMessagesTip"); } }
+        public static string LocalAI_ContextChannels { get { return GetString("LocalAI_ContextChannels"); } }
+        public static string LocalAI_ContextChannelsTip { get { return GetString("LocalAI_ContextChannelsTip"); } }
+        public static string LocalAI_ContextDefaultNote { get { return GetString("LocalAI_ContextDefaultNote"); } }
         public static string General_VerboseLogs { get { return GetString("General_VerboseLogs"); } }
         public static string General_VerboseLogsTip { get { return GetString("General_VerboseLogsTip"); } }
         public static string Visuals_Description { get { return GetString("Visuals_Description"); } }
@@ -168,6 +194,11 @@ namespace EchoXIV.Properties {
         public static string Lang_ZH_Trad { get { return GetString("Lang_ZH_Trad"); } }
         public static string Lang_RU { get { return GetString("Lang_RU"); } }
         public static string Lang_IT { get { return GetString("Lang_IT"); } }
+        public static string Lang_TR { get { return GetString("Lang_TR"); } }
+        public static string Lang_PL { get { return GetString("Lang_PL"); } }
+        public static string Lang_UK { get { return GetString("Lang_UK"); } }
+        public static string Lang_CS { get { return GetString("Lang_CS"); } }
+        public static string Lang_NL { get { return GetString("Lang_NL"); } }
         public static string Channel_Say { get { return GetString("Channel_Say"); } }
         public static string Channel_Shout { get { return GetString("Channel_Shout"); } }
         public static string Channel_Yell { get { return GetString("Channel_Yell"); } }
@@ -185,5 +216,11 @@ namespace EchoXIV.Properties {
         public static string History_Title { get { return GetString("History_Title"); } }
         public static string ChatWindow_Retry { get { return GetString("ChatWindow_Retry"); } }
         public static string ChatWindow_RetryTooltip { get { return GetString("ChatWindow_RetryTooltip"); } }
+        public static string ChatWindow_IAOffline { get { return GetString("ChatWindow_IAOffline"); } }
+        public static string ChatWindow_IAOfflineTooltip { get { return GetString("ChatWindow_IAOfflineTooltip"); } }
+        public static string ChatWindow_Internal { get { return GetString("ChatWindow_Internal"); } }
+        public static string ChatWindow_External { get { return GetString("ChatWindow_External"); } }
+        public static string ChatWindow_InternalTooltip { get { return GetString("ChatWindow_InternalTooltip"); } }
+        public static string ChatWindow_ExternalTooltip { get { return GetString("ChatWindow_ExternalTooltip"); } }
     }
 }

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -49,6 +49,10 @@
   <data name="ChatWindow_Translating"><value>翻译中...</value></data>
   <data name="ChatWindow_Retry"><value>重试</value></data>
   <data name="ChatWindow_RetryTooltip"><value>重试失败或仍在等待中的翻译</value></data>
+  <data name="ChatWindow_Internal"><value>[内部]</value></data>
+  <data name="ChatWindow_External"><value>[外部]</value></data>
+  <data name="ChatWindow_InternalTooltip"><value>窗口位于游戏显示器内。</value></data>
+  <data name="ChatWindow_ExternalTooltip"><value>窗口位于辅助显示器上。</value></data>
   <data name="ChatWindow_Original"><value>原文：</value></data>
   <data name="Command_TranslationEnabled"><value>翻译已启用。</value></data>
   <data name="Command_TranslationDisabled"><value>翻译已禁用</value></data>
@@ -60,7 +64,6 @@
   <data name="Command_TranslateError"><value>翻译错误</value></data>
   <data name="Command_SendError"><value>发送消息时出错</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>翻译已启用。{0} -&gt; {1}</value></data>
-  <data name="Command_DalamudWindowOnly"><value>仅 Dalamud 窗口可用。</value></data>
   <data name="Command_HelpHeader"><value>可用命令：</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;message&gt; - 翻译到当前频道。</value></data>
   <data name="Command_HelpToggleLine"><value>/translate on/off - 开启或关闭自动翻译。</value></data>
@@ -71,6 +74,15 @@
   <data name="Command_ChatVisible"><value>翻译聊天：可见</value></data>
   <data name="Command_ChatHidden"><value>翻译聊天：隐藏</value></data>
   <data name="Command_FailoverToGoogle"><value>已达到 Papago 限额。正在自动切换到 Google Translate。</value></data>
+  <data name="Command_LocalAiFailoverToGoogle">
+    <value>本地 AI 服务器无响应，正在自动切换到 Google 翻译。</value>
+  </data>
+  <data name="ChatWindow_IAOffline">
+    <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineTooltip">
+    <value>本地 AI 服务器不可达。在您切换回本地 AI 或服务器恢复之前，EchoXIV 将使用 Google 翻译。</value>
+  </data>
   <data name="Command_MessageTruncated"><value>翻译后的消息超过聊天长度限制，发送前已被截断。</value></data>
   <data name="Command_HelpMessageMain"><value>翻译并发送：/translate [message/on/off/config/help]</value></data>
   <data name="Command_HelpMessageShort"><value>/translate 的短别名</value></data>
@@ -89,8 +101,35 @@
   <data name="ConfigWindow_Title"><value>EchoXIV - 设置</value></data>
   <data name="Tab_Visuals"><value>外观</value></data>
   <data name="General_Engine"><value>翻译引擎</value></data>
+  <data name="General_InterfaceLanguage"><value>界面语言</value></data>
+  <data name="General_InterfaceLanguageTip"><value>可选：选择 EchoXIV 的界面语言。默认跟随游戏/Dalamud 的语言。</value></data>
+  <data name="General_InterfaceLanguageDefault"><value>默认（同游戏/Dalamud）</value></data>
   <data name="General_EngineGoogleDesc"><value>经典 Google Translate（GTx JSON API）</value></data>
   <data name="General_EnginePapagoDesc"><value>Naver Papago Translator（偏重韩语/日语）</value></data>
+  <data name="General_EngineLocalAIDesc"><value>通过兼容 OpenAI 的服务器使用本地 AI（LM Studio、Ollama）。在您自己的 GPU 上运行。</value></data>
+  <data name="LocalAI_SectionTitle"><value>本地 AI 服务器设置</value></data>
+  <data name="LocalAI_Endpoint"><value>服务器 URL</value></data>
+  <data name="LocalAI_EndpointTip"><value>兼容 OpenAI 的基础 URL。LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
+  <data name="LocalAI_Model"><value>模型名称（可选）</value></data>
+  <data name="LocalAI_ModelTip"><value>留空以使用已加载的模型。游戏内聊天（VRAM 与游戏共享）请使用轻量模型：qwen3-4b 或 gemma-3-4b（Q4，约 3GB）——低延迟并为 FFXIV 保留 VRAM。</value></data>
+  <data name="LocalAI_ApiKey"><value>API 密钥（可选）</value></data>
+  <data name="LocalAI_ApiKeyTip"><value>仅当服务器要求时使用。LM Studio 和 Ollama 通常不需要。</value></data>
+  <data name="LocalAI_Temperature"><value>温度</value></data>
+  <data name="LocalAI_Timeout"><value>超时（秒）</value></data>
+  <data name="LocalAI_DisableThinking"><value>禁用模型"思考"</value></data>
+  <data name="LocalAI_DisableThinkingTip"><value>降低支持推理的模型（Gemma 3、Qwen3 等）在实时聊天中的延迟。不支持的模型会忽略此设置。</value></data>
+  <data name="LocalAI_MaxTokens"><value>最大响应令牌数</value></data>
+  <data name="LocalAI_MaxTokensTip"><value>限制响应长度以缩短延迟。聊天一行 64 足够；0 = 无限制。</value></data>
+  <data name="LocalAI_ContextTitle"><value>对话上下文</value></data>
+  <data name="LocalAI_ContextDesc"><value>包含频道的最近消息作为上下文，使 AI 的翻译与进行中的对话保持一致。仅适用于本地 AI 引擎及下方启用的频道。</value></data>
+  <data name="LocalAI_ContextEnable"><value>为收到的消息启用对话上下文</value></data>
+  <data name="LocalAI_ContextEnableTip"><value>启用后，翻译前会将已启用频道的最近消息作为上下文发送给 AI。</value></data>
+  <data name="LocalAI_ContextDisabled"><value>对话上下文已禁用。</value></data>
+  <data name="LocalAI_ContextMessages"><value>上下文消息数</value></data>
+  <data name="LocalAI_ContextMessagesTip"><value>作为上下文包含的最近消息数量。值越高连贯性越好，但会增加延迟并使用更多模型上下文。</value></data>
+  <data name="LocalAI_ContextChannels"><value>使用上下文的频道：</value></data>
+  <data name="LocalAI_ContextChannelsTip"><value>仅这些频道会发送对话上下文。请保持少量，避免在嘈杂频道中产生上下文刷屏。</value></data>
+  <data name="LocalAI_ContextDefaultNote"><value>默认仅 Party 和 Alliance 使用上下文。Say/Shout/Yell/FC/LS 保持无上下文。</value></data>
   <data name="General_VerboseLogs"><value>详细日志</value></data>
   <data name="General_VerboseLogsTip"><value>在 Dalamud 日志中启用额外的技术信息。适合调试使用。</value></data>
   <data name="Visuals_Description"><value>自定义翻译聊天窗口的外观。</value></data>
@@ -121,6 +160,11 @@
   <data name="Lang_ZH_Trad"><value>中文（繁體）</value></data>
   <data name="Lang_RU"><value>俄语</value></data>
   <data name="Lang_IT"><value>意大利语</value></data>
+  <data name="Lang_TR"><value>土耳其语</value></data>
+  <data name="Lang_PL"><value>波兰语</value></data>
+  <data name="Lang_UK"><value>乌克兰语</value></data>
+  <data name="Lang_CS"><value>捷克语</value></data>
+  <data name="Lang_NL"><value>荷兰语</value></data>
   <data name="Channel_Say"><value>说</value></data>
   <data name="Channel_Shout"><value>喊话</value></data>
   <data name="Channel_Yell"><value>呼喊</value></data>

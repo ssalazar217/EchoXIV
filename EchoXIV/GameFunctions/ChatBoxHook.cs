@@ -21,6 +21,8 @@ namespace EchoXIV.GameFunctions
     {
         private readonly Configuration _configuration;
         private ITranslationService _translatorService;
+        private ITranslationService? _fallbackTranslator;
+        private readonly Action _onEngineFailover;
         private readonly IPluginLog _pluginLog;
         private readonly IClientState _clientState;
         private readonly IGameInteropProvider _gameInteropProvider;
@@ -36,26 +38,36 @@ namespace EchoXIV.GameFunctions
         public ChatBoxHook(
             Configuration configuration,
             ITranslationService translatorService,
+            ITranslationService? fallbackTranslator,
             GlossaryService glossaryService,
             TranslationCache translationCache,
             IncomingMessageHandler incomingMessageHandler,
             IPluginLog pluginLog,
             IClientState clientState,
-            IGameInteropProvider gameInteropProvider)
+            IGameInteropProvider gameInteropProvider,
+            Action onEngineFailover)
         {
             _configuration = configuration;
             _translatorService = translatorService;
+            _fallbackTranslator = fallbackTranslator;
             _glossaryService = glossaryService;
             _translationCache = translationCache;
             _incomingMessageHandler = incomingMessageHandler;
             _pluginLog = pluginLog;
             _clientState = clientState;
             _gameInteropProvider = gameInteropProvider;
+            _onEngineFailover = onEngineFailover;
         }
 
         public void UpdateTranslator(ITranslationService newService)
         {
             _translatorService = newService;
+        }
+
+        public void UpdateTranslators(ITranslationService newService, ITranslationService? fallbackTranslator)
+        {
+            _translatorService = newService;
+            _fallbackTranslator = fallbackTranslator;
         }
         
         public void Enable()
@@ -132,11 +144,13 @@ namespace EchoXIV.GameFunctions
 
             TranslationHelper.TranslateAsync(
                 _translatorService,
+                _fallbackTranslator,
                 _glossaryService,
                 _translationCache,
                 _incomingMessageHandler,
                 _configuration,
                 _pluginLog,
+                _onEngineFailover,
                 context,
                 (ctx, translated) => 
                 {
@@ -217,11 +231,13 @@ namespace EchoXIV.GameFunctions
     {
         public static void TranslateAsync(
             ITranslationService translator,
+            ITranslationService? fallbackTranslator,
             GlossaryService glossary,
             TranslationCache cache,
             IncomingMessageHandler handler,
             Configuration config,
             IPluginLog log,
+            Action onEngineFailover,
             TranslationContext context,
             Action<TranslationContext, string?> callback)
         {
@@ -231,12 +247,37 @@ namespace EchoXIV.GameFunctions
                 {
                     var protectedText = glossary.Protect(context.OriginalText);
                     using var timeout = TranslationDefaults.CreateTimeoutTokenSource();
-                    var rawTranslation = await translator.TranslateAsync(
-                        protectedText,
-                        "auto",
-                        config.TargetLanguage,
-                        timeout.Token
-                    );
+                    string rawTranslation;
+
+                    try
+                    {
+                        rawTranslation = await translator.TranslateAsync(
+                            protectedText,
+                            "auto",
+                            config.TargetLanguage,
+                            timeout.Token
+                        );
+                    }
+                    catch (TranslationRateLimitException)
+                    {
+                        // Primary engine unavailable: try the fallback and switch permanently.
+                        log.Warning("Primary engine unavailable for outgoing message. Attempting failover...");
+                        if (fallbackTranslator != null)
+                        {
+                            using var fallbackTimeout = TranslationDefaults.CreateTimeoutTokenSource();
+                            rawTranslation = await fallbackTranslator.TranslateAsync(
+                                protectedText,
+                                "auto",
+                                config.TargetLanguage,
+                                fallbackTimeout.Token
+                            );
+                            onEngineFailover?.Invoke();
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
 
                     var translatedText = glossary.Restore(rawTranslation);
                     

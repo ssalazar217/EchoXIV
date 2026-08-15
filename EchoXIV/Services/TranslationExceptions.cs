@@ -14,4 +14,16 @@ namespace EchoXIV.Services
             EngineName = engineName;
         }
     }
+
+    /// <summary>
+    /// Exception thrown when the Local AI server is unavailable
+    /// (no network response, timeout, or HTTP error after retries).
+    /// Inherits from TranslationRateLimitException to reuse the failover flow.
+    /// </summary>
+    public class LocalAiUnavailableException : TranslationRateLimitException
+    {
+        public LocalAiUnavailableException(string engineName, string message) : base(engineName, message)
+        {
+        }
+    }
 }

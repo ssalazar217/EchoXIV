@@ -11,7 +11,8 @@ namespace EchoXIV
     public enum TranslationEngine
     {
         Google,
-        Papago
+        Papago,
+        LocalAI
     }
 
     [Serializable]
@@ -35,6 +36,11 @@ namespace EchoXIV
         /// Idioma en el que escribes tus propios mensajes.
         /// </summary>
         public string SourceLanguage { get; set; } = "en";
+
+        /// <summary>
+        /// EchoXIV UI language. If empty, follows Dalamud.
+        /// </summary>
+        public string UiLanguage { get; set; } = string.Empty;
         
         /// <summary>
         /// Idioma al que se traducen tus mensajes salientes.
@@ -92,6 +98,68 @@ namespace EchoXIV
         public bool VerboseLogging { get; set; } = false; // Logs detallados (off por defecto)
         public bool OverlayVisible { get; set; } = true;
 
+        // === Local AI ===
+
+        /// <summary>
+        /// OpenAI-compatible endpoint URL (base, without /v1/chat/completions).
+        /// </summary>
+        public string LocalAiEndpoint { get; set; } = "http://localhost:1234";
+
+        /// <summary>
+        /// Model name. Empty uses the server-loaded model.
+        /// </summary>
+        public string LocalAiModel { get; set; } = "";
+
+        /// <summary>
+        /// Optional API key.
+        /// </summary>
+        public string LocalAiApiKey { get; set; } = "";
+
+        /// <summary>
+        /// Model temperature.
+        /// </summary>
+        public float LocalAiTemperature { get; set; } = 0.2f;
+
+        /// <summary>
+        /// Request timeout in seconds.
+        /// </summary>
+        public int LocalAiTimeoutSeconds { get; set; } = 30;
+
+        // === Conversation Context (Local AI) ===
+
+        /// <summary>
+        /// Uses recent channel history as AI context. Only applies to Local AI.
+        /// </summary>
+        public bool LocalAiUseConversationContext { get; set; } = true;
+
+        /// <summary>
+        /// Number of recent channel messages used as context.
+        /// </summary>
+        public int LocalAiContextMessages { get; set; } = 10;
+
+        /// <summary>
+        /// Disables reasoning ("think") mode where supported.
+        /// Sent as chat_template_kwargs.think=false.
+        /// </summary>
+        public bool LocalAiDisableThinking { get; set; } = true;
+
+        /// <summary>
+        /// Maximum output tokens. Zero uses the server default.
+        /// </summary>
+        public int LocalAiMaxTokens { get; set; } = 64;
+
+        /// <summary>
+        /// Set when the Local AI server is unreachable and the engine
+        /// has automatically switched to Google. Reset when Local AI
+        /// is selected again in settings.
+        /// </summary>
+        public bool LocalAiUnavailable { get; set; } = false;
+
+        /// <summary>
+        /// Channels where conversation context applies (Local AI only).
+        /// </summary>
+        public HashSet<int> LocalAiContextChannels { get; set; } = CreateDefaultContextChannels();
+
         /// <summary>
         /// Canales de chat entrantes a traducir
         /// </summary>
@@ -128,6 +196,12 @@ namespace EchoXIV
                 changed = true;
             }
 
+            if (UiLanguage == null)
+            {
+                UiLanguage = string.Empty;
+                changed = true;
+            }
+
             if (string.IsNullOrWhiteSpace(TargetLanguage))
             {
                 TargetLanguage = "en";
@@ -143,6 +217,48 @@ namespace EchoXIV
             if (string.IsNullOrWhiteSpace(PapagoVersionKey))
             {
                 PapagoVersionKey = Constants.DefaultPapagoVersionKey;
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(LocalAiEndpoint))
+            {
+                LocalAiEndpoint = "http://localhost:1234";
+                changed = true;
+            }
+
+            if (LocalAiModel == null)
+            {
+                LocalAiModel = string.Empty;
+                changed = true;
+            }
+
+            if (LocalAiApiKey == null)
+            {
+                LocalAiApiKey = string.Empty;
+                changed = true;
+            }
+
+            if (LocalAiTemperature is < 0f or > 1f)
+            {
+                LocalAiTemperature = 0.2f;
+                changed = true;
+            }
+
+            if (LocalAiTimeoutSeconds <= 0)
+            {
+                LocalAiTimeoutSeconds = 30;
+                changed = true;
+            }
+
+            if (LocalAiContextMessages < 0 || LocalAiContextMessages > 50)
+            {
+                LocalAiContextMessages = 10;
+                changed = true;
+            }
+
+            if (LocalAiContextChannels == null || LocalAiContextChannels.Count == 0)
+            {
+                LocalAiContextChannels = CreateDefaultContextChannels();
                 changed = true;
             }
 
@@ -209,6 +325,16 @@ namespace EchoXIV
                 24,
                 12,
                 13,
+            };
+        }
+
+        private static HashSet<int> CreateDefaultContextChannels()
+        {
+            // Group/raid channels only, to avoid context spam in noisy channels.
+            return new HashSet<int>
+            {
+                14,
+                15,
             };
         }
 

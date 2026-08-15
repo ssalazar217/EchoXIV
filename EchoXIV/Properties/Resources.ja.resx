@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
@@ -194,6 +194,18 @@
   <data name="ChatWindow_RetryTooltip">
     <value>失敗した翻訳や保留中の翻訳を再試行</value>
   </data>
+  <data name="ChatWindow_Internal">
+    <value>[内部]</value>
+  </data>
+  <data name="ChatWindow_External">
+    <value>[外部]</value>
+  </data>
+  <data name="ChatWindow_InternalTooltip">
+    <value>ウィンドウはゲームのモニター内にあります。</value>
+  </data>
+  <data name="ChatWindow_ExternalTooltip">
+    <value>ウィンドウはセカンダリーモニター上にあります。</value>
+  </data>
   <data name="ChatWindow_Original">
     <value>原文:</value>
   </data>
@@ -227,9 +239,6 @@
   <data name="Command_TranslationEnabledWithLanguages">
     <value>翻訳が有効になりました。{0} -&gt; {1}</value>
   </data>
-  <data name="Command_DalamudWindowOnly">
-    <value>Dalamudウィンドウのみ利用可能です。</value>
-  </data>
   <data name="Command_HelpHeader">
     <value>利用可能なコマンド:</value>
   </data>
@@ -259,6 +268,15 @@
   </data>
   <data name="Command_FailoverToGoogle">
     <value>Papagoの制限に達したため、自動的にGoogle Translateへ切り替えます。</value>
+  </data>
+  <data name="Command_LocalAiFailoverToGoogle">
+    <value>ローカルAIサーバーが応答していません。Google 翻訳に自動的に切り替えます。</value>
+  </data>
+  <data name="ChatWindow_IAOffline">
+    <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineTooltip">
+    <value>ローカルAIサーバーに接続できません。ローカルAIに戻すかサーバーが復旧するまで、EchoXIVはGoogle翻訳を使用します。</value>
   </data>
   <data name="Command_MessageTruncated">
     <value>翻訳後のメッセージがチャット上限を超えたため、送信前に切り詰められました。</value>
@@ -314,11 +332,92 @@
   <data name="General_Engine">
     <value>翻訳エンジン</value>
   </data>
+  <data name="General_InterfaceLanguage">
+    <value>表示言語</value>
+  </data>
+  <data name="General_InterfaceLanguageTip">
+    <value>任意: EchoXIV のインターフェース言語を選択します。既定ではゲーム/Dalamud の言語に従います。</value>
+  </data>
+  <data name="General_InterfaceLanguageDefault">
+    <value>既定（ゲーム/Dalamud と同じ）</value>
+  </data>
   <data name="General_EngineGoogleDesc">
     <value>標準Google翻訳 (GTx JSON API)</value>
   </data>
   <data name="General_EnginePapagoDesc">
     <value>Naver Papago 翻訳 (韓国語/日本語 特化)</value>
+  </data>
+  <data name="General_EngineLocalAIDesc">
+    <value>OpenAI 互換サーバー経由のローカル AI（LM Studio、Ollama）。自分の GPU で動作します。</value>
+  </data>
+  <data name="LocalAI_SectionTitle">
+    <value>ローカル AI サーバー設定</value>
+  </data>
+  <data name="LocalAI_Endpoint">
+    <value>サーバー URL</value>
+  </data>
+  <data name="LocalAI_EndpointTip">
+    <value>OpenAI 互換のベース URL。LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value>
+  </data>
+  <data name="LocalAI_Model">
+    <value>モデル名（任意）</value>
+  </data>
+  <data name="LocalAI_ModelTip">
+    <value>空のままにすると読み込まれているモデルを使用します。ゲーム内チャット（VRAM をゲームと共有）には軽量モデルを使用: qwen3-4b または gemma-3-4b（Q4、約3GB）— 低レイテンシーで FFXIV 用の VRAM を残します。</value>
+  </data>
+  <data name="LocalAI_ApiKey">
+    <value>API キー（任意）</value>
+  </data>
+  <data name="LocalAI_ApiKeyTip">
+    <value>サーバーが要求する場合のみ必要です。LM Studio と Ollama は通常要求しません。</value>
+  </data>
+  <data name="LocalAI_Temperature">
+    <value>温度</value>
+  </data>
+  <data name="LocalAI_Timeout">
+    <value>タイムアウト（秒）</value>
+  </data>
+  <data name="LocalAI_DisableThinking">
+    <value>モデルの「思考」を無効にする</value>
+  </data>
+  <data name="LocalAI_DisableThinkingTip">
+    <value>推論をサポートするモデル（Gemma 3、Qwen3 など）でライブチャットのレイテンシーを低減します。思考非対応モデルでは無視されます。</value>
+  </data>
+  <data name="LocalAI_MaxTokens">
+    <value>応答の最大トークン数</value>
+  </data>
+  <data name="LocalAI_MaxTokensTip">
+    <value>応答の長さを制限してレイテンシーを短縮します。チャットの一行には64で十分です。0 = 制限なし。</value>
+  </data>
+  <data name="LocalAI_ContextTitle">
+    <value>会話コンテキスト</value>
+  </data>
+  <data name="LocalAI_ContextDesc">
+    <value>チャンネルの最近のメッセージをコンテキストとして含め、進行中の会話と翻訳を一貫させます。ローカルAIエンジンと、下記で有効にしたチャンネルにのみ適用されます。</value>
+  </data>
+  <data name="LocalAI_ContextEnable">
+    <value>受信メッセージの会話コンテキストを有効にする</value>
+  </data>
+  <data name="LocalAI_ContextEnableTip">
+    <value>有効にすると、翻訳前に有効なチャンネルの最近のメッセージがコンテキストとしてAIに送信されます。</value>
+  </data>
+  <data name="LocalAI_ContextDisabled">
+    <value>会話コンテキストは無効です。</value>
+  </data>
+  <data name="LocalAI_ContextMessages">
+    <value>コンテキストメッセージ数</value>
+  </data>
+  <data name="LocalAI_ContextMessagesTip">
+    <value>コンテキストに含める最近のメッセージ数。値を増やすと一貫性は向上しますが、レイテンシーとモデルコンテキスト消費が増えます。</value>
+  </data>
+  <data name="LocalAI_ContextChannels">
+    <value>コンテキストを使用するチャンネル:</value>
+  </data>
+  <data name="LocalAI_ContextChannelsTip">
+    <value>これらのチャンネルのみが会話コンテキストを送信します。騒がしいチャンネルでのコンテキスト過多を避けるため、少なく保ってください。</value>
+  </data>
+  <data name="LocalAI_ContextDefaultNote">
+    <value>デフォルトではPartyとAllianceのみがコンテキストを使用します。Say/Shout/Yell/FC/LSはコンテキストなしのままです。</value>
   </data>
   <data name="General_VerboseLogs">
     <value>詳細ログの記録</value>
@@ -409,6 +508,21 @@
   </data>
   <data name="Lang_IT">
     <value>イタリア語</value>
+  </data>
+  <data name="Lang_TR">
+    <value>トルコ語</value>
+  </data>
+  <data name="Lang_PL">
+    <value>ポーランド語</value>
+  </data>
+  <data name="Lang_UK">
+    <value>ウクライナ語</value>
+  </data>
+  <data name="Lang_CS">
+    <value>チェコ語</value>
+  </data>
+  <data name="Lang_NL">
+    <value>オランダ語</value>
   </data>
   <data name="Channel_Say">
     <value>Say</value>

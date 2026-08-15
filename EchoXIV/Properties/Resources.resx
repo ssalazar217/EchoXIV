@@ -207,6 +207,18 @@
     <data name="ChatWindow_RetryTooltip">
         <value>Retry translations that failed or remained pending</value>
     </data>
+    <data name="ChatWindow_Internal">
+        <value>[Internal]</value>
+    </data>
+    <data name="ChatWindow_External">
+        <value>[External]</value>
+    </data>
+    <data name="ChatWindow_InternalTooltip">
+        <value>The window is inside the game monitor.</value>
+    </data>
+    <data name="ChatWindow_ExternalTooltip">
+        <value>The window is on a secondary monitor.</value>
+    </data>
     <data name="ChatWindow_Original">
         <value>Original:</value>
     </data>
@@ -242,9 +254,6 @@
     <data name="Command_TranslationEnabledWithLanguages">
         <value>Translation enabled. {0} -&gt; {1}</value>
     </data>
-    <data name="Command_DalamudWindowOnly">
-        <value>Only the Dalamud window is available.</value>
-    </data>
     <data name="Command_HelpHeader">
         <value>Available commands:</value>
     </data>
@@ -274,6 +283,15 @@
     </data>
     <data name="Command_FailoverToGoogle">
         <value>Papago limit reached. Switching automatically to Google Translate.</value>
+    </data>
+    <data name="Command_LocalAiFailoverToGoogle">
+        <value>Local AI server is not responding. Switching automatically to Google Translate.</value>
+    </data>
+    <data name="ChatWindow_IAOffline">
+        <value>[IA Offline, using Google]</value>
+    </data>
+    <data name="ChatWindow_IAOfflineTooltip">
+        <value>Local AI server is not reachable. EchoXIV is using Google Translate until you switch back to Local AI or the server comes back online.</value>
     </data>
     <data name="Command_MessageTruncated">
         <value>The translated message exceeded the chat limit and was truncated before sending.</value>
@@ -329,11 +347,92 @@
     <data name="General_Engine">
         <value>Translation Engine</value>
     </data>
+    <data name="General_InterfaceLanguage">
+        <value>Interface Language</value>
+    </data>
+    <data name="General_InterfaceLanguageTip">
+        <value>Optional: choose the language of EchoXIV's interface. Default follows the game/Dalamud language.</value>
+    </data>
+    <data name="General_InterfaceLanguageDefault">
+        <value>Default (same as game/Dalamud)</value>
+    </data>
     <data name="General_EngineGoogleDesc">
         <value>Classic Google Translate (GTx JSON API)</value>
     </data>
     <data name="General_EnginePapagoDesc">
         <value>Naver Papago Translator (Korean/Japanese focus)</value>
+    </data>
+    <data name="General_EngineLocalAIDesc">
+        <value>Local AI via OpenAI-compatible server (LM Studio, Ollama). Runs on your own GPU.</value>
+    </data>
+    <data name="LocalAI_SectionTitle">
+        <value>Local AI Server Settings</value>
+    </data>
+    <data name="LocalAI_Endpoint">
+        <value>Server URL</value>
+    </data>
+    <data name="LocalAI_EndpointTip">
+        <value>OpenAI-compatible base URL. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value>
+    </data>
+    <data name="LocalAI_Model">
+        <value>Model name (optional)</value>
+    </data>
+    <data name="LocalAI_ModelTip">
+        <value>Leave empty to use the loaded model. For in-game chat (VRAM shared with the game) use a light model: qwen3-4b or gemma-3-4b (Q4, ~3GB) — keeps latency low and leaves VRAM for FFXIV.</value>
+    </data>
+    <data name="LocalAI_ApiKey">
+        <value>API Key (optional)</value>
+    </data>
+    <data name="LocalAI_ApiKeyTip">
+        <value>Only needed if your server requires one. LM Studio and Ollama usually don't.</value>
+    </data>
+    <data name="LocalAI_Temperature">
+        <value>Temperature</value>
+    </data>
+    <data name="LocalAI_Timeout">
+        <value>Timeout (seconds)</value>
+    </data>
+    <data name="LocalAI_DisableThinking">
+        <value>Disable model "thinking"</value>
+    </data>
+    <data name="LocalAI_DisableThinkingTip">
+        <value>Reduces latency in live chat for models that support reasoning (Gemma 3, Qwen3, etc.). Ignored by models without thinking support.</value>
+    </data>
+    <data name="LocalAI_MaxTokens">
+        <value>Max response tokens</value>
+    </data>
+    <data name="LocalAI_MaxTokensTip">
+        <value>Caps the response length to cut latency. 64 is fine for chat lines; 0 = no limit.</value>
+    </data>
+    <data name="LocalAI_ContextTitle">
+        <value>Conversation Context</value>
+    </data>
+    <data name="LocalAI_ContextDesc">
+        <value>Include recent messages from a channel as context so the AI keeps the translation consistent with the ongoing conversation. Applies only to the Local AI engine and to the channels enabled below.</value>
+    </data>
+    <data name="LocalAI_ContextEnable">
+        <value>Enable conversation context for incoming messages</value>
+    </data>
+    <data name="LocalAI_ContextEnableTip">
+        <value>When enabled, recent messages from enabled channels are sent to the AI as context before translating.</value>
+    </data>
+    <data name="LocalAI_ContextDisabled">
+        <value>Conversation context is disabled.</value>
+    </data>
+    <data name="LocalAI_ContextMessages">
+        <value>Context messages</value>
+    </data>
+    <data name="LocalAI_ContextMessagesTip">
+        <value>Number of recent messages included as context. Higher values improve coherence but add latency and use more model context.</value>
+    </data>
+    <data name="LocalAI_ContextChannels">
+        <value>Channels with context:</value>
+    </data>
+    <data name="LocalAI_ContextChannelsTip">
+        <value>Only these channels send conversation context. Keep them few to avoid context spam in noisy channels.</value>
+    </data>
+    <data name="LocalAI_ContextDefaultNote">
+        <value>By default only Party and Alliance use context. Say/Shout/Yell/FC/LS stay without context.</value>
     </data>
     <data name="General_VerboseLogs">
         <value>Verbose Logging</value>
@@ -424,6 +523,21 @@
     </data>
     <data name="Lang_IT">
         <value>Italian</value>
+    </data>
+    <data name="Lang_TR">
+        <value>Turkish</value>
+    </data>
+    <data name="Lang_PL">
+        <value>Polish</value>
+    </data>
+    <data name="Lang_UK">
+        <value>Ukrainian</value>
+    </data>
+    <data name="Lang_CS">
+        <value>Czech</value>
+    </data>
+    <data name="Lang_NL">
+        <value>Dutch</value>
     </data>
     <data name="Channel_Say">
         <value>Say</value>
