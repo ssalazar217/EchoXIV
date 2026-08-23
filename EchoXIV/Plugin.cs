@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -20,7 +21,7 @@ using System.Threading.Tasks;
 namespace EchoXIV
 {
     /// <summary>
-    /// Plugin principal de traducción de chat
+    /// Main chat translation plugin
     /// </summary>
     public sealed class Plugin : IDalamudPlugin
     {
@@ -45,8 +46,11 @@ namespace EchoXIV
         private GoogleTranslatorService _googleTranslator = null!;
         private PapagoTranslatorService _papagoTranslator = null!;
         private LocalAiTranslatorService _localAiTranslator = null!;
+        private LibreTranslateTranslatorService _libreTranslateTranslator = null!;
+        private YandexTranslatorService _yandexTranslator = null!;
         private GlossaryService _glossaryService = null!;
         private TranslationCache _translationCache = null!;
+        private IRomanizationService _romanizationService = null!;
         private WindowSystem _windowSystem = null!;
         private ConfigWindow? _configWindow = null;
         private TranslatedChatWindow? _translatedChatWindow = null;
@@ -57,12 +61,13 @@ namespace EchoXIV
         private static bool _chatVisible = false;
         private string _activeUiCulture = string.Empty;
         private bool _showWelcomeWindow;
+        private readonly CancellationTokenSource _shutdownCts = new();
         
         public Plugin()
         {
             try
             {
-                // Cargar configuración
+                // Load configuration
                 _configuration = LoadConfiguration();
                 _historyManager = new MessageHistoryManager(_configuration, PluginInterface.GetPluginConfigDirectory());
 
@@ -79,36 +84,38 @@ namespace EchoXIV
                         _configuration.SourceLanguage = uiLang;
                         _configuration.TargetLanguage = "en";
                         _configuration.IncomingTargetLanguage = string.Empty;
-                        // Mantenemos FirstRun = true para que se muestre la ventana de bienvenida
+                        // Keep FirstRun=true so the welcome window shows
                         _configuration.Save();
                     }
                 }
 
                 ApplyResourceCulture();
                 
-                // Inicializar motores de traducción
+                // Initialize translation engines
                 _googleTranslator = new GoogleTranslatorService();
-                _papagoTranslator = new PapagoTranslatorService(_configuration);
+                _papagoTranslator = new PapagoTranslatorService();
                 _localAiTranslator = new LocalAiTranslatorService(_configuration);
+                _libreTranslateTranslator = new LibreTranslateTranslatorService();
+                _yandexTranslator = new YandexTranslatorService();
 
-                // Inicializar servicio de traducción
+                // Initialize translation service
                 UpdateTranslationService();
                 
-                // Inicializar sistema de ventanas
+                // Initialize window system
                 _windowSystem = new WindowSystem("EchoXIV");
                 
 
-                // Crear ventana de configuración (SIEMPRE)
+                // Create config window
                 _configWindow = CreateConfigWindow();
 
-                // Manejar pantalla de bienvenida si sigue siendo FirstRun (ej: Dalamud está en Inglés)
+                // Show welcome window while FirstRun
                 if (_configuration.FirstRun)
                 {
                     _welcomeWindow = CreateWelcomeWindow();
                     _welcomeWindow.IsOpen = true;
                 }
 
-                // Crear manejador de mensajes entrantes
+                // Create incoming message handler
                 var secondaryTranslator = _configuration.SelectedEngine == TranslationEngine.Google 
                     ? (ITranslationService)_papagoTranslator 
                     : _googleTranslator;
@@ -124,42 +131,45 @@ namespace EchoXIV
                     PlayerState,
                     ObjectTable,
                     PluginLog,
+                    _romanizationService,
                     BuildConversationContext
                 );
-                // Conectar eventos
+                // Wire events
                 _incomingMessageHandler.OnTranslationStarted += OnTranslationStarted;
                 _incomingMessageHandler.OnMessageTranslated += OnMessageTranslated;
+                _incomingMessageHandler.OnOutgoingMessage += OnOutgoingMessage;
                 _incomingMessageHandler.OnRequestEngineFailover += SwitchToGoogleFailover;
                 
-                // Inicializar Hook Nativo (para traducción saliente segura)
+                // Initialize native hook (outgoing translation)
                 try
                 {
-                    _chatBoxHook = new GameFunctions.ChatBoxHook(
+_chatBoxHook = new GameFunctions.ChatBoxHook(
                          _configuration,
                          _translatorService,
                          secondaryTranslator,
                          _glossaryService,
                          _translationCache,
                          _incomingMessageHandler!,
+                         _romanizationService,
                          PluginLog,
                          ClientState,
                          GameInteropProvider,
                          SwitchToGoogleFailover
-                    );
+                     );
                     _chatBoxHook.Enable();
                 }
                 catch (Exception ex)
                 {
                     PluginLog.Error(ex, "Failed to enable Chat Hook (outgoing translation disabled).");
-                    // No relanzamos para que el resto del plugin funcione
+                    // Don't rethrow so the rest of the plugin keeps working
                 }
                 
-                // Registrar WindowSystem
+                // Register WindowSystem
                 PluginInterface.UiBuilder.Draw += DrawUi;
                 PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
                 PluginInterface.LanguageChanged += OnLanguageChanged;
                 
-                // Registrar comandos
+                // Register commands
                 CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
                 {
                     HelpMessage = GetResourceText("Command_HelpMessageMain", "Translate and send: /translate [message/on/off/config/help]")
@@ -175,16 +185,16 @@ namespace EchoXIV
                     HelpMessage = GetResourceText("Command_HelpMessageConfig", "Open EchoXIV configuration")
                 });
                 
-                // Registrar UI callback principal (botón "Abrir" abre configuración)
+                // Register main UI callback ("Open" opens config)
                 PluginInterface.UiBuilder.OpenMainUi += ToggleConfigUI;
 
-                // Suscribirse al Update del Framework para caché de visibilidad seguro entre hilos
+                // Subscribe to Framework update for thread-safe visibility cache
                 Framework.Update += OnFrameworkUpdate;
 
                 ClientState.Login += OnClientLogin;
                 ClientState.Logout += OnClientLogout;
 
-                // Si ya estamos logueados (ej: recarga de plugin), iniciar ahora
+                // Initialize immediately when already logged in.
                 if (ClientState.IsLoggedIn)
                     OnLogin();
             }
@@ -199,7 +209,6 @@ namespace EchoXIV
         private ConfigWindow CreateConfigWindow()
         {
             var configWindow = new ConfigWindow(_configuration, _historyManager);
-            configWindow.OnVisualsChanged += OnVisualsChangedHandler;
             configWindow.OnTranslationEngineChanged += OnTranslationEngineChangedHandler;
             configWindow.OnUiLanguageChanged += OnUiLanguageChangedHandler;
             _windowSystem.AddWindow(configWindow);
@@ -354,19 +363,22 @@ namespace EchoXIV
         
         public void Dispose()
         {
-            // Detener manejador de mensajes entrantes
-            _incomingMessageHandler?.Dispose(); // Consolidated
+            _shutdownCts.Cancel();
 
-            // Detener motores de traducción
+            // Stop incoming message handler
+            _incomingMessageHandler?.Dispose();
+
+            // Stop translation engines
             _googleTranslator?.Dispose();
-            // _papagoTranslator no es IDisposable actualmente, pero lo manejamos por si acaso
             if (_papagoTranslator is IDisposable papagoDisp) papagoDisp.Dispose();
             _localAiTranslator?.Dispose();
+            if (_libreTranslateTranslator is IDisposable libreDisp) libreDisp.Dispose();
+            if (_yandexTranslator is IDisposable yandexDisp) yandexDisp.Dispose();
 
-            // Detener hook nativo
-            _chatBoxHook?.Dispose(); // Consolidated
+            // Stop native hook
+            _chatBoxHook?.Dispose();
             
-            // Limpiar ventanas
+            // Remove windows
             _windowSystem?.RemoveAllWindows();
 
             if (_configWindow != null)
@@ -389,17 +401,19 @@ namespace EchoXIV
             {
                 _incomingMessageHandler.OnTranslationStarted -= OnTranslationStarted;
                 _incomingMessageHandler.OnMessageTranslated -= OnMessageTranslated;
+                _incomingMessageHandler.OnOutgoingMessage -= OnOutgoingMessage;
                 _incomingMessageHandler.OnRequestEngineFailover -= SwitchToGoogleFailover;
             }
             
-            _translationCache.Save(); // Added
+            _translationCache.Save();
+            _historyManager?.Dispose();
             
-            // Limpiar comandos
+            // Remove commands
             CommandManager.RemoveHandler(CommandName);
             CommandManager.RemoveHandler(CommandNameShort);
             CommandManager.RemoveHandler(ConfigCommandName);
             
-            // Limpiar eventos
+            // Unhook events
             Framework.Update -= OnFrameworkUpdate;
             if (_windowSystem != null)
             {
@@ -453,19 +467,15 @@ namespace EchoXIV
 
         private void DetachConfigWindowHandlers(ConfigWindow configWindow)
         {
-            configWindow.OnVisualsChanged -= OnVisualsChangedHandler;
             configWindow.OnTranslationEngineChanged -= OnTranslationEngineChangedHandler;
             configWindow.OnUiLanguageChanged -= OnUiLanguageChangedHandler;
         }
 
-        private void OnVisualsChangedHandler()
-        {
-        }
-
         private void OnTranslationEngineChangedHandler(TranslationEngine engine)
         {
-            // Re-selecting Local AI clears the offline state and retries the local server.
-            if (engine == TranslationEngine.LocalAI && _configuration.LocalAiUnavailable)
+            // A manual selection away from Local AI cancels automatic restoration.
+            // The failover path sets the flag directly and does not come through here.
+            if (engine != TranslationEngine.LocalAI && _configuration.LocalAiUnavailable)
             {
                 _configuration.LocalAiUnavailable = false;
                 _configuration.Save();
@@ -502,6 +512,12 @@ namespace EchoXIV
         private void OnMessageTranslated(TranslatedChatMessage message)
         {
             _historyManager.UpdateMessage(message);
+        }
+
+        private void OnOutgoingMessage(TranslatedChatMessage message)
+        {
+            // Dedicated path for sent messages to avoid duplicating incoming write logic
+            _historyManager.AddMessage(message);
         }
 
         private void OnClientLogin()
@@ -571,7 +587,7 @@ namespace EchoXIV
                      break;
                 
                 default:
-                    // Si no es un comando reservado, intentar traducir
+                    // Translate non-reserved commands.
                     TranslateAndSend(args);
                     break;
             }
@@ -588,7 +604,7 @@ namespace EchoXIV
 
         
         /// <summary>
-        /// Resetea la posición de la ventana de chat traducido al centro
+        /// Resets the translated chat window position to center
         /// </summary>
         private void ResetTranslatedChatWindowPosition()
         {
@@ -604,7 +620,7 @@ namespace EchoXIV
             }
         }
 
-        private void TranslateAndSend(string input)
+        private void TranslateAndSend(string input, bool allowFailoverRetry = true)
         {
             // Traducir async
             _ = Task.Run(async () =>
@@ -619,11 +635,14 @@ namespace EchoXIV
                          return;
                     }
 
-                    // Verificar lista de exclusión antes de traducir
+                    // Exclusion list check before translating
                     if (_configuration.ExcludedMessages.Contains(message))
                     {
                         _ = Framework.RunOnFrameworkThread(() =>
                         {
+                            if (_shutdownCts.IsCancellationRequested)
+                                return;
+
                             SendToChannel(message, prefix);
                             _historyManager.AddMessage(new TranslatedChatMessage
                             {
@@ -639,11 +658,33 @@ namespace EchoXIV
                         return;
                     }
 
-                    using var timeout = TranslationDefaults.CreateTimeoutTokenSource();
+                    using var timeout = TranslationDefaults.CreateTimeoutTokenSource(_shutdownCts.Token);
                     string translated;
+                    string? romanizedText = null;
+                    var combinedRomanization = false;
 
-                    if (_translatorService is LocalAiTranslatorService localAi &&
-                        _configuration.LocalAiUseConversationContext)
+                    var canUseCombinedRomanization = _configuration.EnableRomanization &&
+                        _configuration.SelectedEngine == TranslationEngine.LocalAI &&
+                        _configuration.RomanizationLanguages.Contains(_configuration.TargetLanguage);
+
+                    if (canUseCombinedRomanization)
+                    {
+                        var context = _configuration.LocalAiUseConversationContext
+                            ? BuildConversationContext(type)
+                            : null;
+                        var combined = await _localAiTranslator.TranslateWithRomanizationAsync(
+                            message,
+                            "auto",
+                            _configuration.TargetLanguage,
+                            context,
+                            timeout.Token,
+                            romanizeTranslation: true);
+                        translated = combined.Translation;
+                        romanizedText = combined.RomanizedText;
+                        combinedRomanization = true;
+                    }
+                    else if (_translatorService is LocalAiTranslatorService localAi &&
+                             _configuration.LocalAiUseConversationContext)
                     {
                         // Build context from the target channel history.
                         var context = BuildConversationContext(type);
@@ -664,31 +705,46 @@ namespace EchoXIV
                             timeout.Token
                         );
                     }
-                    // Enviar en main thread
+
+                    var nativeTranslated = translated;
+                    var textToSend = translated;
+                    var translatedScript = NonLatinScriptDetector.Detect(nativeTranslated);
+                    if (!combinedRomanization &&
+                        _configuration.EnableRomanization &&
+                        _configuration.RomanizationLanguages.Contains(_configuration.TargetLanguage) &&
+                        translatedScript != NonLatinScriptKind.Latin)
+                    {
+                        using var romanizationTimeout = TranslationDefaults.CreateTimeoutTokenSource(_shutdownCts.Token);
+                        romanizedText = await _romanizationService.RomanizeAsync(
+                            nativeTranslated,
+                            _configuration.TargetLanguage,
+                            romanizationTimeout.Token);
+                        if (!string.IsNullOrWhiteSpace(romanizedText))
+                            textToSend = romanizedText;
+                    }
+
+                        // Send on main thread
                     _ = Framework.RunOnFrameworkThread(() =>
                     {
-                        // Registrar la traducción para que IncomingMessageHandler la pesque y la registre con el canal correcto
-                        _incomingMessageHandler?.RegisterPendingOutgoing(translated, message);
-                        
-                        SendToChannel(translated, prefix);
+                        if (_shutdownCts.IsCancellationRequested)
+                            return;
 
-                        // REGISTRO MANUAL en el historial para que aparezca en la ventana de traducción
-                        _historyManager.AddMessage(new TranslatedChatMessage
-                        {
-                            Timestamp = DateTime.Now,
-                            ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
-                            Recipient = recipient,
-                            Sender = PlayerState.CharacterName.ToString(),
-                            OriginalText = message, // Tooltip
-                            TranslatedText = translated, // Texto principal
-                            IsTranslating = false
-                        });
+                        // Register pending so IncomingMessageHandler matches it via dedicated outgoing path
+                        _incomingMessageHandler?.RegisterPendingOutgoing(
+                            textToSend,
+                            message,
+                            nativeTranslated,
+                            romanizedText);
                         
-                        PluginLog.Info($"Translated and sent [{type}]: '{message}' -> '{translated}'");
+                        SendToChannel(textToSend, prefix);
+                        PluginLog.Info($"Translated and sent [{type}] using {_configuration.SelectedEngine} to {_configuration.TargetLanguage}: '{message}' -> '{textToSend}'");
                     });
                 }
                 catch (OperationCanceledException ex)
                 {
+                    if (_shutdownCts.IsCancellationRequested)
+                        return;
+
                     PluginLog.Warning(ex, "Manual translation timed out. Sending original message instead.");
                     _ = Framework.RunOnFrameworkThread(() =>
                     {
@@ -713,12 +769,20 @@ namespace EchoXIV
                 }
                 catch (TranslationRateLimitException ex)
                 {
-                    PluginLog.Warning($"{ex.Message}. Enabling automatic failover to Google...");
+                    if (!allowFailoverRetry)
+                    {
+                        PluginLog.Error(ex, "Translation failed after automatic failover. Sending the original message once.");
+                        _ = Framework.RunOnFrameworkThread(() => SendOriginalAfterTranslationFailure(input));
+                        return;
+                    }
+
+                    PluginLog.Warning($"{ex.Message}. Enabling automatic failover to Google (one retry only)...");
                     _ = Framework.RunOnFrameworkThread(() =>
                     {
+                        if (_shutdownCts.IsCancellationRequested)
+                            return;
                         SwitchToGoogleFailover();
-                        // Re-intentar la traducción una vez con el nuevo motor para el comando actual
-                        TranslateAndSend(input);
+                        TranslateAndSend(input, allowFailoverRetry: false);
                     });
                 }
                 catch (Exception ex)
@@ -729,6 +793,25 @@ namespace EchoXIV
                         ChatGui.PrintError(GetResourceText("Command_TranslateError", "Translation error"));
                     });
                 }
+            }, _shutdownCts.Token);
+        }
+
+        private void SendOriginalAfterTranslationFailure(string input)
+        {
+            var (prefix, message, type, recipient) = ParseChannelAndMessage(input);
+            if (string.IsNullOrWhiteSpace(message))
+                return;
+
+            SendToChannel(message, prefix);
+            _historyManager.AddMessage(new TranslatedChatMessage
+            {
+                Timestamp = DateTime.Now,
+                ChatType = type == XivChatType.Debug ? XivChatType.Debug : type,
+                Recipient = recipient,
+                Sender = PlayerState.CharacterName.ToString(),
+                OriginalText = message,
+                TranslatedText = message,
+                IsTranslating = false
             });
         }
 
@@ -773,7 +856,7 @@ namespace EchoXIV
             var trimmed = input.Trim();
             if (string.IsNullOrWhiteSpace(trimmed)) return (null, string.Empty, XivChatType.Debug, string.Empty);
 
-            // Intentar detectar prefijo de comando (ej: /p, /t, /r)
+            // Detect channel command prefixes such as /p, /t, or /r.
             var match = Regex.Match(trimmed, @"^(/[a-z]+)\s*(.*)$", RegexOptions.IgnoreCase);
             
             if (match.Success)
@@ -827,12 +910,12 @@ namespace EchoXIV
                                 return (command, remaining, XivChatType.TellOutgoing, recipient);
                             }
                         }
-                        return (command, remaining, XivChatType.TellOutgoing, "Destinatario");
+                        return (command, remaining, XivChatType.TellOutgoing, GetResourceText("Tell_DefaultRecipient", "Recipient"));
                     }
 
                     case "/t": case "/tell":
                     {
-                        // Manejar /t "Nombre Apellido@Mundo" Mensaje
+                        // Handle /t "First Last@World" Message
                         if (remaining.StartsWith("\""))
                         {
                             var endQuoteIndex = remaining.IndexOf("\"", 1);
@@ -844,11 +927,11 @@ namespace EchoXIV
                             }
                         }
                         
-                        // Manejar /t Nombre@Mundo Mensaje o /t Nombre Apellido Mensaje
+                        // Handle /t Name@World or /t First Last
                         var parts = remaining.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                         if (parts.Length >= 2)
                         {
-                            // Si la primera palabra contiene @, es un nombre simple Nombre@Mundo
+                            // First token contains @: single-word name World@World
                             if (parts[0].Contains("@"))
                             {
                                 var recipient = parts[0];
@@ -856,8 +939,7 @@ namespace EchoXIV
                                 return ($"{command} {recipient}", message, XivChatType.TellOutgoing, recipient);
                             }
                             
-                            // Si no, asumimos que puede ser Nombre Apellido (formato FFXIV)
-                            // En FFXIV, los nombres siempre tienen dos partes.
+                            // Otherwise assume First Last (FFXIV names have two parts)
                             if (parts.Length >= 3)
                             {
                                 var recipient = $"{parts[0]} {parts[1]}";
@@ -865,7 +947,7 @@ namespace EchoXIV
                                 return ($"{command} {recipient}", message, XivChatType.TellOutgoing, recipient);
                             }
                             
-                            // Fallback para nombres de una sola palabra
+                            // Single-word name fallback
                             var fallbackRecipient = parts[0];
                             var fallbackMessage = string.Join(" ", parts.Skip(1));
                             return ($"{command} {fallbackRecipient}", fallbackMessage, XivChatType.TellOutgoing, fallbackRecipient);
@@ -874,12 +956,11 @@ namespace EchoXIV
                     }
                 }
                 
-                // Si es un comando no reconocido por nosotros, pero es un comando (/...),
-                // dejamos que el juego lo maneje, pero lo marcamos como Debug para el historial.
+                // Unknown /command: let the game handle it; mark as Debug for history
                 return (null, trimmed, XivChatType.Debug, string.Empty);
             }
 
-            // --- Canal Implícito (Sin prefijo /) ---
+            // Implicit channel (no / prefix)
             var activeType = XivChatType.Debug;
             var activeRecipient = string.Empty;
             
@@ -958,14 +1039,13 @@ namespace EchoXIV
         {
             try
             {
-               // SANEAMIENTO
-               var sanitized = message.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
-               var fullMessage = string.IsNullOrEmpty(channel) ? sanitized : $"{channel} {sanitized}";
+                var sanitized = message.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
+                var fullMessage = string.IsNullOrEmpty(channel) ? sanitized : $"{channel} {sanitized}";
+                var maxBytes = TranslationDefaults.MaxChatBytes;
                 
-                if (System.Text.Encoding.UTF8.GetByteCount(fullMessage) > 500)
+                if (System.Text.Encoding.UTF8.GetByteCount(fullMessage) > maxBytes)
                 {
-                    // Truncar si es necesario
-                    while (System.Text.Encoding.UTF8.GetByteCount(fullMessage) > 497)
+                    while (System.Text.Encoding.UTF8.GetByteCount(fullMessage) > maxBytes - 3)
                     {
                         fullMessage = fullMessage.Substring(0, fullMessage.Length - 1);
                     }
@@ -1019,23 +1099,38 @@ namespace EchoXIV
                 disposable.Dispose();
             }
 
-            switch (_configuration.SelectedEngine)
+            var engines = new Dictionary<TranslationEngine, ITranslationService>
             {
-                case TranslationEngine.Papago:
-                    _translatorService = _papagoTranslator;
-                    if (_configuration.VerboseLogging) PluginLog.Info("Translation engine changed to: Papago (Naver)");
-                    break;
-                case TranslationEngine.LocalAI:
-                    _translatorService = _localAiTranslator;
-                    if (_configuration.VerboseLogging) PluginLog.Info($"Translation engine changed to: Local AI ({_configuration.LocalAiEndpoint})");
-                    break;
-                case TranslationEngine.Google:
-                default:
-                    _translatorService = _googleTranslator;
-                    if (_configuration.VerboseLogging) PluginLog.Info("Translation engine changed to: Google");
-                    break;
-            }
-            
+                [TranslationEngine.Google] = _googleTranslator,
+                [TranslationEngine.Papago] = _papagoTranslator,
+                [TranslationEngine.LibreTranslate] = _libreTranslateTranslator,
+                [TranslationEngine.Yandex] = _yandexTranslator,
+                [TranslationEngine.LocalAI] = _localAiTranslator,
+            };
+
+            _translatorService = new TranslationRouter(
+                _configuration.SelectedEngine,
+                _configuration.FallbackEngine,
+                engines,
+                _configuration.EngineRecoveryCheckMinutes);
+
+// Configure romanization engines (direct dictionary lookup)
+            var romanizationEngines = new Dictionary<TranslationEngine, IRomanizationService>
+            {
+                [TranslationEngine.Google] = _googleTranslator,
+                [TranslationEngine.Papago] = _papagoTranslator,
+                [TranslationEngine.LocalAI] = _localAiTranslator,
+                // Yandex/LibreTranslate lack native romanization; skipped
+            };
+
+            // Use the primary engine directly per configuration
+            _romanizationService = romanizationEngines.TryGetValue(_configuration.SelectedEngine, out var service)
+                ? service
+                : _googleTranslator;
+
+            if (_configuration.VerboseLogging)
+                PluginLog.Info($"Romanization engine active: {_configuration.SelectedEngine}");
+
             var secondaryTranslator = _configuration.SelectedEngine == TranslationEngine.Google 
                 ? (ITranslationService)_papagoTranslator 
                 : _googleTranslator;
@@ -1045,38 +1140,43 @@ namespace EchoXIV
             {
                 _incomingMessageHandler.UpdateTranslator(_translatorService);
                 _incomingMessageHandler.UpdateSecondaryTranslator(secondaryTranslator);
+                _incomingMessageHandler.UpdateRomanizationService(_romanizationService);
             }
             
             // Actualizar referencia en ChatBoxHook
             if (_chatBoxHook != null)
             {
                 _chatBoxHook.UpdateTranslators(_translatorService, secondaryTranslator);
+                _chatBoxHook.UpdateRomanizationService(_romanizationService);
                 if (_configuration.VerboseLogging) PluginLog.Info("ChatBoxHook: translator updated.");
             }
+
+            // Router update no longer needed (direct engine use)
         }
 
         private void SwitchToGoogleFailover()
         {
-            // Solo cambiar si no estamos ya en Google
-            if (_configuration.SelectedEngine == TranslationEngine.Google) return;
-
+            // TranslationRouter handles failover internally without changing the primary
+            // engine. This method only notifies and remains as legacy backup for LocalAI.
             var wasLocalAi = _configuration.SelectedEngine == TranslationEngine.LocalAI;
             PluginLog.Warning(wasLocalAi
                 ? "Local AI server is not responding. Switching automatically to Google Translate."
-                : "Automatically switching to Google Translate (Papago limit reached).");
+                : "Primary engine reached its limit. Switching automatically to Google Translate.");
 
-            _configuration.SelectedEngine = TranslationEngine.Google;
-            _configuration.LocalAiUnavailable = wasLocalAi;
-            _configuration.Save();
-            
-            // Actualizar todos los servicios
-            UpdateTranslationService();
+            // Failover must actually switch engines or retries hit the same dead LocalAI.
+            if (_configuration.SelectedEngine != TranslationEngine.Google)
+            {
+                _configuration.SelectedEngine = TranslationEngine.Google;
+                _configuration.LocalAiUnavailable = wasLocalAi;
+                _configuration.Save();
+                UpdateTranslationService();
+            }
 
-            // Notificar al usuario por el chat del juego
+            // Notify the user via game chat
             var messageKey = wasLocalAi ? "Command_LocalAiFailoverToGoogle" : "Command_FailoverToGoogle";
             var fallbackMessage = wasLocalAi
                 ? "Local AI server is not responding. Switching automatically to Google Translate."
-                : "Papago limit reached. Switching automatically to Google Translate.";
+                : "Primary engine limit reached. Switching automatically to Google Translate.";
             _ = Framework.RunOnFrameworkThread(() => 
             {
                 ChatGui.Print(GetResourceText(messageKey, fallbackMessage));
@@ -1091,15 +1191,72 @@ namespace EchoXIV
         private void OnFrameworkUpdate(IFramework framework)
         {
             _chatVisible = UpdateChatVisibilityInternal();
+
+            // Periodically re-check Local AI availability for auto-recovery
+            if (_configuration.LocalAiUnavailable)
+            {
+                var now = Environment.TickCount64;
+                var recoveryIntervalMs = Math.Max(1, _configuration.EngineRecoveryCheckMinutes) * 60_000L;
+                if (now - _lastLocalAiCheckMs >= recoveryIntervalMs)
+                {
+                    _lastLocalAiCheckMs = now;
+                    _ = CheckLocalAiRecoveryAsync();
+                }
+            }
+
+            // Periodic translation-cache flush (no-op when clean)
+            var nowMs = Environment.TickCount64;
+            if (nowMs - _lastCacheSaveMs >= 30_000)
+            {
+                _lastCacheSaveMs = nowMs;
+                _translationCache.Save();
+            }
+        }
+
+        private long _lastLocalAiCheckMs = 0;
+        private long _lastCacheSaveMs = 0;
+        private int _localAiRecoveryCheckInProgress;
+
+        private async Task CheckLocalAiRecoveryAsync()
+        {
+            if (Interlocked.Exchange(ref _localAiRecoveryCheckInProgress, 1) != 0)
+                return;
+
+            try
+            {
+                var available = await _localAiTranslator.IsAvailableAsync(_shutdownCts.Token);
+                if (available)
+                {
+                    _configuration.SelectedEngine = TranslationEngine.LocalAI;
+                    _configuration.LocalAiUnavailable = false;
+                    _configuration.Save();
+                    UpdateTranslationService();
+                    PluginLog.Info("Local AI server is back online. Restoring Local AI engine.");
+                    _ = Framework.RunOnFrameworkThread(() =>
+                    {
+                        ChatGui.Print(GetResourceText("Command_LocalAiRestored", "Local AI server is back online. Restored Local AI engine."));
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                if (_shutdownCts.IsCancellationRequested)
+                    return;
+                PluginLog.Error(ex, "Error while checking Local AI recovery.");
+            }
+            finally
+            {
+                Volatile.Write(ref _localAiRecoveryCheckInProgress, 0);
+            }
         }
 
         /// <summary>
-        /// Determina si el chat es actualmente visible (retorna valor cacheado de forma segura)
+        /// Returns the cached chat visibility state.
         /// </summary>
         public static bool IsChatVisible() => _chatVisible;
 
         /// <summary>
-        /// Lógica interna para determinar la visibilidad del chat (solo llamar desde hilo principal)
+        /// Chat visibility logic (main thread only)
         /// </summary>
         private static unsafe bool UpdateChatVisibilityInternal()
         {

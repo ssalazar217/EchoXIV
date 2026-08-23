@@ -4,8 +4,7 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 namespace EchoXIV.GameFunctions
 {
     /// <summary>
-    /// Envío directo de mensajes al chat del juego
-    /// Funciones base para ChatBox
+    /// Direct chat message sending helpers
     /// </summary>
     public static unsafe class ChatBox
     {
@@ -13,10 +12,11 @@ namespace EchoXIV.GameFunctions
         {
             if (string.IsNullOrEmpty(message))
                 return;
-            
-            if (System.Text.Encoding.UTF8.GetByteCount(message) > 500)
+
+            var maxBytes = EchoXIV.Services.TranslationDefaults.MaxChatBytes;
+            if (System.Text.Encoding.UTF8.GetByteCount(message) > maxBytes)
             {
-                while (message.Length > 0 && System.Text.Encoding.UTF8.GetByteCount(message) > 500)
+                while (message.Length > 0 && System.Text.Encoding.UTF8.GetByteCount(message) > maxBytes)
                 {
                     message = message[..^1];
                 }

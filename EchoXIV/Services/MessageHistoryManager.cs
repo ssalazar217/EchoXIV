@@ -2,17 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Threading;
 using Newtonsoft.Json;
 
 namespace EchoXIV.Services
 {
-    public class MessageHistoryManager
+    public class MessageHistoryManager : IDisposable
     {
+        private const int SaveDebounceMs = 3000;
+
         private readonly List<TranslatedChatMessage> _messages = new();
         private readonly object _lock = new();
         private readonly Configuration _configuration;
         private readonly string? _configDir;
         private readonly string? _historyPath;
+        private readonly System.Threading.Timer? _saveTimer;
+        private bool _dirty;
 
         public event Action<TranslatedChatMessage>? OnMessageAdded;
         public event Action<TranslatedChatMessage>? OnMessageUpdated;
@@ -27,6 +32,7 @@ namespace EchoXIV.Services
             {
                 _historyPath = Path.Combine(_configDir, "history.json");
                 LoadHistory();
+                _saveTimer = new System.Threading.Timer(_ => FlushSave(), null, Timeout.Infinite, Timeout.Infinite);
             }
         }
 
@@ -37,6 +43,7 @@ namespace EchoXIV.Services
                 _messages.Add(message);
                 PruneMessages();
             }
+            ScheduleSave();
             OnMessageAdded?.Invoke(message);
         }
 
@@ -48,9 +55,18 @@ namespace EchoXIV.Services
                 if (existing != null)
                 {
                     existing.TranslatedText = message.TranslatedText;
+                    existing.RomanizedText = message.RomanizedText;
+                    existing.OriginalScript = message.OriginalScript;
                     existing.IsTranslating = false;
                 }
+                else
+                {
+                    // New message (e.g., outgoing with fresh Id)
+                    _messages.Add(message);
+                    PruneMessages();
+                }
             }
+            ScheduleSave();
             OnMessageUpdated?.Invoke(message);
         }
 
@@ -72,6 +88,32 @@ namespace EchoXIV.Services
             OnHistoryCleared?.Invoke();
         }
 
+        public void Dispose()
+        {
+            FlushSave();
+            _saveTimer?.Dispose();
+        }
+
+        private void ScheduleSave()
+        {
+            if (_saveTimer == null) return;
+            _dirty = true;
+            try
+            {
+                _saveTimer.Change(SaveDebounceMs, Timeout.Infinite);
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        private void FlushSave()
+        {
+            if (!_dirty) return;
+            _dirty = false;
+            SaveHistory();
+        }
+
         private void LoadHistory()
         {
             if (_historyPath == null || !File.Exists(_historyPath)) return;
@@ -82,11 +124,22 @@ namespace EchoXIV.Services
                 var loadedMessages = JsonConvert.DeserializeObject<List<TranslatedChatMessage>>(json);
                 if (loadedMessages != null)
                 {
+                    // Normalize messages stuck translating after plugin close.
+                    foreach (var m in loadedMessages)
+                    {
+                        if (m.IsTranslating)
+                        {
+                            m.IsTranslating = false;
+                            if (string.IsNullOrWhiteSpace(m.TranslatedText))
+                                m.TranslatedText = m.OriginalText;
+                        }
+                    }
                     lock (_lock)
                     {
                         _messages.Clear();
                         _messages.AddRange(loadedMessages);
                     }
+                    SaveHistory();
                 }
             }
             catch (Exception)
@@ -120,7 +173,6 @@ namespace EchoXIV.Services
             {
                 _messages.RemoveAt(0);
             }
-            SaveHistory();
         }
     }
 }

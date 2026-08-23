@@ -63,6 +63,7 @@
   <data name="Command_MessageTooLong"><value>Сообщение слишком длинное</value></data>
   <data name="Command_TranslateError"><value>Ошибка перевода</value></data>
   <data name="Command_SendError"><value>Ошибка отправки сообщения</value></data>
+  <data name="Tell_DefaultRecipient"><value>Получатель</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>Перевод включен. {0} -&gt; {1}</value></data>
   <data name="Command_HelpHeader"><value>Доступные команды:</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;message&gt; - Перевести в активный канал.</value></data>
@@ -79,6 +80,9 @@
   </data>
   <data name="ChatWindow_IAOffline">
     <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineBanner">
+    <value>⚠ Локальный ИИ не запущен. Откройте свой локальный ИИ-сервер, чтобы использовать его. Пока используется резервный движок.</value>
   </data>
   <data name="ChatWindow_IAOfflineTooltip">
     <value>Локальный сервер ИИ недоступен. EchoXIV использует Google Translate, пока вы не вернётесь к локальному ИИ или сервер снова не станет доступен.</value>
@@ -98,15 +102,30 @@
   <data name="ChatWindow_UnlockTooltip"><value>Разблокировать окно</value></data>
   <data name="ChatWindow_HideTooltip"><value>Скрыть окно</value></data>
   <data name="ChatWindow_ClearTooltip"><value>Очистить содержимое чата</value></data>
+  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_RomanizationTooltip"><value>Показать латинизацию для нелатинских скриптов (JA/KO/RU/ZH)</value></data>
+  <data name="ChatWindow_TranslationNative"><value>Перевод (нативный скрипт):</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Romanization:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - Настройки</value></data>
   <data name="Tab_Visuals"><value>Внешний вид</value></data>
   <data name="General_Engine"><value>Движок перевода</value></data>
   <data name="General_InterfaceLanguage"><value>Язык интерфейса</value></data>
   <data name="General_InterfaceLanguageTip"><value>Необязательно: выберите язык интерфейса EchoXIV. По умолчанию следует языку игры/Dalamud.</value></data>
   <data name="General_InterfaceLanguageDefault"><value>По умолчанию (как игра/Dalamud)</value></data>
-  <data name="General_EngineGoogleDesc"><value>Классический Google Translate (GTx JSON API)</value></data>
-  <data name="General_EnginePapagoDesc"><value>Naver Papago Translator (акцент на корейском и японском)</value></data>
-  <data name="General_EngineLocalAIDesc"><value>Локальный ИИ через OpenAI-совместимый сервер (LM Studio, Ollama). Работает на вашей GPU.</value></data>
+  <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
+  <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
+  <data name="General_EngineGoogleDesc"><value>Бесплатная конечная точка Google Translate. При интенсивном использовании могут действовать временные лимиты.</value></data>
+  <data name="General_EnginePapagoDesc"><value>Веб-конечная точка Naver Papago. Бесплатно, без API-ключа. Могут действовать временные лимиты.</value></data>
+  <data name="General_EngineLocalAIDesc"><value>Локальный ИИ через совместимый с OpenAI сервер (LM Studio, Ollama). Работает на вашей GPU. Без лимитов.</value></data>
+  <data name="General_EngineLibreTranslateDesc"><value>Собственный сервер перевода EchoXIV. Бесплатно, без лимитов, без API-ключа. На базе LibreTranslate (Argos NMT).</value></data>
+  <data name="General_EngineYandexDesc"><value>Бесплатный Yandex Translate (мобильная конечная точка). Без API-ключа. Могут действовать временные лимиты.</value></data>
+  <data name="General_EngineFallback"><value>Резервный движок</value></data>
+  <data name="General_EngineFallbackAuto"><value>Авто (перебирать все остальные)</value></data>
+  <data name="General_EngineFallbackTip"><value>Движок, используемый, когда основной достиг лимита или вышел из строя. Основной никогда не меняется. Если резервный тоже недоступен, перебираются остальные движки.</value></data>
+  <data name="General_EngineRecoveryMinutes"><value>Проверка восстановления основного движка (минуты)</value></data>
+  <data name="General_EngineRecoveryMinutesTip"><value>Как часто плагин проверяет, снова ли работает основной движок, чтобы вернуться к нему.</value></data>
   <data name="LocalAI_SectionTitle"><value>Настройки локального ИИ-сервера</value></data>
   <data name="LocalAI_Endpoint"><value>URL сервера</value></data>
   <data name="LocalAI_EndpointTip"><value>Базовый URL, совместимый с OpenAI. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
@@ -180,4 +199,40 @@
   <data name="History_NoMessages"><value>Не найдено сообщений, соответствующих выбранным критериям.</value></data>
   <data name="History_Clear"><value>Очистить историю</value></data>
   <data name="History_Title"><value>История сообщений</value></data>
+  <data name="Tab_About">
+    <value>О программе</value>
+  </data>
+  <data name="About_Title">
+    <value>EchoXIV - Переводчик чата</value>
+  </data>
+  <data name="About_Description">
+    <value>EchoXIV — плагин для Dalamud, который переводит чат FFXIV в реальном времени. Он переводит входящие и исходящие сообщения, чтобы вы могли естественно общаться с игроками на других языках.</value>
+  </data>
+  <data name="About_Author">
+    <value>Автор: ssalazar217 (SteSE)</value>
+  </data>
+  <data name="About_Version">
+    <value>Версия: {0}</value>
+  </data>
+  <data name="About_Discord">
+    <value>Discord</value>
+  </data>
+  <data name="About_DiscordDesc">
+    <value>Присоединяйтесь к нашему Discord, чтобы сообщать о проблемах, предлагать функции или задавать вопросы. Там также доступен EchoXIV ChatBot.</value>
+  </data>
+  <data name="About_OpenDiscord">
+    <value>Открыть Discord</value>
+  </data>
+  <data name="About_GitHub">
+    <value>GitHub</value>
+  </data>
+  <data name="About_GitHubDesc">
+    <value>Просмотр исходного кода и сообщение о проблемах.</value>
+  </data>
+  <data name="About_OpenGitHub">
+    <value>Открыть GitHub</value>
+  </data>
+  <data name="About_Disclaimer">
+    <value>Этот плагин не изменяет файлы игры и не предназначен для нарушения Условий использования. Используйте ответственно.</value>
+  </data>
 </root>

@@ -1,13 +1,44 @@
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.IO;
 
 namespace EchoXIV.Services
 {
+    /// <summary>
+    /// Result of Protect(): protected text plus its own placeholder map,
+    /// safe to use across concurrent translations.
+    /// </summary>
+    public sealed class GlossaryProtection
+    {
+        private readonly Dictionary<string, string> _placeholders;
+
+        public string Text { get; }
+
+        internal GlossaryProtection(string text, Dictionary<string, string> placeholders)
+        {
+            Text = text;
+            _placeholders = placeholders;
+        }
+
+        public string Restore(string translatedText)
+        {
+            if (string.IsNullOrWhiteSpace(translatedText) || _placeholders.Count == 0)
+                return translatedText;
+
+            var result = translatedText;
+            foreach (var kvp in _placeholders)
+            {
+                result = result.Replace(kvp.Key, kvp.Value);
+            }
+            return result;
+        }
+    }
+
     public class GlossaryService
     {
-        // Mapa de términos: original -> protección (placeholder)
-        private static readonly Dictionary<string, string> _ffxivTerms = new()
+        // FFXIV term -> placeholder
+        private static readonly Dictionary<string, string> FfxivTerms = new()
         {
             { "ilvl", "[[IL]]" },
             { "PF", "[[PF]]" },
@@ -30,14 +61,13 @@ namespace EchoXIV.Services
             { "FC", "[[FC]]" },
             { "LS", "[[LS]]" },
             { "CWLS", "[[CWLS]]" },
-            { "RMT", "[[RMT]]" },
-            { "Wipe", "[[WIPE]]" },
-            { "Pull", "[[PULL]]" },
-            { "Macro", "[[MACRO]]" }
+            { "RMT", "[[RMT]]" }
         };
 
-        private readonly Dictionary<string, string> _activePlaceholders = new();
+        private static readonly Dictionary<string, Regex> FfxivRegexes = BuildRegexes(FfxivTerms);
+
         private readonly Dictionary<string, string> _customTerms = new();
+        private readonly Dictionary<string, Regex> _customRegexes = new();
 
         public GlossaryService(string? configDir = null)
         {
@@ -52,70 +82,68 @@ namespace EchoXIV.Services
             try
             {
                 var path = Path.Combine(configDir, "custom_glossary.json");
-                if (File.Exists(path))
+                if (!File.Exists(path)) return;
+
+                var json = File.ReadAllText(path);
+                var data = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                if (data == null) return;
+
+                foreach (var kvp in data)
                 {
-                    var json = File.ReadAllText(path);
-                    var data = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
-                    if (data != null)
-                    {
-                        foreach (var kvp in data) _customTerms[kvp.Key] = kvp.Value;
-                    }
+                    _customTerms[kvp.Key] = kvp.Value;
+                    _customRegexes[kvp.Key] = CompileTermRegex(kvp.Key);
                 }
             }
-            catch { }
+            catch
+            {
+                // Corrupt glossary must not break translation.
+            }
         }
 
         /// <summary>
-        /// Protege términos específicos del juego antes de la traducción
+        /// Protects game terms before translation. Thread-safe per call.
         /// </summary>
-        public string Protect(string text)
+        public GlossaryProtection Protect(string text)
         {
-            _activePlaceholders.Clear();
-            if (string.IsNullOrWhiteSpace(text)) return text;
+            var placeholders = new Dictionary<string, string>();
+            if (string.IsNullOrWhiteSpace(text))
+                return new GlossaryProtection(text ?? string.Empty, placeholders);
 
-            string result = text;
+            var result = text;
 
-            // 1. Proteger términos personalizados del usuario primero
+            // Custom terms first, then base FFXIV terms
             foreach (var term in _customTerms)
             {
-                result = ApplyProtection(result, term.Key, term.Value);
+                result = Apply(result, _customRegexes[term.Key], term.Key, term.Value, placeholders);
             }
-
-            // 2. Proteger términos base de FFXIV
-            foreach (var term in _ffxivTerms)
+            foreach (var term in FfxivTerms)
             {
-                result = ApplyProtection(result, term.Key, term.Value);
+                result = Apply(result, FfxivRegexes[term.Key], term.Key, term.Value, placeholders);
             }
 
-            return result;
+            return new GlossaryProtection(result, placeholders);
         }
 
-        private string ApplyProtection(string text, string key, string placeholder)
+        private static string Apply(string text, Regex regex, string term, string placeholder, Dictionary<string, string> placeholders)
         {
-            string pattern = @"\b" + Regex.Escape(key) + @"\b";
-            if (Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase))
-            {
-                string result = Regex.Replace(text, pattern, placeholder, RegexOptions.IgnoreCase);
-                _activePlaceholders[placeholder] = key;
-                return result;
-            }
-            return text;
+            if (!regex.IsMatch(text))
+                return text;
+
+            placeholders[placeholder] = term;
+            return regex.Replace(text, placeholder);
         }
 
-        /// <summary>
-        /// Restaura los términos originales después de la traducción
-        /// </summary>
-        public string Restore(string translatedText)
+        private static Dictionary<string, Regex> BuildRegexes(Dictionary<string, string> terms)
         {
-            if (string.IsNullOrWhiteSpace(translatedText)) return translatedText;
-
-            string result = translatedText;
-            foreach (var placeholder in _activePlaceholders)
+            var map = new Dictionary<string, Regex>();
+            foreach (var term in terms)
             {
-                result = result.Replace(placeholder.Key, placeholder.Value);
+                map[term.Key] = CompileTermRegex(term.Key);
             }
-
-            return result;
+            return map;
         }
+
+        private static Regex CompileTermRegex(string key) =>
+            new(@"\b" + Regex.Escape(key) + @"\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     }
 }

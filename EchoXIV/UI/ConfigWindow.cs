@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Numerics;
 using System.Linq;
+using System.Text.Json;
 using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
@@ -14,23 +15,26 @@ namespace EchoXIV.UI;
 public class ConfigWindow : Window, IDisposable
 {
     private Configuration _configuration;
+    private string _lastSavedFingerprint;
     private MessageHistoryManager _historyManager;
     private string _historyFilter = string.Empty;
     
-    // Callback para actualizaciones en tiempo real
-    public Action? OnVisualsChanged;
+            // Real-time update callback
     public Action<TranslationEngine>? OnTranslationEngineChanged;
     public Action? OnUiLanguageChanged;
     
     private string _newExcludedMessage = string.Empty;
     
+    private int _currentTab;
+
     public ConfigWindow(Configuration configuration, MessageHistoryManager historyManager) 
         : base($"{Resources.PluginName} - {Resources.ConfigWindow_Title}###ConfigWindow")
     {
         _configuration = configuration;
+        _lastSavedFingerprint = GetFingerprint(_configuration);
         _historyManager = historyManager;
         
-        Size = new Vector2(600, 500);
+        Size = new Vector2(750, 550);
         SizeCondition = ImGuiCond.FirstUseEver;
         
         Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
@@ -40,36 +44,141 @@ public class ConfigWindow : Window, IDisposable
 
     public override void Draw()
     {
-        using (var tabBar = ImRaii.TabBar("ConfigTabs"))
+        // Sidebar layout: fixed left + stretch right (ChatTwo Settings.cs pattern)
+        if (ImGui.BeginTable("##ConfigSidebarTable", 2, ImGuiTableFlags.BordersInnerV))
         {
-            if (tabBar)
+            ImGui.TableSetupColumn("##sidebar", ImGuiTableColumnFlags.WidthFixed, 150f);
+            ImGui.TableSetupColumn("##content", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableNextRow();
+
+            // Left: sidebar
+            ImGui.TableSetColumnIndex(0);
+            using (var sidebarChild = ImRaii.Child("##ConfigSidebar", new Vector2(0, -1), false))
             {
-                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_General}###GeneralTab"))
+                if (sidebarChild)
                 {
-                    if (tabItem) DrawGeneralTab();
-                }
-
-                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_Visuals}###VisualsTab"))
-                {
-                    if (tabItem) DrawVisualsTab();
-                }
-
-                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_ExcludedMessages}###ExcludedTab"))
-                {
-                    if (tabItem) DrawExcludedMessagesTab();
-                }
-
-                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_IncomingChannels}###IncomingTab"))
-                {
-                    if (tabItem) DrawIncomingChannelsTab();
-                }
-
-                using (var tabItem = ImRaii.TabItem($"{Resources.Tab_History}###HistoryTab"))
-                {
-                    if (tabItem) DrawHistoryTab();
+                    var tabNames = new[]
+                    {
+                        Resources.Tab_General,
+                        Resources.Tab_Visuals,
+                        Resources.Tab_ExcludedMessages,
+                        Resources.Tab_IncomingChannels,
+                        Resources.Tab_History,
+                        Resources.Tab_About
+                    };
+                    for (int i = 0; i < tabNames.Length; i++)
+                    {
+                        if (ImGui.Selectable(tabNames[i], _currentTab == i))
+                            _currentTab = i;
+                    }
                 }
             }
+
+            // Right: content
+            ImGui.TableSetColumnIndex(1);
+            using (var contentChild = ImRaii.Child("##ConfigContent", new Vector2(0, -1), false))
+            {
+                if (contentChild)
+                {
+                    switch (_currentTab)
+                    {
+                        case 0: DrawGeneralTab(); break;
+                        case 1: DrawVisualsTab(); break;
+                        case 2: DrawExcludedMessagesTab(); break;
+                        case 3: DrawIncomingChannelsTab(); break;
+                        case 4: DrawHistoryTab(); break;
+                        case 5: DrawAboutTab(); break;
+                    }
+                }
+            }
+
+            ImGui.EndTable();
         }
+
+        PersistLiveChanges();
+        ImGui.Separator();
+        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.General_ChangesAppliedImmediately);
+    }
+
+    private void PersistLiveChanges()
+    {
+        var fingerprint = GetFingerprint(_configuration);
+        if (fingerprint == _lastSavedFingerprint)
+            return;
+
+        try
+        {
+            _configuration.Save();
+            // Only acknowledge the fingerprint after SavePluginConfig succeeds.
+            _lastSavedFingerprint = fingerprint;
+        }
+        catch (Exception ex)
+        {
+            Plugin.PluginLog.Error(ex, "Failed to persist EchoXIV configuration. It will be retried.");
+        }
+    }
+
+    private static string GetFingerprint(Configuration configuration) =>
+        JsonSerializer.Serialize(configuration);
+
+    private void DrawAboutTab()
+    {
+        using var child = ImRaii.Child("AboutScroll");
+        if (!child) return;
+
+        // Title - centered and colored
+        var title = Resources.About_Title;
+        var titleSize = ImGui.CalcTextSize(title);
+        var availX = ImGui.GetContentRegionAvail().X;
+        ImGui.SetCursorPosX((availX - titleSize.X) * 0.5f);
+        ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.2f, 1f), title);
+
+        ImGui.Spacing();
+
+        // Description
+        ImGui.TextWrapped(Resources.About_Description);
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Version and Author
+        var version = typeof(ConfigWindow).Assembly.GetName().Version?.ToString(3) ?? "1.0.2.1";
+        ImGui.Text(string.Format(Resources.About_Version, version));
+        ImGui.Text(Resources.About_Author);
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Discord
+        ImGui.TextColored(new Vector4(0.4f, 0.6f, 1f, 1f), Resources.About_Discord);
+        ImGui.TextWrapped(Resources.About_DiscordDesc);
+        ImGui.Spacing();
+        if (ImGui.Button($"{Resources.About_OpenDiscord}##OpenDiscord"))
+        {
+            Dalamud.Utility.Util.OpenLink("https://discord.gg/B3qnvuhN9G");
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("https://discord.gg/B3qnvuhN9G");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // GitHub
+        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.About_GitHub);
+        ImGui.TextWrapped(Resources.About_GitHubDesc);
+        ImGui.Spacing();
+        if (ImGui.Button($"{Resources.About_OpenGitHub}##OpenGitHub"))
+        {
+            Dalamud.Utility.Util.OpenLink("https://github.com/ssalazar217/EchoXIV");
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("https://github.com/ssalazar217/EchoXIV");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Disclaimer
+        ImGui.TextWrapped(Resources.About_Disclaimer);
     }
     
     private void DrawGeneralTab()
@@ -92,7 +201,14 @@ public class ConfigWindow : Window, IDisposable
             ImGui.SetNextItemWidth(200);
             
             var engines = Enum.GetValues<TranslationEngine>();
-            var engineNames = engines.Select(e => e.ToString()).ToArray();
+            var engineNames = new[]
+            {
+                Resources.General_EngineNameGoogle,        // Google
+                Resources.General_EngineNamePapago,        // Papago
+                Resources.General_EngineNameLibreTranslate, // LibreTranslate
+                Resources.General_EngineNameYandex,        // Yandex
+                "LocalAI",                                 // Local AI
+            };
             var currentEngineIdx = Array.IndexOf(engines, _configuration.SelectedEngine);
             
             if (ImGui.Combo("##Engine", ref currentEngineIdx, engineNames, engineNames.Length))
@@ -107,11 +223,58 @@ public class ConfigWindow : Window, IDisposable
             }
 
             ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), 
-                _configuration.SelectedEngine == TranslationEngine.Google 
+                _configuration.SelectedEngine == TranslationEngine.Google
                 ? Resources.General_EngineGoogleDesc 
                 : _configuration.SelectedEngine == TranslationEngine.LocalAI
                 ? Resources.General_EngineLocalAIDesc
+                : _configuration.SelectedEngine == TranslationEngine.LibreTranslate
+                ? Resources.General_EngineLibreTranslateDesc
+                : _configuration.SelectedEngine == TranslationEngine.Yandex
+                ? Resources.General_EngineYandexDesc
                 : Resources.General_EnginePapagoDesc);
+
+            ImGui.Spacing();
+
+            // Fallback engine
+            ImGui.Text(Resources.General_EngineFallback);
+            ImGui.SetNextItemWidth(200);
+
+            var fallbackOptions = new TranslationEngine?[] { null, TranslationEngine.Google, TranslationEngine.Papago, TranslationEngine.LibreTranslate, TranslationEngine.Yandex, TranslationEngine.LocalAI };
+            var fallbackNames = new[]
+            {
+                Resources.General_EngineFallbackAuto,  // null -> auto
+                Resources.General_EngineNameGoogle,
+                Resources.General_EngineNamePapago,
+                Resources.General_EngineNameLibreTranslate,
+                Resources.General_EngineNameYandex,
+                "LocalAI",
+            };
+            var currentFallbackIdx = Array.IndexOf(fallbackOptions, _configuration.FallbackEngine);
+            if (currentFallbackIdx == -1) currentFallbackIdx = 0;
+
+            if (ImGui.Combo("##FallbackEngine", ref currentFallbackIdx, fallbackNames, fallbackNames.Length))
+            {
+                var newFallback = fallbackOptions[currentFallbackIdx];
+                if (_configuration.FallbackEngine != newFallback)
+                {
+                    _configuration.FallbackEngine = newFallback;
+                    _configuration.Save();
+                    OnTranslationEngineChanged?.Invoke(_configuration.SelectedEngine);
+                }
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_EngineFallbackTip);
+
+            // Primary recheck interval (minutes)
+            var recoveryMinutes = _configuration.EngineRecoveryCheckMinutes;
+            ImGui.Text(Resources.General_EngineRecoveryMinutes);
+            ImGui.SetNextItemWidth(200);
+            if (ImGui.SliderInt("##EngineRecoveryMinutes", ref recoveryMinutes, 1, 60))
+            {
+                _configuration.EngineRecoveryCheckMinutes = recoveryMinutes;
+                _configuration.Save();
+                OnTranslationEngineChanged?.Invoke(_configuration.SelectedEngine);
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_EngineRecoveryMinutesTip);
 
             if (_configuration.SelectedEngine == TranslationEngine.LocalAI)
             {
@@ -122,7 +285,7 @@ public class ConfigWindow : Window, IDisposable
             ImGui.Separator();
             ImGui.Spacing();
             
-            // Selector de idioma de origen
+            // Source language selector
             ImGui.Text(Resources.General_SourceLanguage);
             ImGui.SetNextItemWidth(200);
             
@@ -139,12 +302,11 @@ public class ConfigWindow : Window, IDisposable
             if (ImGui.Combo("##SourceLang", ref currentSourceIdx, languageNames, languageNames.Length))
             {
                 _configuration.SourceLanguage = languages[currentSourceIdx];
-                _configuration.Save();
             }
             
             ImGui.Spacing();
             
-            // Selector de idioma de destino
+            // Target language selector
             ImGui.Text(Resources.General_TargetLanguage);
             ImGui.SetNextItemWidth(200);
             
@@ -154,26 +316,13 @@ public class ConfigWindow : Window, IDisposable
             if (ImGui.Combo("##TargetLang", ref currentTargetIdx, languageNames, languageNames.Length))
             {
                 _configuration.TargetLanguage = languages[currentTargetIdx];
-                _configuration.Save();
             }
-            
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
 
-            
-            ImGui.TextWrapped(Resources.General_ChangesAppliedImmediately);
-            
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
-
-            // Opción de Logs Detallados
+            // Verbose logging option
             var verboseLogs = _configuration.VerboseLogging;
             if (ImGui.Checkbox(Resources.General_VerboseLogs, ref verboseLogs))
             {
                 _configuration.VerboseLogging = verboseLogs;
-                _configuration.Save();
             }
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.General_VerboseLogsTip);
         }
@@ -229,7 +378,6 @@ public class ConfigWindow : Window, IDisposable
                     if (!_configuration.ExcludedMessages.Contains(trimmed))
                     {
                         _configuration.ExcludedMessages.Add(trimmed);
-                        _configuration.Save();
                         _newExcludedMessage = string.Empty;
                     }
                 }
@@ -244,7 +392,6 @@ public class ConfigWindow : Window, IDisposable
                     if (!_configuration.ExcludedMessages.Contains(trimmed))
                     {
                         _configuration.ExcludedMessages.Add(trimmed);
-                        _configuration.Save();
                         _newExcludedMessage = string.Empty;
                     }
                 }
@@ -274,7 +421,6 @@ public class ConfigWindow : Window, IDisposable
                 if (toRemove != null)
                 {
                     _configuration.ExcludedMessages.Remove(toRemove);
-                    _configuration.Save();
                 }
             }
         }
@@ -292,7 +438,6 @@ public class ConfigWindow : Window, IDisposable
                     "m1s", "m2s", "m3s", "m4s", "m5s", "m6s", "m7s", "m8s", "m9s", "m10s", "m11s", "m12s",
                     "PF", "ilvl", "lb", "mb", "tyfp", "c:"
                 };
-                _configuration.Save();
             }
         }
     }
@@ -313,16 +458,12 @@ public class ConfigWindow : Window, IDisposable
             if (ImGui.SliderInt(Resources.Visuals_FontSize, ref fontSize, 10, 32))
             {
                 _configuration.FontSize = fontSize;
-                _configuration.Save();
-                OnVisualsChanged?.Invoke();
             }
             
             int spacing = _configuration.ChatMessageSpacing;
             if (ImGui.SliderInt(Resources.Visuals_Spacing, ref spacing, 0, 20))
             {
                 _configuration.ChatMessageSpacing = spacing;
-                _configuration.Save();
-                OnVisualsChanged?.Invoke();
             }
 
             ImGui.Spacing();
@@ -337,10 +478,41 @@ public class ConfigWindow : Window, IDisposable
             if (ImGui.Combo("##TimestampFmt", ref currentFmt, formatNames, formatNames.Length))
             {
                 _configuration.TimestampFormat = formats[currentFmt];
-                _configuration.Save();
-                OnVisualsChanged?.Invoke();
             }
 
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            // HideWhenInactive (ChatTwo pattern)
+            var hideInactive = _configuration.HideWhenInactive;
+            if (ImGui.Checkbox("Hide when inactive", ref hideInactive))
+            {
+                _configuration.HideWhenInactive = hideInactive;
+            }
+            HelpText("Hides the translated window after inactivity.");
+            if (hideInactive)
+            {
+                int timeout = _configuration.InactivityHideTimeout;
+                if (ImGui.SliderInt("Inactivity timeout (seconds)", ref timeout, 10, 600))
+                {
+                    _configuration.InactivityHideTimeout = timeout;
+                }
+            }
+            ImGui.Spacing();
+            if (ImGui.CollapsingHeader("Extra Glyphs"))
+            {
+                int extra = (int)_configuration.ExtraGlyphs;
+                bool changed = false;
+                if (ImGui.CheckboxFlags("Cyrillic", ref extra, (int)Configuration.ExtraGlyph.Cyrillic)) changed = true;
+                ImGui.SameLine();
+                if (ImGui.CheckboxFlags("Greek", ref extra, (int)Configuration.ExtraGlyph.Greek)) changed = true;
+                ImGui.SameLine();
+                if (ImGui.CheckboxFlags("Vietnamese", ref extra, (int)Configuration.ExtraGlyph.Vietnamese)) changed = true;
+                if (ImGui.CheckboxFlags("Thai", ref extra, (int)Configuration.ExtraGlyph.Thai)) changed = true;
+                if (changed) _configuration.ExtraGlyphs = (Configuration.ExtraGlyph)extra;
+                HelpText("Adds glyph ranges for better language support. Requires restart.");
+            }
             ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
@@ -378,8 +550,6 @@ public class ConfigWindow : Window, IDisposable
             if (ImGui.ColorEdit4($"{channel.Value}##Color{channel.Key}", ref colorVector, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoAlpha))
             {
                 _configuration.ChannelColors[channel.Key] = Vector4ToColor(colorVector);
-                _configuration.Save();
-                OnVisualsChanged?.Invoke();
             }
             if (channel.Key == 13 || channel.Key == 15 || channel.Key == 24) ImGui.SameLine();
         }
@@ -424,9 +594,10 @@ public class ConfigWindow : Window, IDisposable
             var messages = _historyManager.GetHistory();
             if (!string.IsNullOrWhiteSpace(_historyFilter))
             {
-                messages = messages.Where(m => 
-                    m.OriginalText.Contains(_historyFilter, StringComparison.OrdinalIgnoreCase) || 
+                messages = messages.Where(m =>
+                    m.OriginalText.Contains(_historyFilter, StringComparison.OrdinalIgnoreCase) ||
                     m.TranslatedText.Contains(_historyFilter, StringComparison.OrdinalIgnoreCase) ||
+                    (m.RomanizedText?.Contains(_historyFilter, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     m.Sender.Contains(_historyFilter, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
@@ -443,6 +614,10 @@ public class ConfigWindow : Window, IDisposable
                     ImGui.SameLine();
                     ImGui.TextColored(color, $"[{msg.ChatType}] {msg.Sender}:");
                     ImGui.TextWrapped(msg.TranslatedText);
+                    if (!string.IsNullOrWhiteSpace(msg.RomanizedText))
+                    {
+                        ImGui.TextColored(new Vector4(0.55f, 0.75f, 0.9f, 1f), $"{Resources.ChatWindow_RomanizationLabel} {msg.RomanizedText}");
+                    }
                     if (_configuration.ShowOriginalText)
                     {
                         ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.8f, 0.8f), msg.OriginalText);
@@ -469,7 +644,7 @@ public class ConfigWindow : Window, IDisposable
     
     private void DrawIncomingChannelsTab()
     {
-        // Añadir región desplazable para evitar corte de contenido
+            // Scrollable region to avoid clipping
         using var child = ImRaii.Child("IncomingScroll");
         if (child)
         {
@@ -482,7 +657,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.Checkbox(Resources.Incoming_Enable, ref incomingEnabled))
         {
             _configuration.IncomingTranslationEnabled = incomingEnabled;
-            _configuration.Save();
         }
         
         if (!incomingEnabled)
@@ -495,7 +669,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Spacing();
         
-        // Selector de idioma destino para entrantes
+            // Incoming target language selector
         ImGui.Text(Resources.Incoming_TranslateTo);
         ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), Resources.Incoming_AutoDetectNote);
         ImGui.SetNextItemWidth(200);
@@ -514,28 +688,25 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.Combo("##IncomingTargetLang", ref currentIdx, languageNames, languageNames.Length))
         {
             _configuration.IncomingTargetLanguage = languages[currentIdx];
-            _configuration.Save();
         }
         
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
         
-        // Opciones de visualización
+            // Display options
         ImGui.Text(Resources.Incoming_DisplayOptions);
         
         var showOriginal = _configuration.ShowOriginalText;
         if (ImGui.Checkbox(Resources.Incoming_ShowOriginal, ref showOriginal))
         {
             _configuration.ShowOriginalText = showOriginal;
-            _configuration.Save();
         }
         
         var showTimestamps = _configuration.ShowTimestamps;
         if (ImGui.Checkbox(Resources.Incoming_ShowTimestamps, ref showTimestamps))
         {
             _configuration.ShowTimestamps = showTimestamps;
-            _configuration.Save();
         }
         
         var maxMessages = _configuration.MaxDisplayedMessages;
@@ -543,14 +714,12 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.InputInt(Resources.Incoming_MaxMessages, ref maxMessages))
         {
             _configuration.MaxDisplayedMessages = Math.Clamp(maxMessages, 10, 200);
-            _configuration.Save();
         }
         
         var showOutgoing = _configuration.ShowOutgoingMessages;
         if (ImGui.Checkbox(Resources.Incoming_ShowOutgoing, ref showOutgoing))
         {
             _configuration.ShowOutgoingMessages = showOutgoing;
-            _configuration.Save();
         }
         
         ImGui.Spacing();
@@ -560,7 +729,7 @@ public class ConfigWindow : Window, IDisposable
         ImGui.Text(Resources.Incoming_ChannelsToTranslate);
         ImGui.Spacing();
         
-        // Canales principales
+        // Main channels
         ImGui.Columns(3, "ChannelColumns", false);
         
         DrawChannelCheckbox("Say", XivChatType.Say);
@@ -640,7 +809,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.Checkbox(Resources.LocalAI_ContextEnable, ref useContext))
         {
             _configuration.LocalAiUseConversationContext = useContext;
-            _configuration.Save();
         }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_ContextEnableTip);
 
@@ -657,7 +825,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.SliderInt("##LocalAiContextMessages", ref contextMessages, 0, 20))
         {
             _configuration.LocalAiContextMessages = contextMessages;
-            _configuration.Save();
         }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_ContextMessagesTip);
 
@@ -693,7 +860,6 @@ public class ConfigWindow : Window, IDisposable
                 _configuration.LocalAiContextChannels.Add((int)chatType);
             else
                 _configuration.LocalAiContextChannels.Remove((int)chatType);
-            _configuration.Save();
         }
     }
     
@@ -706,7 +872,6 @@ public class ConfigWindow : Window, IDisposable
                 _configuration.IncomingChannels.Add((int)chatType);
             else
                 _configuration.IncomingChannels.Remove((int)chatType);
-            _configuration.Save();
         }
     }
 
@@ -722,8 +887,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.InputText("##LocalAiEndpoint", ref endpoint, 200))
         {
             _configuration.LocalAiEndpoint = endpoint.Trim();
-            _configuration.Save();
-            OnTranslationEngineChanged?.Invoke(_configuration.SelectedEngine);
         }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_EndpointTip);
 
@@ -734,7 +897,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.InputText("##LocalAiModel", ref model, 100))
         {
             _configuration.LocalAiModel = model.Trim();
-            _configuration.Save();
         }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_ModelTip);
 
@@ -745,7 +907,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.InputText("##LocalAiApiKey", ref apiKey, 200, ImGuiInputTextFlags.Password))
         {
             _configuration.LocalAiApiKey = apiKey.Trim();
-            _configuration.Save();
         }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_ApiKeyTip);
 
@@ -756,7 +917,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.SliderFloat("##LocalAiTemp", ref temperature, 0f, 1f))
         {
             _configuration.LocalAiTemperature = temperature;
-            _configuration.Save();
         }
 
         // Timeout
@@ -766,7 +926,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.SliderInt("##LocalAiTimeout", ref timeout, 5, 120))
         {
             _configuration.LocalAiTimeoutSeconds = timeout;
-            _configuration.Save();
         }
 
         // Disable "think" mode.
@@ -774,7 +933,6 @@ public class ConfigWindow : Window, IDisposable
         if (ImGui.Checkbox(Resources.LocalAI_DisableThinking, ref disableThinking))
         {
             _configuration.LocalAiDisableThinking = disableThinking;
-            _configuration.Save();
         }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_DisableThinkingTip);
 
@@ -782,11 +940,39 @@ public class ConfigWindow : Window, IDisposable
         var maxTokens = _configuration.LocalAiMaxTokens;
         ImGui.Text(Resources.LocalAI_MaxTokens);
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.SliderInt("##LocalAiMaxTokens", ref maxTokens, 0, 256))
+        if (ImGui.InputInt("##LocalAiMaxTokens", ref maxTokens))
         {
+            maxTokens = Math.Clamp(maxTokens, 0, 1000);
             _configuration.LocalAiMaxTokens = maxTokens;
-            _configuration.Save();
         }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.LocalAI_MaxTokensTip);
+    }
+
+    // Helpers (ChatTwo ImGuiUtil pattern)
+    private bool OptionCheckbox(string label, ref bool value, string? description = null)
+    {
+        bool changed = ImGui.Checkbox(label, ref value);
+        if (description != null)
+        {
+            ImGui.SameLine();
+            HelpText(description);
+        }
+        return changed;
+    }
+
+    private void HelpText(string text)
+    {
+        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), text);
+        ImGui.Spacing();
+    }
+
+    private void WarningText(string text)
+    {
+        ImGui.TextColored(new Vector4(1f, 0.6f, 0.2f, 1f), text);
+    }
+
+    private void ScaledDummy(float size)
+    {
+        ImGui.Dummy(new Vector2(0, size));
     }
 }

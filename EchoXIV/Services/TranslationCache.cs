@@ -2,14 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace EchoXIV.Services
 {
     public class TranslationCache
     {
         private readonly string _cacheFilePath;
+        private readonly object _gate = new();
         private readonly Dictionary<string, string> _cache = new();
+        private readonly Dictionary<string, string> _romanizationCache = new();
         private bool _isDirty = false;
+        private long _changeVersion;
 
         public TranslationCache(string configDir)
         {
@@ -21,13 +25,30 @@ namespace EchoXIV.Services
         {
             try
             {
-                if (File.Exists(_cacheFilePath))
+                if (!File.Exists(_cacheFilePath)) return;
+
+                var json = File.ReadAllText(_cacheFilePath);
+                var root = JObject.Parse(json);
+
+                // New format: { "translations": {...}, "romanizations": {...} }
+                var translations = root["translations"]?.ToObject<Dictionary<string, string>>();
+                if (translations != null)
                 {
-                    var json = File.ReadAllText(_cacheFilePath);
-                    var data = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
-                    if (data != null)
+                    foreach (var kvp in translations) _cache[kvp.Key] = kvp.Value;
+
+                    var romanizations = root["romanizations"]?.ToObject<Dictionary<string, string>>();
+                    if (romanizations != null)
                     {
-                        foreach (var kvp in data) _cache[kvp.Key] = kvp.Value;
+                        foreach (var kvp in romanizations) _romanizationCache[kvp.Key] = kvp.Value;
+                    }
+                }
+                else
+                {
+                    // Legacy format: flat translation dictionary
+                    var legacy = root.ToObject<Dictionary<string, string>>();
+                    if (legacy != null)
+                    {
+                        foreach (var kvp in legacy) _cache[kvp.Key] = kvp.Value;
                     }
                 }
             }
@@ -40,33 +61,96 @@ namespace EchoXIV.Services
         public string? Get(string text, string sourceLang, string targetLang)
         {
             var key = GetKey(text, sourceLang, targetLang);
-            return _cache.TryGetValue(key, out var translated) ? translated : null;
+            lock (_gate)
+            {
+                return _cache.TryGetValue(key, out var translated) ? translated : null;
+            }
+        }
+
+        public bool TryGetWithRomanization(
+            string text,
+            string sourceLang,
+            string targetLang,
+            out string? translated,
+            out string? romanized)
+        {
+            translated = null;
+            romanized = null;
+
+            var key = GetKey(text, sourceLang, targetLang);
+            lock (_gate)
+            {
+                if (!_cache.TryGetValue(key, out var cachedTranslation))
+                    return false;
+
+                translated = cachedTranslation;
+                _romanizationCache.TryGetValue(key, out romanized);
+                return true;
+            }
         }
 
         public void Add(string text, string sourceLang, string targetLang, string translated)
         {
+            Add(text, sourceLang, targetLang, translated, null);
+        }
+
+        public void Add(string text, string sourceLang, string targetLang, string translated, string? romanized)
+        {
             var key = GetKey(text, sourceLang, targetLang);
-            if (!_cache.ContainsKey(key))
+            lock (_gate)
             {
-                _cache[key] = translated;
-                _isDirty = true;
+                if (!_cache.ContainsKey(key))
+                {
+                    _cache[key] = translated;
+                    _isDirty = true;
+                    _changeVersion++;
+                }
+
+                if (!string.IsNullOrEmpty(romanized) && !_romanizationCache.ContainsKey(key))
+                {
+                    _romanizationCache[key] = romanized!;
+                    _isDirty = true;
+                    _changeVersion++;
+                }
             }
         }
 
         public void Save()
         {
-            if (!_isDirty) return;
+            JObject root;
+            long snapshotVersion;
+            lock (_gate)
+            {
+                if (!_isDirty) return;
+                root = BuildSnapshot();
+                snapshotVersion = _changeVersion;
+            }
 
             try
             {
-                var json = JsonConvert.SerializeObject(_cache, Formatting.Indented);
-                File.WriteAllText(_cacheFilePath, json);
-                _isDirty = false;
+                File.WriteAllText(_cacheFilePath, root.ToString(Formatting.Indented));
+                lock (_gate)
+                {
+                    // Keep dirty state when a write raced with a new cache entry.
+                    if (_changeVersion == snapshotVersion)
+                        _isDirty = false;
+                }
             }
             catch (Exception)
             {
-                // Silently fail
+                // Keep the dirty flag so the next scheduled flush retries.
             }
+        }
+
+        private JObject BuildSnapshot()
+        {
+            return new JObject
+            {
+                ["translations"] = JObject.FromObject(_cache),
+                ["romanizations"] = _romanizationCache.Count > 0
+                    ? JObject.FromObject(_romanizationCache)
+                    : new JObject()
+            };
         }
 
         private string GetKey(string text, string sl, string tl) => $"{text}|{sl}|{tl}";

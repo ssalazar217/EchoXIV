@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -11,16 +12,16 @@ using Newtonsoft.Json.Linq;
 namespace EchoXIV.Services
 {
     /// <summary>
-    /// Servicio de traducción usando Google Translate API (gtx) sin API key.
-    /// Más estable que el scraping de HTML móvil.
+    /// Google Translate (gtx) service, no API key required.
     /// </summary>
-    public class GoogleTranslatorService : ITranslationService, IDisposable
+    public class GoogleTranslatorService : ITranslationService, IRomanizationService, IDisposable
     {
         public string Name => "Google";
 
         private static readonly HttpClient SharedHttpClient = CreateHttpClient();
         
         private const string GtxUrlTemplate = "https://translate.googleapis.com/translate_a/single?client=gtx&sl={0}&tl={1}&dt=t&q={2}";
+        private const string GtxUrlTemplateWithRomanization = "https://translate.googleapis.com/translate_a/single?client=gtx&sl={0}&tl={1}&dt=t&q={2}&dt=rm";
 
         private static HttpClient CreateHttpClient()
         {
@@ -39,7 +40,7 @@ namespace EchoXIV.Services
             
             try
             {
-                // Construir URL con el cliente gtx (Google Translate Extension)
+                // Build gtx URL
                 var url = string.Format(GtxUrlTemplate, fromLang, toLang, WebUtility.UrlEncode(text));
                 
                 var response = await SharedHttpClient.GetAsync(url, cancellationToken);
@@ -52,8 +53,7 @@ namespace EchoXIV.Services
                 
                 var json = await response.Content.ReadAsStringAsync(cancellationToken);
                 
-                // El formato de respuesta de gtx es un array anidado:
-                // [[["traducción","original",...],[...]],...]
+                // gtx response format: [[["translation","original",...],[...]],...]
                 var jArray = JArray.Parse(json);
                 var translatedParts = jArray[0];
                 
@@ -80,15 +80,53 @@ namespace EchoXIV.Services
             }
             catch (Exception)
             {
-                return text; // Retornar texto original en caso de error
+                return text; // Return original on error
             }
         }
         
-        public string Translate(string text, string fromLang, string toLang)
+        public async Task<string?> RomanizeAsync(string text, string sourceLang, CancellationToken ct = default)
         {
-            return TranslateAsync(text, fromLang, toLang, CancellationToken.None).GetAwaiter().GetResult();
+            if (string.IsNullOrWhiteSpace(text)) return null;
+
+            // Non-Latin scripts only
+            if (NonLatinScriptDetector.Detect(text) == NonLatinScriptKind.Latin) return null;
+            
+            try
+            {
+                var url = string.Format(GtxUrlTemplateWithRomanization, sourceLang, "auto", Uri.EscapeDataString(text));
+                var response = await SharedHttpClient.GetAsync(url, ct);
+
+                if (!response.IsSuccessStatusCode) return null;
+
+                var json = await response.Content.ReadAsStringAsync(ct);
+                var jArray = JArray.Parse(json);
+
+                var romajiParts = new StringBuilder();
+                var units = jArray[0] as JArray;
+                if (units == null) return null;
+
+                foreach (var unit in units)
+                {
+                    var unitArray = unit as JArray;
+                    if (unitArray != null && unitArray.Count > 2 && unitArray[2] != null)
+                    {
+                        romajiParts.Append(unitArray[2].ToString());
+                    }
+                }
+
+                return romajiParts.Length > 0 ? romajiParts.ToString() : null;
+            }
+            catch
+            {
+                return null;
+            }
         }
-        
+
+        public bool CanRomanize(string sourceLang, string text)
+        {
+            return NonLatinScriptDetector.Detect(text) != NonLatinScriptKind.Latin;
+        }
+
         public void Dispose()
         {
             // Intentionally left blank: SharedHttpClient is process-wide.

@@ -63,6 +63,7 @@
   <data name="Command_MessageTooLong"><value>Meldingen er for lang</value></data>
   <data name="Command_TranslateError"><value>Oversettelsesfeil</value></data>
   <data name="Command_SendError"><value>Feil ved sending av melding</value></data>
+  <data name="Tell_DefaultRecipient"><value>Mottaker</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>Oversettelse aktivert. {0} -&gt; {1}</value></data>
   <data name="Command_HelpHeader"><value>Tilgjengelige kommandoer:</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;message&gt; - Oversett til aktiv kanal.</value></data>
@@ -79,6 +80,9 @@
   </data>
   <data name="ChatWindow_IAOffline">
     <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineBanner">
+    <value>⚠ Lokal KI kjører ikke. Åpne din lokale KI-server for å bruke den. Reserve-motoren brukes i mellomtiden.</value>
   </data>
   <data name="ChatWindow_IAOfflineTooltip">
     <value>Den lokale AI-serveren er ikke tilgjengelig. EchoXIV bruker Google Translate til du bytter tilbake til lokal AI eller serveren kommer tilbake på nett.</value>
@@ -98,15 +102,30 @@
   <data name="ChatWindow_UnlockTooltip"><value>Lås opp vindu</value></data>
   <data name="ChatWindow_HideTooltip"><value>Skjul vindu</value></data>
   <data name="ChatWindow_ClearTooltip"><value>Tøm chatinnholdet</value></data>
+  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_RomanizationTooltip"><value>Vis latinsk transliterering for ikke-latiniske skript (JA/KO/RU/ZH)</value></data>
+<data name="ChatWindow_TranslationNative"><value>Oversettelse (native script):</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Romanisasjon:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - Konfigurasjon</value></data>
   <data name="Tab_Visuals"><value>Utseende</value></data>
   <data name="General_Engine"><value>Oversettelsesmotor</value></data>
   <data name="General_InterfaceLanguage"><value>Grensesnittspråk</value></data>
   <data name="General_InterfaceLanguageTip"><value>Valgfritt: velg språket for EchoXIV-grensesnittet. Standard følger spillets/Dalamuds språk.</value></data>
   <data name="General_InterfaceLanguageDefault"><value>Standard (som spill/Dalamud)</value></data>
-  <data name="General_EngineGoogleDesc"><value>Klassisk Google Translate (GTx JSON API)</value></data>
-  <data name="General_EnginePapagoDesc"><value>Naver Papago Translator (fokus på koreansk/japansk)</value></data>
-  <data name="General_EngineLocalAIDesc"><value>Lokal KI via OpenAI-kompatibel server (LM Studio, Ollama). Kjører på din egen GPU.</value></data>
+  <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
+  <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
+  <data name="General_EngineGoogleDesc"><value>Gratis Google Translate-endepunkt. Kan nå midlertidige rategrenser ved intensiv bruk.</value></data>
+  <data name="General_EnginePapagoDesc"><value>Naver Papago web-endepunkt. Gratis, uten API-nøkkel. Kan nå midlertidige rategrenser.</value></data>
+  <data name="General_EngineLocalAIDesc"><value>Lokal KI via OpenAI-kompatibel server (LM Studio, Ollama). Kjører på din egen GPU. Ingen grenser.</value></data>
+  <data name="General_EngineLibreTranslateDesc"><value>EchoXIVs egen oversettelsesserver. Gratis, ubegrenset, uten API-nøkkel. Drevet av LibreTranslate (Argos NMT).</value></data>
+  <data name="General_EngineYandexDesc"><value>Gratis Yandex Translate (mobil-endepunkt). Uten API-nøkkel. Kan nå midlertidige rategrenser.</value></data>
+  <data name="General_EngineFallback"><value>Reservemotor</value></data>
+  <data name="General_EngineFallbackAuto"><value>Auto (roter gjennom alle andre)</value></data>
+  <data name="General_EngineFallbackTip"><value>Motor som brukes når den primære når grensen eller feiler. Den primære endres aldri. Er reservemotoren også utilgjengelig, roteres de øvrige motorene.</value></data>
+  <data name="General_EngineRecoveryMinutes"><value>Gjenopprettingssjekk av primærmotor (minutter)</value></data>
+  <data name="General_EngineRecoveryMinutesTip"><value>Hvor ofte pluginet tester om primærmotoren fungerer igjen for å gå tilbake til den.</value></data>
   <data name="LocalAI_SectionTitle"><value>Innstillinger for lokal KI-server</value></data>
   <data name="LocalAI_Endpoint"><value>Server-URL</value></data>
   <data name="LocalAI_EndpointTip"><value>OpenAI-kompatibel base-URL. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
@@ -180,4 +199,40 @@
   <data name="History_NoMessages"><value>Ingen meldinger funnet som samsvarer med kriteriene dine.</value></data>
   <data name="History_Clear"><value>Tøm historikk</value></data>
   <data name="History_Title"><value>Meldingshistorikk</value></data>
+  <data name="Tab_About">
+    <value>Om</value>
+  </data>
+  <data name="About_Title">
+    <value>EchoXIV - Chat Oversetter</value>
+  </data>
+  <data name="About_Description">
+    <value>EchoXIV er en plugin for Dalamud som oversetter FFXIV-chat i sanntid. Den oversetter både innkommende og utgående meldinger slik at du kan kommunisere naturlig med spillere som bruker andre språk.</value>
+  </data>
+  <data name="About_Author">
+    <value>Forfatter: ssalazar217 (SteSE)</value>
+  </data>
+  <data name="About_Version">
+    <value>Versjon: {0}</value>
+  </data>
+  <data name="About_Discord">
+    <value>Discord</value>
+  </data>
+  <data name="About_DiscordDesc">
+    <value>Bli med i vår Discord for å rapportere problemer, foreslå funksjoner eller stille spørsmål. EchoXIV ChatBot er også tilgjengelig der.</value>
+  </data>
+  <data name="About_OpenDiscord">
+    <value>Åpne Discord</value>
+  </data>
+  <data name="About_GitHub">
+    <value>GitHub</value>
+  </data>
+  <data name="About_GitHubDesc">
+    <value>Se kildekoden og rapporter problemer.</value>
+  </data>
+  <data name="About_OpenGitHub">
+    <value>Åpne GitHub</value>
+  </data>
+  <data name="About_Disclaimer">
+    <value>Denne pluginen endrer ikke spillfiler og er ikke ment å bryte vilkårene for bruk. Bruk ansvarlig.</value>
+  </data>
 </root>

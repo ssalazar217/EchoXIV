@@ -63,6 +63,7 @@
   <data name="Command_MessageTooLong"><value>Wiadomość za długa</value></data>
   <data name="Command_TranslateError"><value>Błąd tłumaczenia</value></data>
   <data name="Command_SendError"><value>Błąd wysyłania wiadomości</value></data>
+  <data name="Tell_DefaultRecipient"><value>Odbiorca</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>Tłumaczenie włączone. {0} -&gt; {1}</value></data>
   <data name="Command_HelpHeader"><value>Dostępne komendy:</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;wiadomość&gt; - Przetłumacz na aktywny kanał.</value></data>
@@ -79,6 +80,9 @@
   </data>
   <data name="ChatWindow_IAOffline">
     <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineBanner">
+    <value>⚠ Lokalna AI nie działa. Otwórz swój lokalny serwer AI, aby z niego korzystać. W międzyczasie używany jest silnik zapasowy.</value>
   </data>
   <data name="ChatWindow_IAOfflineTooltip">
     <value>Lokalny serwer AI jest niedostępny. EchoXIV używa Google Translate, dopóki nie wrócisz do lokalnej AI lub serwer nie wróci do działania.</value>
@@ -98,15 +102,30 @@
   <data name="ChatWindow_UnlockTooltip"><value>Odblokuj okno</value></data>
   <data name="ChatWindow_HideTooltip"><value>Ukryj okno</value></data>
   <data name="ChatWindow_ClearTooltip"><value>Wyczyść zawartość czatu</value></data>
+  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_RomanizationTooltip"><value>Pokaż transliterację łacińską dla nietejskich skryptów (JA/KO/RU/ZH)</value></data>
+<data name="ChatWindow_TranslationNative"><value>Tłumaczenie (skrypt natywny):</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Romanizacja:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - Konfiguracja</value></data>
   <data name="Tab_Visuals"><value>Wygląd</value></data>
   <data name="General_Engine"><value>Silnik tłumaczenia</value></data>
   <data name="General_InterfaceLanguage"><value>Język interfejsu</value></data>
   <data name="General_InterfaceLanguageTip"><value>Opcjonalnie: wybierz język interfejsu EchoXIV. Domyślnie podąża za językiem gry/Dalamud.</value></data>
   <data name="General_InterfaceLanguageDefault"><value>Domyślny (jak gra/Dalamud)</value></data>
-  <data name="General_EngineGoogleDesc"><value>Klasyczny Google Translate (GTx JSON API)</value></data>
-  <data name="General_EnginePapagoDesc"><value>Tłumacz Naver Papago (nacisk na koreański/japoński)</value></data>
-  <data name="General_EngineLocalAIDesc"><value>Lokalna AI przez serwer zgodny z OpenAI (LM Studio, Ollama). Działa na Twojej własnej GPU.</value></data>
+<data name="General_EngineNameGoogle"><value>Google Translate</value></data>
+  <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
+  <data name="General_EngineGoogleDesc"><value>Bezpłatny punkt końcowy Google Translate. Przy intensywnym użytkowaniu może osiągnąć tymczasowe limity.</value></data>
+  <data name="General_EnginePapagoDesc"><value>Webowy punkt końcowy Naver Papago. Bezpłatny, bez klucza API. Może osiągnąć tymczasowe limity.</value></data>
+  <data name="General_EngineLocalAIDesc"><value>Lokalna AI przez serwer zgodny z OpenAI (LM Studio, Ollama). Działa na Twojej własnej GPU. Bez limitów.</value></data>
+  <data name="General_EngineLibreTranslateDesc"><value>Własny serwer tłumaczeń EchoXIV. Bezpłatny, bez limitów, bez klucza API. Oparty na LibreTranslate (Argos NMT).</value></data>
+  <data name="General_EngineYandexDesc"><value>Bezpłatny Yandex Translate (punkt końcowy mobilny). Bez klucza API. Może osiągnąć tymczasowe limity.</value></data>
+  <data name="General_EngineFallback"><value>Silnik zapasowy</value></data>
+  <data name="General_EngineFallbackAuto"><value>Auto (przechodź przez wszystkie pozostałe)</value></data>
+  <data name="General_EngineFallbackTip"><value>Silnik używany, gdy główny osiągnie limit lub zawiedzie. Główny nigdy nie jest zmieniany. Jeśli zapasowy też jest niedostępny, pozostałe silniki są używane na zmianę.</value></data>
+  <data name="General_EngineRecoveryMinutes"><value>Sprawdzanie odzyskania głównego silnika (minuty)</value></data>
+  <data name="General_EngineRecoveryMinutesTip"><value>Jak często wtyczka sprawdza, czy główny silnik znów działa, aby do niego wrócić.</value></data>
   <data name="LocalAI_SectionTitle"><value>Ustawienia Lokalnego Serwera AI</value></data>
   <data name="LocalAI_Endpoint"><value>URL serwera</value></data>
   <data name="LocalAI_EndpointTip"><value>Bazowy URL zgodny z OpenAI. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
@@ -180,4 +199,40 @@
   <data name="History_NoMessages"><value>Nie znaleziono wiadomości spełniających Twoje kryteria.</value></data>
   <data name="History_Clear"><value>Wyczyść historię</value></data>
   <data name="History_Title"><value>Historia wiadomości</value></data>
+  <data name="Tab_About">
+    <value>O programie</value>
+  </data>
+  <data name="About_Title">
+    <value>EchoXIV - Tłumacz Czatu</value>
+  </data>
+  <data name="About_Description">
+    <value>EchoXIV to wtyczka dla Dalamud, która tłumaczy czat FFXIV w czasie rzeczywistym. Tłumaczy wiadomości przychodzące i wychodzące, aby umożliwić naturalną komunikację z graczami posługującymi się innymi językami.</value>
+  </data>
+  <data name="About_Author">
+    <value>Autor: ssalazar217 (SteSE)</value>
+  </data>
+  <data name="About_Version">
+    <value>Wersja: {0}</value>
+  </data>
+  <data name="About_Discord">
+    <value>Discord</value>
+  </data>
+  <data name="About_DiscordDesc">
+    <value>Dołącz do naszego Discorda, aby zgłaszać problemy, proponować funkcje lub zadawać pytania. Dostępny jest tam również ChatBot EchoXIV.</value>
+  </data>
+  <data name="About_OpenDiscord">
+    <value>Otwórz Discord</value>
+  </data>
+  <data name="About_GitHub">
+    <value>GitHub</value>
+  </data>
+  <data name="About_GitHubDesc">
+    <value>Zobacz kod źródłowy i zgłoś problemy.</value>
+  </data>
+  <data name="About_OpenGitHub">
+    <value>Otwórz GitHub</value>
+  </data>
+  <data name="About_Disclaimer">
+    <value>Ta wtyczka nie modyfikuje plików gry i nie ma na celu naruszania Warunków usługi. Używaj odpowiedzialnie.</value>
+  </data>
 </root>

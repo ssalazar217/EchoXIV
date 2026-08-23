@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,10 +12,9 @@ using EchoXIV;
 namespace EchoXIV.GameFunctions
 {
     /// <summary>
-    /// Hook nativo para interceptar mensajes ANTES del envío.
-    /// Permite traducción sin cancelar el mensaje original (sin error rojo).
-    /// Usa siempre el member function y delegate generados por FFXIVClientStructs para
-    /// evitar duplicar firmas manuales al actualizar el juego.
+    /// Hooks chat box messages before sending so they can be translated
+    /// without canceling the original message.
+    /// Uses FFXIVClientStructs member functions/delegates to survive game updates.
     /// </summary>
     internal unsafe class ChatBoxHook : IDisposable
     {
@@ -27,13 +26,15 @@ namespace EchoXIV.GameFunctions
         private readonly IClientState _clientState;
         private readonly IGameInteropProvider _gameInteropProvider;
         
-        // Hook de ProcessChatBoxEntry - función que procesa mensajes del chat box
+        // ProcessChatBoxEntry hook
         private Hook<UIModule.Delegates.ProcessChatBoxEntry>? _processChatBoxHook;
         
         
         private readonly IncomingMessageHandler _incomingMessageHandler;
         private readonly GlossaryService _glossaryService;
         private readonly TranslationCache _translationCache;
+        private IRomanizationService _romanizationService;
+        private readonly CancellationTokenSource _lifetimeCts = new();
         
         public ChatBoxHook(
             Configuration configuration,
@@ -42,6 +43,7 @@ namespace EchoXIV.GameFunctions
             GlossaryService glossaryService,
             TranslationCache translationCache,
             IncomingMessageHandler incomingMessageHandler,
+            IRomanizationService romanizationService,
             IPluginLog pluginLog,
             IClientState clientState,
             IGameInteropProvider gameInteropProvider,
@@ -53,6 +55,7 @@ namespace EchoXIV.GameFunctions
             _glossaryService = glossaryService;
             _translationCache = translationCache;
             _incomingMessageHandler = incomingMessageHandler;
+            _romanizationService = romanizationService;
             _pluginLog = pluginLog;
             _clientState = clientState;
             _gameInteropProvider = gameInteropProvider;
@@ -68,6 +71,11 @@ namespace EchoXIV.GameFunctions
         {
             _translatorService = newService;
             _fallbackTranslator = fallbackTranslator;
+        }
+
+        public void UpdateRomanizationService(IRomanizationService newService)
+        {
+            _romanizationService = newService;
         }
         
         public void Enable()
@@ -85,13 +93,13 @@ namespace EchoXIV.GameFunctions
         }
         
         /// <summary>
-        /// Detour: intercepta mensajes ANTES de procesarlos.
+        /// Detour: intercepts messages before processing.
         /// </summary>
         private void ProcessChatBoxDetour(UIModule* uiModule, Utf8String* message, nint a4, bool saveToHistory)
         {
             try
             {
-                // Si la traducción está deshabilitada, pasar directamente
+                // Pass through when translation is disabled
                 if (!_configuration.TranslationEnabled)
                 {
                     _processChatBoxHook!.Original(uiModule, message, a4, saveToHistory);
@@ -100,8 +108,7 @@ namespace EchoXIV.GameFunctions
                 
                 var originalText = message->ToString();
                 
-                // 1. BYPASS: Si es un comando, está vacío o es un mensaje que ya tradujimos nosotros (/tl)
-                // Usamos remove:false porque IncomingMessageHandler lo eliminará cuando llegue el mensaje al chat real.
+                // Bypass commands, empty input, excluded texts and our own pending translations
                 if (string.IsNullOrWhiteSpace(originalText) || originalText.StartsWith("/") || 
                     _configuration.ExcludedMessages.Contains(originalText) ||
                     _incomingMessageHandler.IsPendingOutgoing(originalText, false))
@@ -112,16 +119,30 @@ namespace EchoXIV.GameFunctions
                 
                 if (_configuration.VerboseLogging) _pluginLog.Info($"Hook intercepted message for translation: '{originalText}'");
                 
-                // 2. Verificar caché persistente (Rápido)
-                var cached = _translationCache.Get(originalText, _configuration.SourceLanguage, _configuration.TargetLanguage);
-                if (cached != null)
+                // Check persistent cache
+                if (_translationCache.TryGetWithRomanization(originalText, _configuration.SourceLanguage, _configuration.TargetLanguage, out var cachedNative, out var cachedRomaji))
                 {
-                    _incomingMessageHandler.RegisterPendingOutgoing(cached, originalText);
-                    SendTranslated(uiModule, cached, a4, saveToHistory);
+                    // Send cached romaji when still enabled
+                    var textToSendCached = cachedNative!;
+                    if (_configuration.EnableRomanization &&
+                        !string.IsNullOrEmpty(cachedRomaji) &&
+                        _configuration.RomanizationLanguages.Contains(_configuration.TargetLanguage))
+                    {
+                        textToSendCached = cachedRomaji!;
+                    }
+
+                    // Sanitize before registering so the pending key matches what the game shows
+                    var sentTextCached = SanitizeText(textToSendCached);
+                    _incomingMessageHandler.RegisterPendingOutgoing(
+                        sentTextCached,
+                        originalText,
+                        cachedNative,
+                        sentTextCached != cachedNative ? sentTextCached : null);
+                    SendTranslated(uiModule, sentTextCached, a4, saveToHistory);
                     return;
                 }
 
-                // 3. TRADUCCIÓN ASÍNCRONA (Sin congelar el juego)
+                // Async translation (non-blocking)
                 ProcessAsync(uiModule, originalText, a4, saveToHistory);
             }
             catch (Exception ex)
@@ -133,7 +154,7 @@ namespace EchoXIV.GameFunctions
 
         private void ProcessAsync(UIModule* uiModule, string originalText, nint a4, bool saveToHistory)
         {
-            // Capturar lo necesario para el callback
+            // Capture context for the callback
             var context = new TranslationContext 
             { 
                 UiModule = (nint)uiModule, 
@@ -151,11 +172,16 @@ namespace EchoXIV.GameFunctions
                 _configuration,
                 _pluginLog,
                 _onEngineFailover,
+                _romanizationService,
+                _lifetimeCts.Token,
                 context,
                 (ctx, translated) => 
                 {
                     _ = Plugin.Framework.RunOnFrameworkThread(() =>
                     {
+                        if (_lifetimeCts.IsCancellationRequested)
+                            return;
+
                         if (translated != null)
                         {
                             SendTranslated((UIModule*)ctx.UiModule, translated, ctx.A4, ctx.SaveToHistory);
@@ -188,18 +214,19 @@ namespace EchoXIV.GameFunctions
             }
         }
 
-        private string SanitizeText(string text)
+        internal static string SanitizeText(string text)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
             var sanitized = text.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
-            if (Encoding.UTF8.GetByteCount(sanitized) > 450)
+            var maxBytes = TranslationDefaults.MaxChatBytes;
+            if (Encoding.UTF8.GetByteCount(sanitized) > maxBytes)
             {
                 _ = Plugin.Framework.RunOnFrameworkThread(() =>
                 {
                     Plugin.ChatGui.PrintError(GetResourceText("Command_MessageTruncated", "The translated message exceeded the chat limit and was truncated before sending."));
                 });
 
-                while (Encoding.UTF8.GetByteCount(sanitized) > 447)
+                while (Encoding.UTF8.GetByteCount(sanitized) > maxBytes - 3)
                 {
                     sanitized = sanitized.Substring(0, sanitized.Length - 1);
                 }
@@ -210,6 +237,7 @@ namespace EchoXIV.GameFunctions
         
         public void Dispose()
         {
+            _lifetimeCts.Cancel();
             _processChatBoxHook?.Dispose();
         }
 
@@ -227,82 +255,149 @@ namespace EchoXIV.GameFunctions
         public bool SaveToHistory { get; set; }
     }
 
-    internal static class TranslationHelper
-    {
-        public static void TranslateAsync(
-            ITranslationService translator,
-            ITranslationService? fallbackTranslator,
-            GlossaryService glossary,
-            TranslationCache cache,
-            IncomingMessageHandler handler,
-            Configuration config,
-            IPluginLog log,
-            Action onEngineFailover,
-            TranslationContext context,
-            Action<TranslationContext, string?> callback)
+internal static class TranslationHelper
         {
-            _ = Task.Run(async () =>
+            public static void TranslateAsync(
+                ITranslationService translator,
+                ITranslationService? fallbackTranslator,
+                GlossaryService glossary,
+                TranslationCache cache,
+                IncomingMessageHandler handler,
+                Configuration config,
+                IPluginLog log,
+                Action onEngineFailover,
+                IRomanizationService romanizationService,
+                CancellationToken lifetimeToken,
+                TranslationContext context,
+                Action<TranslationContext, string?> callback)
             {
-                try
+                _ = Task.Run(async () =>
                 {
-                    var protectedText = glossary.Protect(context.OriginalText);
-                    using var timeout = TranslationDefaults.CreateTimeoutTokenSource();
-                    string rawTranslation;
-
                     try
                     {
-                        rawTranslation = await translator.TranslateAsync(
-                            protectedText,
-                            "auto",
-                            config.TargetLanguage,
-                            timeout.Token
-                        );
-                    }
-                    catch (TranslationRateLimitException)
-                    {
-                        // Primary engine unavailable: try the fallback and switch permanently.
-                        log.Warning("Primary engine unavailable for outgoing message. Attempting failover...");
-                        if (fallbackTranslator != null)
+                        var glossaryProtection = glossary.Protect(context.OriginalText);
+                        using var timeout = TranslationDefaults.CreateTimeoutTokenSource(lifetimeToken);
+                        string rawTranslation;
+                        string? romanizedFromTranslation = null;
+                        var combinedRomanization = false;
+
+                        try
                         {
-                            using var fallbackTimeout = TranslationDefaults.CreateTimeoutTokenSource();
-                            rawTranslation = await fallbackTranslator.TranslateAsync(
-                                protectedText,
-                                "auto",
-                                config.TargetLanguage,
-                                fallbackTimeout.Token
-                            );
-                            onEngineFailover?.Invoke();
+                            if (config.EnableRomanization &&
+                                config.SelectedEngine == TranslationEngine.LocalAI &&
+                                config.RomanizationLanguages.Contains(config.TargetLanguage) &&
+                                romanizationService is LocalAiTranslatorService localAi)
+                            {
+                                var combined = await localAi.TranslateWithRomanizationAsync(
+                                    glossaryProtection.Text,
+                                    "auto",
+                                    config.TargetLanguage,
+                                    null,
+                                    timeout.Token,
+                                    romanizeTranslation: true);
+                                rawTranslation = combined.Translation;
+                                romanizedFromTranslation = combined.RomanizedText;
+                                combinedRomanization = true;
+                            }
+                            else
+                            {
+                                rawTranslation = await translator.TranslateAsync(
+                                    glossaryProtection.Text,
+                                    "auto",
+                                    config.TargetLanguage,
+                                    timeout.Token
+                                );
+                            }
+                        }
+                        catch (TranslationRateLimitException)
+                        {
+                            // Primary engine unavailable: try the fallback and switch permanently.
+                            log.Warning("Primary engine unavailable for outgoing message. Attempting failover...");
+                            if (fallbackTranslator != null)
+                            {
+                                using var fallbackTimeout = TranslationDefaults.CreateTimeoutTokenSource(lifetimeToken);
+                                rawTranslation = await fallbackTranslator.TranslateAsync(
+                                    glossaryProtection.Text,
+                                    "auto",
+                                    config.TargetLanguage,
+                                    fallbackTimeout.Token
+                                );
+                                onEngineFailover?.Invoke();
+                            }
+                            else
+                            {
+                                throw;
+                            }
+                        }
+
+                        var translatedText = glossaryProtection.Restore(rawTranslation);
+                        
+                        // Outgoing romanization: non-Latin results only
+                        var targetScript = NonLatinScriptDetector.Detect(translatedText);
+                        string textToSend = translatedText;
+                        string textForTooltip = translatedText;
+                        
+                        if (!combinedRomanization &&
+                            config.EnableRomanization && 
+                            config.RomanizationLanguages.Contains(config.TargetLanguage) &&
+                            targetScript != NonLatinScriptKind.Latin)
+                        {
+                            try
+                            {
+                                var romanized = await romanizationService.RomanizeAsync(
+                                    translatedText, config.TargetLanguage, timeout.Token);
+                                if (!string.IsNullOrEmpty(romanized))
+                                {
+                                    textToSend = romanized;           // Sent to game
+                                textForTooltip = translatedText;  // Native script for tooltip
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                log.Warning(ex, "Romanization failed for outgoing message");
+                            }
+                        }
+                        else if (combinedRomanization && !string.IsNullOrWhiteSpace(romanizedFromTranslation))
+                        {
+                            textToSend = romanizedFromTranslation;
+                            textForTooltip = translatedText;
+                        }
+                        
+                        if (!string.IsNullOrEmpty(textToSend) && textToSend != context.OriginalText)
+                        {
+                            // Cache native + romaji pair
+                            var romanjiForCache = textToSend != textForTooltip ? textToSend : null;
+                            cache.Add(context.OriginalText, config.SourceLanguage, config.TargetLanguage, translatedText, romanjiForCache);
+
+                            // Sanitize before registering so the pending key matches what the game shows
+                            var sentText = ChatBoxHook.SanitizeText(textToSend);
+
+                            // Inverted: main=romaji, tooltip=native
+                            handler.RegisterPendingOutgoing(
+                                sentText,
+                                context.OriginalText,
+                                textForTooltip,
+                                sentText != textForTooltip ? sentText : null);
+                            callback(context, sentText);
                         }
                         else
                         {
-                            throw;
+                            callback(context, null);
                         }
                     }
-
-                    var translatedText = glossary.Restore(rawTranslation);
-                    
-                    if (!string.IsNullOrEmpty(translatedText) && translatedText != context.OriginalText)
+                    catch (OperationCanceledException ex)
                     {
-                        cache.Add(context.OriginalText, config.SourceLanguage, config.TargetLanguage, translatedText);
-                        handler.RegisterPendingOutgoing(translatedText, context.OriginalText);
-                        callback(context, translatedText);
-                    }
-                    else
-                    {
+                        if (lifetimeToken.IsCancellationRequested)
+                            return;
+                        log.Warning(ex, "Outgoing translation timed out.");
                         callback(context, null);
                     }
-                }
-                catch (OperationCanceledException ex)
-                {
-                    log.Warning(ex, "Outgoing translation timed out.");
-                    callback(context, null);
-                }
-                catch (Exception ex)
-                {
-                    log.Error(ex, "❌ Error en TranslationHelper");
-                    callback(context, null);
-                }
-            });
-        }
+                    catch (Exception ex)
+                    {
+                        log.Error(ex, "âŒ Error en TranslationHelper");
+                        callback(context, null);
+                    }
+                }, lifetimeToken);
+            }
     }
 }

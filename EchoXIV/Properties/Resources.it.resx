@@ -63,6 +63,7 @@
   <data name="Command_MessageTooLong"><value>Messaggio troppo lungo</value></data>
   <data name="Command_TranslateError"><value>Errore di traduzione</value></data>
   <data name="Command_SendError"><value>Errore durante l'invio del messaggio</value></data>
+  <data name="Tell_DefaultRecipient"><value>Destinatario</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>Traduzione abilitata. {0} -&gt; {1}</value></data>
   <data name="Command_HelpHeader"><value>Comandi disponibili:</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;message&gt; - Traduce nel canale attivo.</value></data>
@@ -80,9 +81,16 @@
   <data name="ChatWindow_IAOffline">
     <value>[IA Offline, using Google]</value>
   </data>
+  <data name="ChatWindow_IAOfflineBanner">
+    <value>⚠ L'IA locale non è in esecuzione. Apri il tuo server IA locale per usarla. Nel frattempo viene usato il motore di riserva.</value>
+  </data>
   <data name="ChatWindow_IAOfflineTooltip">
     <value>Il server IA locale non è raggiungibile. EchoXIV usa Google Translate finché non torni all'IA locale o il server torni disponibile.</value>
   </data>
+  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_RomanizationTooltip"><value>Mostra traslitterazione latina per script non-latin (JA/KO/RU/ZH)</value></data>
+<data name="ChatWindow_TranslationNative"><value>Traduction (script nativo):</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Romanizzazione:</value></data>
   <data name="Command_MessageTruncated"><value>Il messaggio tradotto ha superato il limite della chat ed è stato troncato prima dell'invio.</value></data>
   <data name="Command_HelpMessageMain"><value>Traduci e invia: /translate [message/on/off/config/help]</value></data>
   <data name="Command_HelpMessageShort"><value>Alias breve per /translate</value></data>
@@ -104,9 +112,20 @@
   <data name="General_InterfaceLanguage"><value>Lingua dell'interfaccia</value></data>
   <data name="General_InterfaceLanguageTip"><value>Opzionale: scegli la lingua dell'interfaccia di EchoXIV. Per impostazione predefinita segue la lingua del gioco/Dalamud.</value></data>
   <data name="General_InterfaceLanguageDefault"><value>Predefinita (come gioco/Dalamud)</value></data>
-  <data name="General_EngineGoogleDesc"><value>Google Translate classico (API JSON GTx)</value></data>
-  <data name="General_EnginePapagoDesc"><value>Naver Papago Translator (focus su coreano/giapponese)</value></data>
-  <data name="General_EngineLocalAIDesc"><value>IA locale tramite server compatibile OpenAI (LM Studio, Ollama). Gira sulla tua GPU.</value></data>
+  <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
+  <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
+  <data name="General_EngineGoogleDesc"><value>Endpoint gratuito di Google Translate. Può raggiungere limiti temporanei con uso intenso.</value></data>
+  <data name="General_EnginePapagoDesc"><value>Endpoint web di Naver Papago. Gratuito, senza chiave API. Può raggiungere limiti temporanei.</value></data>
+  <data name="General_EngineLocalAIDesc"><value>IA locale tramite server compatibile OpenAI (LM Studio, Ollama). Gira sulla tua GPU. Senza limiti.</value></data>
+  <data name="General_EngineLibreTranslateDesc"><value>Server di traduzione di EchoXIV. Gratuito, illimitato, senza chiave API. Basato su LibreTranslate (Argos NMT).</value></data>
+  <data name="General_EngineYandexDesc"><value>Yandex Translate gratuito (endpoint mobile). Senza chiave API. Può raggiungere limiti temporanei.</value></data>
+  <data name="General_EngineFallback"><value>Motore di fallback</value></data>
+  <data name="General_EngineFallbackAuto"><value>Auto (ruota tra tutti gli altri)</value></data>
+  <data name="General_EngineFallbackTip"><value>Motore usato quando il primario raggiunge il limite o fallisce. Il primario non viene mai cambiato. Se anche il fallback non è disponibile, vengono usati a rotazione gli altri motori.</value></data>
+  <data name="General_EngineRecoveryMinutes"><value>Controllo recupero del motore primario (minuti)</value></data>
+  <data name="General_EngineRecoveryMinutesTip"><value>Ogni quanto il plugin verifica se il motore primario funziona di nuovo per tornarci.</value></data>
   <data name="LocalAI_SectionTitle"><value>Impostazioni del server IA locale</value></data>
   <data name="LocalAI_Endpoint"><value>URL del server</value></data>
   <data name="LocalAI_EndpointTip"><value>URL di base compatibile OpenAI. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
@@ -180,4 +199,40 @@
   <data name="History_NoMessages"><value>Nessun messaggio trovato con i criteri selezionati.</value></data>
   <data name="History_Clear"><value>Cancella cronologia</value></data>
   <data name="History_Title"><value>Cronologia messaggi</value></data>
+  <data name="Tab_About">
+    <value>Informazioni</value>
+  </data>
+  <data name="About_Title">
+    <value>EchoXIV - Traduttore Chat</value>
+  </data>
+  <data name="About_Description">
+    <value>EchoXIV è un plugin per Dalamud che traduce la chat di FFXIV in tempo reale. Traduce sia i messaggi in entrata che in uscita così puoi comunicare naturalmente con giocatori di altre lingue.</value>
+  </data>
+  <data name="About_Author">
+    <value>Autore: ssalazar217 (SteSE)</value>
+  </data>
+  <data name="About_Version">
+    <value>Versione: {0}</value>
+  </data>
+  <data name="About_Discord">
+    <value>Discord</value>
+  </data>
+  <data name="About_DiscordDesc">
+    <value>Unisciti al nostro Discord per segnalare problemi, suggerire funzionalità o fare domande. Anche EchoXIV ChatBot è disponibile lì.</value>
+  </data>
+  <data name="About_OpenDiscord">
+    <value>Apri Discord</value>
+  </data>
+  <data name="About_GitHub">
+    <value>GitHub</value>
+  </data>
+  <data name="About_GitHubDesc">
+    <value>Visualizza il codice sorgente e segnala i problemi.</value>
+  </data>
+  <data name="About_OpenGitHub">
+    <value>Apri GitHub</value>
+  </data>
+  <data name="About_Disclaimer">
+    <value>Questo plugin non modifica i file di gioco e non è destinato a violare i Termini di Servizio. Usalo responsabilmente.</value>
+  </data>
 </root>

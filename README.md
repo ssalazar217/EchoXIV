@@ -1,6 +1,6 @@
 # <img src="https://raw.githubusercontent.com/ssalazar217/EchoXIV/master/EchoXIV/images/icon.png" width="48" height="48" align="center" /> EchoXIV 🌸 [![Discord](https://img.shields.io/discord/1464143706616627316?label=Discord&logo=discord&logoColor=white&color=7289da)](https://discord.gg/B3qnvuhN9G)
 
-**EchoXIV** is an advanced XIVLauncher/Dalamud plugin built to reduce language barriers in FFXIV. Unlike passive translators, EchoXIV focuses on **active communication**, helping you understand others and be understood naturally in different languages.
+**EchoXIV** is an advanced plugin for Dalamud (XIVLauncher) built to reduce language barriers in FFXIV. Unlike passive translators, EchoXIV focuses on **active communication**, helping you understand others and be understood naturally in different languages.
 
 ## 🌟 Key Features
 
@@ -10,7 +10,8 @@
 - **Integrated Dalamud Window**: Displays translated chat inside the native Dalamud UI using ImGui.
 - **Localized UI**: Follows the language configured in Dalamud, including expanded support for the UI languages supported by Dalamud.
 - **Smooth First-Run Experience**: Initial setup is based on your Dalamud language, with a guided welcome screen.
-- **Multiple Engines**: Supports **Google Translate** (no API key), **Papago**, and **Local AI** (LM Studio / Ollama) with automatic failover to Google when an engine is unavailable.
+- **Multiple Engines**: Supports **Google Translate** (no API key), **Papago**, **EchoXIV Translate (LibreTranslate)**, **Yandex**, and **Local AI** (LM Studio / Ollama), with configurable fallback and automatic primary-engine recovery.
+- **Romanized Output**: When enabled, Japanese, Korean, Chinese, and other supported translations can be displayed in romanized form in the translated-chat window while preserving the original translated text.
 
 ## 🚀 Installation
 
@@ -44,7 +45,7 @@ Open the menu with `/echoxiv`:
 
 - **Welcome**: Initial screen to configure your languages in seconds.
 - **General**: Set your writing and target languages.
-- **Visuals**: Adjust font size, time format, per-channel colors, and translated chat window position.
+- **Visuals**: Adjust font size, time format, per-channel colors, romanization, and translated chat window position.
 - **Filters**: Exclude messages or channels you do not want translated, including common game shorthand and recurring terms.
 
 ## 🙏 Credits

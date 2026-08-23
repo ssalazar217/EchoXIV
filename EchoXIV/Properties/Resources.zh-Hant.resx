@@ -63,6 +63,7 @@
   <data name="Command_MessageTooLong"><value>訊息過長</value></data>
   <data name="Command_TranslateError"><value>翻譯錯誤</value></data>
   <data name="Command_SendError"><value>傳送訊息時發生錯誤</value></data>
+  <data name="Tell_DefaultRecipient"><value>收件人</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>翻譯已啟用。{0} -&gt; {1}</value></data>
   <data name="Command_HelpHeader"><value>可用命令：</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;message&gt; - 翻譯到目前頻道。</value></data>
@@ -79,6 +80,9 @@
   </data>
   <data name="ChatWindow_IAOffline">
     <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineBanner">
+    <value>⚠ 本地 AI 未在執行。請開啟您的本地 AI 伺服器以使用它。期間會使用備用引擎。</value>
   </data>
   <data name="ChatWindow_IAOfflineTooltip">
     <value>本地 AI 伺服器無法連線。在您切換回本地 AI 或伺服器恢復之前，EchoXIV 將使用 Google 翻譯。</value>
@@ -98,15 +102,30 @@
   <data name="ChatWindow_UnlockTooltip"><value>解除鎖定視窗</value></data>
   <data name="ChatWindow_HideTooltip"><value>隱藏視窗</value></data>
   <data name="ChatWindow_ClearTooltip"><value>清空聊天內容</value></data>
+  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_RomanizationTooltip"><value>顯示非拉丁腳本的拉丁轉寫 (JA/KO/RU/ZH)</value></data>
+  <data name="ChatWindow_TranslationNative"><value>翻譯 (原生腳本):</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Romanization:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - 設定</value></data>
   <data name="Tab_Visuals"><value>視覺</value></data>
   <data name="General_Engine"><value>翻譯引擎</value></data>
   <data name="General_InterfaceLanguage"><value>介面語言</value></data>
   <data name="General_InterfaceLanguageTip"><value>可選：選擇 EchoXIV 的介面語言。預設跟隨遊戲/Dalamud 的語言。</value></data>
   <data name="General_InterfaceLanguageDefault"><value>預設（同遊戲/Dalamud）</value></data>
-  <data name="General_EngineGoogleDesc"><value>經典 Google Translate（GTx JSON API）</value></data>
-  <data name="General_EnginePapagoDesc"><value>Naver Papago Translator（偏重韓語/日語）</value></data>
-  <data name="General_EngineLocalAIDesc"><value>透過相容 OpenAI 的伺服器使用本機 AI（LM Studio、Ollama）。在您自己的 GPU 上執行。</value></data>
+  <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
+  <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
+  <data name="General_EngineGoogleDesc"><value>Google 翻譯免費端點。大量使用時可能達到臨時速率限制。</value></data>
+  <data name="General_EnginePapagoDesc"><value>Naver Papago 網頁端點。免費，無需 API 金鑰。可能達到臨時速率限制。</value></data>
+  <data name="General_EngineLocalAIDesc"><value>透過相容 OpenAI 的伺服器使用本機 AI（LM Studio、Ollama）。在您自己的 GPU 上執行。無限制。</value></data>
+  <data name="General_EngineLibreTranslateDesc"><value>EchoXIV 自有的翻譯伺服器。免費、無限制、無需 API 金鑰。由 LibreTranslate（Argos NMT）驅動。</value></data>
+  <data name="General_EngineYandexDesc"><value>免費 Yandex 翻譯（行動端點）。無需 API 金鑰。可能達到臨時速率限制。</value></data>
+  <data name="General_EngineFallback"><value>備用引擎</value></data>
+  <data name="General_EngineFallbackAuto"><value>自動（輪換所有其他引擎）</value></data>
+  <data name="General_EngineFallbackTip"><value>當主引擎達到限制或失敗時使用的引擎。主引擎永遠不會被更改。如果備用引擎也不可用，則輪換其餘引擎。</value></data>
+  <data name="General_EngineRecoveryMinutes"><value>主引擎恢復檢查（分鐘）</value></data>
+  <data name="General_EngineRecoveryMinutesTip"><value>外掛多久測試一次主引擎是否恢復正常並切換回去。</value></data>
   <data name="LocalAI_SectionTitle"><value>本機 AI 伺服器設定</value></data>
   <data name="LocalAI_Endpoint"><value>伺服器 URL</value></data>
   <data name="LocalAI_EndpointTip"><value>相容 OpenAI 的基礎 URL。LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
@@ -180,4 +199,40 @@
   <data name="History_NoMessages"><value>找不到符合條件的訊息。</value></data>
   <data name="History_Clear"><value>清除歷史</value></data>
   <data name="History_Title"><value>訊息歷史</value></data>
+  <data name="Tab_About">
+    <value>關於</value>
+  </data>
+  <data name="About_Title">
+    <value>EchoXIV - 聊天翻譯</value>
+  </data>
+  <data name="About_Description">
+    <value>EchoXIV 是 Dalamud 的外掛，可即時翻譯 FFXIV 聊天。它會翻譯傳入和傳出的訊息，讓您與使用其他語言的玩家自然交流。</value>
+  </data>
+  <data name="About_Author">
+    <value>作者: ssalazar217 (SteSE)</value>
+  </data>
+  <data name="About_Version">
+    <value>版本: {0}</value>
+  </data>
+  <data name="About_Discord">
+    <value>Discord</value>
+  </data>
+  <data name="About_DiscordDesc">
+    <value>加入我們的 Discord 來回報問題、提出功能建議或提問。EchoXIV ChatBot 也在那裡可用。</value>
+  </data>
+  <data name="About_OpenDiscord">
+    <value>開啟 Discord</value>
+  </data>
+  <data name="About_GitHub">
+    <value>GitHub</value>
+  </data>
+  <data name="About_GitHubDesc">
+    <value>檢視原始碼並回報問題。</value>
+  </data>
+  <data name="About_OpenGitHub">
+    <value>開啟 GitHub</value>
+  </data>
+  <data name="About_Disclaimer">
+    <value>此外掛不會修改遊戲檔案，也無意違反服務條款。請負責任地使用。</value>
+  </data>
 </root>

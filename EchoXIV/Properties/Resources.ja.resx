@@ -236,6 +236,9 @@
   <data name="Command_SendError">
     <value>メッセージ送信エラー</value>
   </data>
+  <data name="Tell_DefaultRecipient">
+    <value>宛先</value>
+  </data>
   <data name="Command_TranslationEnabledWithLanguages">
     <value>翻訳が有効になりました。{0} -&gt; {1}</value>
   </data>
@@ -275,8 +278,23 @@
   <data name="ChatWindow_IAOffline">
     <value>[IA Offline, using Google]</value>
   </data>
+  <data name="ChatWindow_IAOfflineBanner">
+    <value>⚠ ローカルAIが起動していません。使用するにはローカルAIサーバーを開いてください。その間は予備エンジンを使用します。</value>
+  </data>
   <data name="ChatWindow_IAOfflineTooltip">
     <value>ローカルAIサーバーに接続できません。ローカルAIに戻すかサーバーが復旧するまで、EchoXIVはGoogle翻訳を使用します。</value>
+  </data>
+  <data name="ChatWindow_Romanization">
+    <value>Romanji</value>
+  </data>
+  <data name="ChatWindow_RomanizationTooltip">
+    <value>JA/KO/RU/ZHの非ラテン文字のラテン語転写を表示</value>
+  </data>
+  <data name="ChatWindow_TranslationNative">
+    <value>翻訳 (ネイティブスクリプト):</value>
+  </data>
+  <data name="ChatWindow_RomanizationLabel">
+    <value>Romanization:</value>
   </data>
   <data name="Command_MessageTruncated">
     <value>翻訳後のメッセージがチャット上限を超えたため、送信前に切り詰められました。</value>
@@ -341,14 +359,47 @@
   <data name="General_InterfaceLanguageDefault">
     <value>既定（ゲーム/Dalamud と同じ）</value>
   </data>
+  <data name="General_EngineNameGoogle">
+    <value>Google Translate</value>
+  </data>
+  <data name="General_EngineNamePapago">
+    <value>Papago (Naver)</value>
+  </data>
+  <data name="General_EngineNameLibreTranslate">
+    <value>EchoXIV Translate</value>
+  </data>
+  <data name="General_EngineNameYandex">
+    <value>Yandex Translate</value>
+  </data>
   <data name="General_EngineGoogleDesc">
-    <value>標準Google翻訳 (GTx JSON API)</value>
+    <value>Google 翻訳の無料エンドポイント。大量使用時は一時的なレート制限に達する場合があります。</value>
   </data>
   <data name="General_EnginePapagoDesc">
-    <value>Naver Papago 翻訳 (韓国語/日本語 特化)</value>
+    <value>Naver Papago の Web エンドポイント。無料、API キー不要。一時的なレート制限に達する場合があります。</value>
   </data>
   <data name="General_EngineLocalAIDesc">
-    <value>OpenAI 互換サーバー経由のローカル AI（LM Studio、Ollama）。自分の GPU で動作します。</value>
+    <value>OpenAI 互換サーバー経由のローカル AI（LM Studio、Ollama）。自分の GPU で動作。制限なし。</value>
+  </data>
+  <data name="General_EngineLibreTranslateDesc">
+    <value>EchoXIV 独自の翻訳サーバー。無料・無制限・API キー不要。LibreTranslate (Argos NMT) を搭載。</value>
+  </data>
+  <data name="General_EngineYandexDesc">
+    <value>無料の Yandex 翻訳（モバイルエンドポイント）。API キー不要。一時的なレート制限に達する場合があります。</value>
+  </data>
+  <data name="General_EngineFallback">
+    <value>フォールバックエンジン</value>
+  </data>
+  <data name="General_EngineFallbackAuto">
+    <value>自動（他をすべて順に使用）</value>
+  </data>
+  <data name="General_EngineFallbackTip">
+    <value>プライマリが制限に達したか失敗したときに使用するエンジン。プライマリは変更されません。フォールバックも利用できない場合は、残りのエンジンを順に試します。</value>
+  </data>
+  <data name="General_EngineRecoveryMinutes">
+    <value>プライマリ復旧チェック（分）</value>
+  </data>
+  <data name="General_EngineRecoveryMinutesTip">
+    <value>プライマリエンジンが再び動作するか確認し、戻る頻度。</value>
   </data>
   <data name="LocalAI_SectionTitle">
     <value>ローカル AI サーバー設定</value>
@@ -568,5 +619,41 @@
   </data>
   <data name="History_Title">
     <value>メッセージ履歴</value>
+  </data>
+  <data name="Tab_About">
+    <value>情報</value>
+  </data>
+  <data name="About_Title">
+    <value>EchoXIV - チャット翻訳</value>
+  </data>
+  <data name="About_Description">
+    <value>EchoXIVはDalamud用のプラグインで、FFXIVのチャットをリアルタイムで翻訳します。受信メッセージと送信メッセージの両方を翻訳し、異なる言語のプレイヤーと自然にコミュニケーションできます。</value>
+  </data>
+  <data name="About_Author">
+    <value>作者: ssalazar217 (SteSE)</value>
+  </data>
+  <data name="About_Version">
+    <value>バージョン: {0}</value>
+  </data>
+  <data name="About_Discord">
+    <value>Discord</value>
+  </data>
+  <data name="About_DiscordDesc">
+    <value>問題の報告、機能の提案、質問のためにDiscordに参加してください。EchoXIV ChatBotも利用可能です。</value>
+  </data>
+  <data name="About_OpenDiscord">
+    <value>Discordを開く</value>
+  </data>
+  <data name="About_GitHub">
+    <value>GitHub</value>
+  </data>
+  <data name="About_GitHubDesc">
+    <value>ソースコードを表示し、問題を報告する。</value>
+  </data>
+  <data name="About_OpenGitHub">
+    <value>GitHubを開く</value>
+  </data>
+  <data name="About_Disclaimer">
+    <value>このプラグインはゲームファイルを改変せず、利用規約に違反することを意図していません。責任を持って使用してください。</value>
   </data>
 </root>

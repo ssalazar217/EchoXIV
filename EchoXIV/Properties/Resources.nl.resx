@@ -63,6 +63,7 @@
   <data name="Command_MessageTooLong"><value>Bericht te lang</value></data>
   <data name="Command_TranslateError"><value>Vertalingsfout</value></data>
   <data name="Command_SendError"><value>Fout bij verzenden van bericht</value></data>
+  <data name="Tell_DefaultRecipient"><value>Ontvanger</value></data>
   <data name="Command_TranslationEnabledWithLanguages"><value>Vertaling ingeschakeld. {0} -&gt; {1}</value></data>
   <data name="Command_HelpHeader"><value>Beschikbare opdrachten:</value></data>
   <data name="Command_HelpTranslateLine"><value>/translate &lt;bericht&gt; - Vertalen naar het actieve kanaal.</value></data>
@@ -79,6 +80,9 @@
   </data>
   <data name="ChatWindow_IAOffline">
     <value>[IA Offline, using Google]</value>
+  </data>
+  <data name="ChatWindow_IAOfflineBanner">
+    <value>⚠ Lokale AI draait niet. Open je lokale AI-server om deze te gebruiken. Ondertussen wordt de reservemotor gebruikt.</value>
   </data>
   <data name="ChatWindow_IAOfflineTooltip">
     <value>De lokale AI-server is niet bereikbaar. EchoXIV gebruikt Google Translate totdat je terugschakelt naar lokale AI of de server weer beschikbaar is.</value>
@@ -98,15 +102,30 @@
   <data name="ChatWindow_UnlockTooltip"><value>Venster ontgrendelen</value></data>
   <data name="ChatWindow_HideTooltip"><value>Venster verbergen</value></data>
   <data name="ChatWindow_ClearTooltip"><value>Chatinhoud wissen</value></data>
+  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_RomanizationTooltip"><value>Toon Latijnse transliteratie voor non-Latin scripts (JA/KO/RU/ZH)</value></data>
+<data name="ChatWindow_TranslationNative"><value>Vertaling (native script):</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Romanisatie:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - Configuratie</value></data>
   <data name="Tab_Visuals"><value>Weergave</value></data>
   <data name="General_Engine"><value>Vertalingsengine</value></data>
   <data name="General_InterfaceLanguage"><value>Interfacetaal</value></data>
   <data name="General_InterfaceLanguageTip"><value>Optioneel: kies de taal van de EchoXIV-interface. Standaard volgt deze de taal van de game/Dalamud.</value></data>
   <data name="General_InterfaceLanguageDefault"><value>Standaard (zoals game/Dalamud)</value></data>
-  <data name="General_EngineGoogleDesc"><value>Klassieke Google Translate (GTx JSON API)</value></data>
-  <data name="General_EnginePapagoDesc"><value>Naver Papago Translator (focus op Koreaans/Japan)</value></data>
-  <data name="General_EngineLocalAIDesc"><value>Lokale AI via OpenAI-compatibele server (LM Studio, Ollama). Draait op uw eigen GPU.</value></data>
+<data name="General_EngineNameGoogle"><value>Google Translate</value></data>
+  <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
+  <data name="General_EngineGoogleDesc"><value>Gratis Google Translate-eindpunt. Kan bij intensief gebruik tijdelijke limieten bereiken.</value></data>
+  <data name="General_EnginePapagoDesc"><value>Naver Papago web-eindpunt. Gratis, zonder API-sleutel. Kan tijdelijke limieten bereiken.</value></data>
+  <data name="General_EngineLocalAIDesc"><value>Lokale AI via OpenAI-compatibele server (LM Studio, Ollama). Draait op je eigen GPU. Geen limieten.</value></data>
+  <data name="General_EngineLibreTranslateDesc"><value>Eigen vertaalserver van EchoXIV. Gratis, onbeperkt, zonder API-sleutel. Aangedreven door LibreTranslate (Argos NMT).</value></data>
+  <data name="General_EngineYandexDesc"><value>Gratis Yandex Translate (mobiel eindpunt). Zonder API-sleutel. Kan tijdelijke limieten bereiken.</value></data>
+  <data name="General_EngineFallback"><value>Reservemotor</value></data>
+  <data name="General_EngineFallbackAuto"><value>Auto (door alle andere rotaties)</value></data>
+  <data name="General_EngineFallbackTip"><value>Motor die wordt gebruikt wanneer de primaire de limiet bereikt of faalt. De primaire wordt nooit gewijzigd. Is de reserve ook niet beschikbaar, dan worden de overige motoren beurtelings gebruikt.</value></data>
+  <data name="General_EngineRecoveryMinutes"><value>Herstelcontrole van primaire motor (minuten)</value></data>
+  <data name="General_EngineRecoveryMinutesTip"><value>Hoe vaak de plugin test of de primaire motor weer werkt om ernaar terug te keren.</value></data>
   <data name="LocalAI_SectionTitle"><value>Instellingen voor lokale AI-server</value></data>
   <data name="LocalAI_Endpoint"><value>Server-URL</value></data>
   <data name="LocalAI_EndpointTip"><value>OpenAI-compatibele basis-URL. LM Studio: http://localhost:1234 | Ollama: http://localhost:11434</value></data>
@@ -180,4 +199,40 @@
   <data name="History_NoMessages"><value>Geen berichten gevonden die aan uw criteria voldoen.</value></data>
   <data name="History_Clear"><value>Geschiedenis wissen</value></data>
   <data name="History_Title"><value>Berichtgeschiedenis</value></data>
+  <data name="Tab_About">
+    <value>Over</value>
+  </data>
+  <data name="About_Title">
+    <value>EchoXIV - Chat Vertaler</value>
+  </data>
+  <data name="About_Description">
+    <value>EchoXIV is een plugin voor Dalamud die FFXIV-chat in real time vertaalt. Het vertaalt zowel inkomende als uitgaande berichten zodat je natuurlijk kunt communiceren met spelers die andere talen gebruiken.</value>
+  </data>
+  <data name="About_Author">
+    <value>Auteur: ssalazar217 (SteSE)</value>
+  </data>
+  <data name="About_Version">
+    <value>Versie: {0}</value>
+  </data>
+  <data name="About_Discord">
+    <value>Discord</value>
+  </data>
+  <data name="About_DiscordDesc">
+    <value>Word lid van onze Discord om problemen te melden, functies voor te stellen of vragen te stellen. De EchoXIV ChatBot is daar ook beschikbaar.</value>
+  </data>
+  <data name="About_OpenDiscord">
+    <value>Discord openen</value>
+  </data>
+  <data name="About_GitHub">
+    <value>GitHub</value>
+  </data>
+  <data name="About_GitHubDesc">
+    <value>Bekijk de broncode en meld problemen.</value>
+  </data>
+  <data name="About_OpenGitHub">
+    <value>GitHub openen</value>
+  </data>
+  <data name="About_Disclaimer">
+    <value>Deze plugin wijzigt geen gamebestanden en is niet bedoeld om de Servicevoorwaarden te schenden. Gebruik verantwoordelijk.</value>
+  </data>
 </root>

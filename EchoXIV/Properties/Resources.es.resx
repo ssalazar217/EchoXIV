@@ -80,6 +80,42 @@
   <data name="Tab_History">
     <value>Historial</value>
   </data>
+  <data name="Tab_About">
+    <value>Acerca de</value>
+  </data>
+  <data name="About_Title">
+    <value>EchoXIV - Traductor de Chat</value>
+  </data>
+  <data name="About_Description">
+    <value>EchoXIV es un plugin para Dalamud que traduce el chat de FFXIV en tiempo real. Traduce tanto mensajes entrantes como salientes para que puedas comunicarte de forma natural con jugadores de otros idiomas.</value>
+  </data>
+  <data name="About_Author">
+    <value>Autor: ssalazar217 (SteSE)</value>
+  </data>
+  <data name="About_Version">
+    <value>Versión: {0}</value>
+  </data>
+  <data name="About_Discord">
+    <value>Discord</value>
+  </data>
+  <data name="About_DiscordDesc">
+    <value>Únete a nuestro Discord para reportar problemas, sugerir funciones o hacer preguntas. El ChatBot de EchoXIV también está disponible allí.</value>
+  </data>
+  <data name="About_OpenDiscord">
+    <value>Abrir Discord</value>
+  </data>
+  <data name="About_GitHub">
+    <value>GitHub</value>
+  </data>
+  <data name="About_GitHubDesc">
+    <value>Ver el código fuente y reportar problemas.</value>
+  </data>
+  <data name="About_OpenGitHub">
+    <value>Abrir GitHub</value>
+  </data>
+  <data name="About_Disclaimer">
+    <value>Este plugin no modifica archivos del juego y no pretende violar los Términos de Servicio. Úsalo de forma responsable.</value>
+  </data>
     
   <!-- General Tab -->
   <data name="General_Description">
@@ -251,6 +287,9 @@
   <data name="Command_SendError">
     <value>Error al enviar mensaje</value>
   </data>
+  <data name="Tell_DefaultRecipient">
+    <value>Destinatario</value>
+  </data>
   <data name="Command_TranslationEnabledWithLanguages">
     <value>Traducción activada. {0} -&gt; {1}</value>
   </data>
@@ -290,12 +329,27 @@
   <data name="ChatWindow_IAOffline">
     <value>[IA Offline, using Google]</value>
   </data>
-  <data name="ChatWindow_IAOfflineTooltip">
-    <value>El servidor de IA local no está disponible. EchoXIV usa Google Translate hasta que vuelvas a elegir IA local o el servidor responda.</value>
+  <data name="ChatWindow_IAOfflineBanner">
+    <value>⚠ Local AI no está en ejecución. Abre tu servidor de IA local para usarlo. Usando el motor de respaldo mientras tanto.</value>
   </data>
-  <data name="Command_MessageTruncated">
-    <value>El mensaje traducido superó el límite del chat y fue recortado antes de enviarse.</value>
-  </data>
+<data name="ChatWindow_IAOfflineTooltip">
+        <value>El servidor de IA local no está disponible. EchoXIV usa Google Translate hasta que vuelvas a elegir IA local o el servidor responda.</value>
+    </data>
+    <data name="ChatWindow_Romanization">
+        <value>Romanji</value>
+    </data>
+    <data name="ChatWindow_RomanizationTooltip">
+        <value>Mostrar transliteración latina para scripts no-latinos (JA/KO/RU/ZH)</value>
+    </data>
+    <data name="ChatWindow_TranslationNative">
+        <value>Traducción (script nativo):</value>
+    </data>
+    <data name="ChatWindow_RomanizationLabel">
+        <value>Romanización:</value>
+    </data>
+    <data name="Command_MessageTruncated">
+        <value>El mensaje traducido superó el límite del chat y fue recortado antes de enviarse.</value>
+    </data>
   <data name="Command_HelpMessageMain">
     <value>Traduce y envía: /translate [mensaje/on/off/config/help]</value>
   </data>
@@ -356,14 +410,47 @@
   <data name="General_InterfaceLanguageDefault">
     <value>Predeterminado (igual que juego/Dalamud)</value>
   </data>
+  <data name="General_EngineNameGoogle">
+    <value>Google Translate</value>
+  </data>
+  <data name="General_EngineNamePapago">
+    <value>Papago (Naver)</value>
+  </data>
+  <data name="General_EngineNameLibreTranslate">
+    <value>EchoXIV Translate</value>
+  </data>
+  <data name="General_EngineNameYandex">
+    <value>Yandex Translate</value>
+  </data>
   <data name="General_EngineGoogleDesc">
-    <value>Motor clásico de Google Translate (GTx JSON API)</value>
+    <value>Endpoint gratuito de Google Translate. Puede alcanzar límites temporales con uso intenso.</value>
   </data>
   <data name="General_EnginePapagoDesc">
-    <value>Naver Papago Translator (Coreano/Japonés)</value>
+    <value>Endpoint web de Naver Papago. Gratis, sin API key. Puede alcanzar límites temporales.</value>
   </data>
   <data name="General_EngineLocalAIDesc">
-    <value>IA local vía servidor compatible con OpenAI (LM Studio, Ollama). Corre en tu propia GPU.</value>
+    <value>IA local vía servidor compatible con OpenAI (LM Studio, Ollama). Corre en tu GPU. Sin límites.</value>
+  </data>
+  <data name="General_EngineLibreTranslateDesc">
+    <value>Servidor de traducción propio de EchoXIV. Gratis, sin límites, sin API key. Motor LibreTranslate (Argos NMT).</value>
+  </data>
+  <data name="General_EngineYandexDesc">
+    <value>Yandex Translate gratuito (endpoint móvil). Sin API key. Puede alcanzar límites temporales.</value>
+  </data>
+  <data name="General_EngineFallback">
+    <value>Motor de respaldo</value>
+  </data>
+  <data name="General_EngineFallbackAuto">
+    <value>Auto (rotar entre todos los demás)</value>
+  </data>
+  <data name="General_EngineFallbackTip">
+    <value>Motor usado cuando el principal falla o alcanza su límite. El principal nunca se cambia. Si el respaldo tampoco está disponible, se rotan los motores restantes.</value>
+  </data>
+  <data name="General_EngineRecoveryMinutes">
+    <value>Comprobación de recuperación del principal (minutos)</value>
+  </data>
+  <data name="General_EngineRecoveryMinutesTip">
+    <value>Con qué frecuencia se prueba si el motor principal volvió a funcionar para volver a usarlo.</value>
   </data>
   <data name="LocalAI_SectionTitle">
     <value>Configuración del Servidor de IA Local</value>

@@ -3,38 +3,45 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
-using System.Text.RegularExpressions;
 using EchoXIV.Services;
 
 namespace EchoXIV
 {
     /// <summary>
-    /// Modelo de mensaje traducido para la ventana de chat
+    /// Translated message model for the chat window
     /// </summary>
-    public class TranslatedChatMessage
+public class TranslatedChatMessage
     {
         public DateTime Timestamp { get; set; }
         public XivChatType ChatType { get; set; }
         public string Sender { get; set; } = string.Empty;
         public string OriginalText { get; set; } = string.Empty;
         public string TranslatedText { get; set; } = string.Empty;
-        public string Recipient { get; set; } = string.Empty; // Destinatario (para Tells)
+        public string Recipient { get; set; } = string.Empty;
         public bool IsTranslating { get; set; }
+        public bool IsOutgoing { get; set; }
         public Guid Id { get; set; } = Guid.NewGuid();
+
+        // Romanization fields
+        public string? RomanizedText { get; set; }
+        public string OriginalScript { get; set; } = "Latin";
     }
 
     /// <summary>
-    /// Manejador de mensajes entrantes para traducción
+    /// Incoming message translation handler
     /// </summary>
     public class IncomingMessageHandler : IDisposable
     {
         private sealed class PendingOutgoingEntry
         {
-            public required string OriginalText { get; init; }
+            public required string SourceText { get; init; }
+            public required string NativeText { get; init; }
+            public string? RomanizedText { get; init; }
             public required DateTime CreatedAtUtc { get; init; }
         }
 
@@ -62,23 +69,30 @@ namespace EchoXIV
         private readonly Dictionary<string, PendingOutgoingEntry> _pendingOutgoingTranslations = new(); // Translated -> Original
 
         /// <summary>
-        /// Evento emitido cuando un mensaje ha sido traducido
+        /// Raised when a message finishes translating
         /// </summary>
         public event Action<TranslatedChatMessage>? OnMessageTranslated;
 
         /// <summary>
-        /// Evento emitido cuando se inicia la traducción de un mensaje
+        /// Raised when message translation starts
         /// </summary>
         public event Action<TranslatedChatMessage>? OnTranslationStarted;
 
         /// <summary>
-        /// Evento emitido cuando se solicita un cambio de motor por fallo (failover)
+        /// Raised for outgoing messages detected via pending (separate from incoming flow)
+        /// </summary>
+        public event Action<TranslatedChatMessage>? OnOutgoingMessage;
+
+        /// <summary>
+        /// Raised when an engine failover is requested
         /// </summary>
         public event Action? OnRequestEngineFailover;
 
         private readonly GlossaryService _glossaryService;
         private readonly TranslationCache _translationCache;
         private readonly Func<XivChatType, List<ConversationLine>?>? _conversationContextProvider;
+        private IRomanizationService _romanizationService;
+        private readonly CancellationTokenSource _lifetimeCts = new();
 
         public IncomingMessageHandler(
             Configuration configuration,
@@ -91,6 +105,7 @@ namespace EchoXIV
             IPlayerState playerState,
             IObjectTable objectTable,
             IPluginLog pluginLog,
+            IRomanizationService romanizationService,
             Func<XivChatType, List<ConversationLine>?>? conversationContextProvider = null)
         {
             _configuration = configuration;
@@ -103,6 +118,7 @@ namespace EchoXIV
             _playerState = playerState;
             _objectTable = objectTable;
             _pluginLog = pluginLog;
+            _romanizationService = romanizationService;
             _conversationContextProvider = conversationContextProvider;
 
             _chatGui.ChatMessage += OnChatMessage;
@@ -118,16 +134,23 @@ namespace EchoXIV
             _secondaryTranslator = newService;
         }
 
-        public void RegisterPendingOutgoing(string translated, string original)
+        public void UpdateRomanizationService(IRomanizationService newService)
         {
-            if (string.IsNullOrEmpty(translated)) return;
+            _romanizationService = newService;
+        }
+
+        public void RegisterPendingOutgoing(string sentText, string sourceText, string? nativeText = null, string? romanizedText = null)
+        {
+            if (string.IsNullOrEmpty(sentText)) return;
             lock (_pendingOutgoingTranslations)
             {
                 PruneExpiredPendingOutgoingEntries();
                 PruneOverflowPendingOutgoingEntries();
-                _pendingOutgoingTranslations[translated] = new PendingOutgoingEntry
+                _pendingOutgoingTranslations[sentText] = new PendingOutgoingEntry
                 {
-                    OriginalText = original,
+                    SourceText = sourceText,
+                    NativeText = nativeText ?? sentText,
+                    RomanizedText = romanizedText,
                     CreatedAtUtc = DateTime.UtcNow
                 };
             }
@@ -148,159 +171,135 @@ namespace EchoXIV
             return false;
         }
 
-        public string? GetOriginalFromPending(string translated, bool remove)
+        private PendingOutgoingEntry? TakePendingOutgoing(string sentText)
         {
-            if (string.IsNullOrEmpty(translated)) return null;
+            if (string.IsNullOrEmpty(sentText)) return null;
             lock (_pendingOutgoingTranslations)
             {
                 PruneExpiredPendingOutgoingEntries();
-                if (_pendingOutgoingTranslations.TryGetValue(translated, out var pendingEntry))
-                {
-                    if (remove) _pendingOutgoingTranslations.Remove(translated);
-                    return pendingEntry.OriginalText;
-                }
+                if (!_pendingOutgoingTranslations.TryGetValue(sentText, out var pendingEntry))
+                    return null;
+
+                _pendingOutgoingTranslations.Remove(sentText);
+                return pendingEntry;
             }
-            return null;
         }
 
         private void OnChatMessage(IHandleableChatMessage message)
         {
             var type = message.LogKind;
-            // Obtener texto del mensaje
+            // Get message text
             var messageText = message.Message.TextValue;
 
-            string? originalFromPending = GetOriginalFromPending(messageText, true);
+            var pendingOutgoing = TakePendingOutgoing(messageText);
+            string? originalFromPending = pendingOutgoing?.SourceText;
 
-            // Si NO es una traducción pendiente explícita, aplicar filtros de configuración
+            // Not an explicit pending translation: apply config filters
             if (originalFromPending == null)
             {
-                // Solo procesar si las traducciones entrantes están habilitadas.
+                // Require incoming translations enabled
                 if (!_configuration.IncomingTranslationEnabled)
                     return;
 
-                // Verificar si el canal está en la lista de canales a traducir
+                // Channel must be enabled for translation
                 if (!_configuration.IncomingChannels.Contains((int)type))
                     return;
             }
 
             var senderName = message.Sender.TextValue;
 
-            // Formatear nombre: Nombre Apellido@Servidor
+            // Format name: First Last@World - idempotent: keep if already contains @, only append for local player
             var localPlayerName = _playerState.CharacterName.ToString();
-            // Resolver nombre del mundo (string) para evitar problemas de tipos con Value/Nullable
             string? localPlayerWorldName = null;
             if (_playerState.HomeWorld.RowId > 0)
             {
                localPlayerWorldName = _playerState.HomeWorld.Value.Name.ToString();
             }
 
-            // Separador (Arroba)
             const string worldIcon = "@";
 
-            var nameParts = senderName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            
-            if (nameParts.Length == 3)
+            if (!senderName.Contains("@"))
             {
-                // Formato Cross-World estándar: First Last World
-                senderName = $"{nameParts[0]} {nameParts[1]}{worldIcon}{nameParts[2]}";
-            }
-            else if (nameParts.Length == 2)
-            {
-                 // Posible formato Cross-World pegado: First LastWorld
-                 // O Jugador del mismo mundo: First Last
-                 
-                 string lastPart = nameParts[1];
-                 int worldSplitIndex = -1;
-                 
-                 // Buscar una mayúscula que no sea la primera letra del apellido
-                 // y comparar con el HomeWorld del jugador local si es posible
-                 
-                 // Si es el mismo mundo que nosotros, agregar nuestro mundo
-                 if (!string.IsNullOrEmpty(localPlayerWorldName) && localPlayerName == senderName)
-                 {
-                     senderName = $"{senderName}{worldIcon}{localPlayerWorldName}";
-                 }
-                 else if (!string.IsNullOrEmpty(localPlayerWorldName))
-                 {
-                     // Lógica heurística simplificada
-                     // Asumimos mismo mundo si no hay indicador de otro mundo.
-                     senderName = $"{senderName}{worldIcon}{localPlayerWorldName}";
-                 }
-
-                 for (int i = 1; i < lastPart.Length; i++)
-                 {
-                     if (char.IsUpper(lastPart[i]))
-                     {
-                         worldSplitIndex = i;
-                         break;
-                     }
-                 }
-
-                 if (worldSplitIndex != -1)
-                 {
-                     // Es First LastWorld -> First Last@World
-                     senderName = $"{nameParts[0]} {lastPart.Substring(0, worldSplitIndex)}{worldIcon}{lastPart.Substring(worldSplitIndex)}";
-                 }
-                 else if (!string.IsNullOrEmpty(localPlayerName) && senderName == localPlayerName && !string.IsNullOrEmpty(localPlayerWorldName))
-                 {
-                     // Jugador local: añadir mundo
-                     senderName = $"{localPlayerName}{worldIcon}{localPlayerWorldName}";
-                 }
-                 else if (!string.IsNullOrEmpty(localPlayerName) && !string.IsNullOrEmpty(localPlayerWorldName))
-                 {
-                     // Otro jugador mismo mundo: añadir mundo local
-                     senderName = $"{senderName}{worldIcon}{localPlayerWorldName}";
-                 }
+                if (senderName == localPlayerName && !string.IsNullOrEmpty(localPlayerWorldName))
+                {
+                    senderName = $"{senderName}{worldIcon}{localPlayerWorldName}";
+                }
+                else if (senderName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length == 3)
+                {
+                    // Standard cross-world format: First Last World -> First Last@World
+                    var parts = senderName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    senderName = $"{parts[0]} {parts[1]}{worldIcon}{parts[2]}";
+                }
+                else
+                {
+                    // Check glued LastWorld pattern
+                    var nameParts = senderName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (nameParts.Length == 2)
+                    {
+                        var lastPart = nameParts[1];
+                        int worldSplitIndex = -1;
+                        for (int i = 1; i < lastPart.Length; i++)
+                        {
+                            if (char.IsUpper(lastPart[i]))
+                            {
+                                worldSplitIndex = i;
+                                break;
+                            }
+                        }
+                        if (worldSplitIndex != -1)
+                        {
+                            senderName = $"{nameParts[0]} {lastPart.Substring(0, worldSplitIndex)}{worldIcon}{lastPart.Substring(worldSplitIndex)}";
+                        }
+                    }
+                }
             }
 
-            // Ignorar mensajes vacíos
+            // Ignore empty messages
             if (string.IsNullOrWhiteSpace(messageText))
                 return;
 
-            // Verificar si es del jugador local
+            // Check local player
             var isLocalPlayer = !string.IsNullOrEmpty(localPlayerName) && (senderName.StartsWith(localPlayerName));
             
-            // Si es un mensaje del jugador local y no queremos mostrar nuestros propios mensajes,
-            // LO DESCARTAMOS AQUÍ MISMO a menos que sea una traducción explícita
+            // Drop own messages when ShowOutgoingMessages is off, unless explicit pending
             if (isLocalPlayer && !_configuration.ShowOutgoingMessages && originalFromPending == null)
                 return;
 
-            if (originalFromPending != null)
+            if (pendingOutgoing != null)
             {
-                // Ya lo tenemos, no traducir otra vez y usar el original real
-                // IMPORTANTE: Para mensajes salientes, invertimos: Texto principal = Traducción, Tooltip = Original
+                // Outgoing: use dedicated event to avoid mixing with incoming write path
                 var pendingMsg = new TranslatedChatMessage
                 {
                     Timestamp = DateTime.Now,
                     ChatType = type,
                     Sender = senderName,
-                    OriginalText = messageText, // La traducción que el juego captó
-                    TranslatedText = originalFromPending, // El original que guardamos
+                    OriginalText = pendingOutgoing.SourceText,
+                    TranslatedText = pendingOutgoing.NativeText,
+                    RomanizedText = pendingOutgoing.RomanizedText,
+                    OriginalScript = NonLatinScriptDetector.Detect(pendingOutgoing.NativeText).ToString(),
+                    IsOutgoing = true,
                     IsTranslating = false
                 };
-                
-                pendingMsg.TranslatedText = messageText; // La traducción (Texto grande)
-                pendingMsg.OriginalText = originalFromPending; // El original (Tooltip)
-                
-                OnMessageTranslated?.Invoke(pendingMsg);
+
+                OnOutgoingMessage?.Invoke(pendingMsg);
                 return;
             }
 
-            // FILTRO RMT/SPAM: Evitar gastar API en basura
+            // RMT/spam filter: avoid wasting API calls
             if (IsRmtSpam(messageText))
             {
                 if (_configuration.VerboseLogging) _pluginLog.Info($"RMT spam detected and skipped: {messageText.Substring(0, Math.Min(20, messageText.Length))}...");
                 return;
             }
 
-            // Ignorar comandos
+            // Ignore commands
             if (messageText.StartsWith("/"))
                 return;
 
-            // Verificar lista de exclusión (insensible a mayúsculas gracias al HashSet configurado)
+            // Exclusion list check (case-insensitive)
             if (_configuration.ExcludedMessages.Contains(messageText))
             {
-                // Mensaje excluido: se muestra en el historial pero NO se traduce
+                // Excluded: shown in history but not translated
                 var excludedMsg = new TranslatedChatMessage
                 {
                     Timestamp = DateTime.Now,
@@ -342,28 +341,74 @@ namespace EchoXIV
         {
             try
             {
-                // 1. Verificar Caché
+                // Check cache
                 var targetLanguage = _configuration.GetReadingLanguage();
 
-                var cached = _translationCache.Get(message.OriginalText, "auto", targetLanguage);
-                if (cached != null)
+                if (_translationCache.TryGetWithRomanization(
+                        message.OriginalText,
+                        "auto",
+                        targetLanguage,
+                        out var cached,
+                        out var cachedRomanized))
                 {
-                    message.TranslatedText = cached;
+                    message.TranslatedText = cached!;
+                    message.RomanizedText = cachedRomanized;
+                    await ApplyRomanizationAsync(
+                        message,
+                        CancellationToken.None,
+                        requestIfMissing: string.IsNullOrWhiteSpace(message.RomanizedText));
+                    if (!string.IsNullOrWhiteSpace(message.RomanizedText))
+                    {
+                        _translationCache.Add(
+                            message.OriginalText,
+                            "auto",
+                            targetLanguage,
+                            message.TranslatedText,
+                            message.RomanizedText);
+                    }
                     message.IsTranslating = false;
                     OnMessageTranslated?.Invoke(message);
                     return;
                 }
 
-                // 2. Proteger términos con Glossary
-                var protectedText = _glossaryService.Protect(message.OriginalText);
+                // 2. Protect glossary terms
+                var glossary = _glossaryService.Protect(message.OriginalText);
+                var protectedText = glossary.Text;
                 
-                // 3. Traducir
-                using var primaryTimeout = TranslationDefaults.CreateTimeoutTokenSource();
+                // 3. Translate
+                using var primaryTimeout = TranslationDefaults.CreateTimeoutTokenSource(_lifetimeCts.Token);
                 string translation;
+                var combinedRomanization = false;
 
-                if (_primaryTranslator is LocalAiTranslatorService localAi &&
-                    _configuration.LocalAiUseConversationContext &&
-                    _conversationContextProvider != null)
+                var sourceScript = NonLatinScriptDetector.Detect(message.OriginalText);
+                var sourceLanguageCode = sourceScript.ToLanguageCode();
+                var canUseCombinedRomanization = _configuration.EnableRomanization &&
+                    _configuration.SelectedEngine == TranslationEngine.LocalAI &&
+                    _romanizationService is LocalAiTranslatorService &&
+                    !string.IsNullOrEmpty(sourceLanguageCode) &&
+                    _configuration.RomanizationLanguages.Contains(sourceLanguageCode);
+
+                if (canUseCombinedRomanization)
+                {
+                    var localAi = (LocalAiTranslatorService)_romanizationService;
+                    var context = _configuration.LocalAiUseConversationContext && _conversationContextProvider != null
+                        ? _conversationContextProvider(message.ChatType)
+                        : null;
+                    var combined = await localAi.TranslateWithRomanizationAsync(
+                        protectedText,
+                        "auto",
+                        targetLanguage,
+                        context,
+                        primaryTimeout.Token,
+                        romanizeTranslation: false);
+                    translation = combined.Translation;
+                    message.RomanizedText = combined.RomanizedText;
+                    message.OriginalScript = combined.OriginalScript;
+                    combinedRomanization = true;
+                }
+                else if (_primaryTranslator is LocalAiTranslatorService localAi &&
+                         _configuration.LocalAiUseConversationContext &&
+                         _conversationContextProvider != null)
                 {
                     var context = _conversationContextProvider(message.ChatType);
                     translation = await localAi.TranslateWithContextAsync(
@@ -384,21 +429,32 @@ namespace EchoXIV
                     );
                 }
 
-                // 4. Restaurar términos y guardar en caché
-                var finalTranslation = SanitizeText(_glossaryService.Restore(translation));
+                // 4. Restore glossary terms and cache
+                var finalTranslation = SanitizeText(glossary.Restore(translation));
                 
-                _translationCache.Add(message.OriginalText, "auto", targetLanguage, finalTranslation);
-
                 message.TranslatedText = finalTranslation;
+                
+                await ApplyRomanizationAsync(message, primaryTimeout.Token, !combinedRomanization);
+
+                _translationCache.Add(
+                    message.OriginalText,
+                    "auto",
+                    targetLanguage,
+                    finalTranslation,
+                    message.RomanizedText);
+                
                 message.IsTranslating = false;
 
                 if (_configuration.VerboseLogging) _pluginLog.Info($"[{message.ChatType}] Incoming translated: '{message.OriginalText}' -> '{message.TranslatedText}'");
 
-                // Notificar que la traducción está lista
+                // Notify translation ready
                 OnMessageTranslated?.Invoke(message);
             }
             catch (OperationCanceledException ex)
             {
+                if (_lifetimeCts.IsCancellationRequested)
+                    return;
+
                 _pluginLog.Warning(ex, "Translation timed out for incoming message.");
                 message.TranslatedText = message.OriginalText;
                 message.IsTranslating = false;
@@ -412,22 +468,35 @@ namespace EchoXIV
                 {
                     if (_secondaryTranslator != null)
                     {
-                        var protectedText = _glossaryService.Protect(message.OriginalText);
+                        var secondaryGlossary = _glossaryService.Protect(message.OriginalText);
                         var targetLanguage = _configuration.GetReadingLanguage();
 
-                        using var secondaryTimeout = TranslationDefaults.CreateTimeoutTokenSource();
-                        var translation = await _secondaryTranslator.TranslateAsync(protectedText, "auto", targetLanguage, secondaryTimeout.Token);
-                        var finalTranslation = SanitizeText(_glossaryService.Restore(translation));
+                        using var secondaryTimeout = TranslationDefaults.CreateTimeoutTokenSource(_lifetimeCts.Token);
+                        var translation = await _secondaryTranslator.TranslateAsync(secondaryGlossary.Text, "auto", targetLanguage, secondaryTimeout.Token);
+                        var finalTranslation = SanitizeText(secondaryGlossary.Restore(translation));
                         
-                        _translationCache.Add(message.OriginalText, "auto", targetLanguage, finalTranslation);
                         message.TranslatedText = finalTranslation;
+                        
+                        await ApplyRomanizationAsync(message, secondaryTimeout.Token);
+
+                        _translationCache.Add(
+                            message.OriginalText,
+                            "auto",
+                            targetLanguage,
+                            finalTranslation,
+                            message.RomanizedText);
+                        
                         message.IsTranslating = false;
                         OnMessageTranslated?.Invoke(message);
                         
-                        // Si funcionó, pedir cambio permanente de motor
+                        // Request permanent engine switch on success
                         OnRequestEngineFailover?.Invoke();
                         return;
                     }
+                }
+                catch (OperationCanceledException) when (_lifetimeCts.IsCancellationRequested)
+                {
+                    return;
                 }
                 catch (OperationCanceledException secondaryTimeoutEx)
                 {
@@ -438,7 +507,10 @@ namespace EchoXIV
                     _pluginLog.Error(secondaryEx, "Error in secondary translator during failover.");
                 }
 
-                message.TranslatedText = message.OriginalText; // Fallback final
+                message.TranslatedText = message.OriginalText; // Final fallback
+                
+                await ApplyRomanizationAsync(message, CancellationToken.None);
+                
                 message.IsTranslating = false;
                 OnMessageTranslated?.Invoke(message);
             }
@@ -446,14 +518,39 @@ namespace EchoXIV
             {
                 _pluginLog.Error(ex, "Error while translating incoming message.");
                 message.TranslatedText = message.OriginalText; // Fallback
-                message.IsTranslating = false;
-                OnMessageTranslated?.Invoke(message);
+                message.IsTranslating = false;                OnMessageTranslated?.Invoke(message);
             }
         }
 
-        public void InjectMessage(TranslatedChatMessage message)
+        private async Task ApplyRomanizationAsync(
+            TranslatedChatMessage message,
+            CancellationToken cancellationToken,
+            bool requestIfMissing = true)
         {
-            OnMessageTranslated?.Invoke(message);
+            var script = NonLatinScriptDetector.Detect(message.OriginalText);
+            if (message.OriginalScript == "Latin" || string.IsNullOrEmpty(message.OriginalScript))
+                message.OriginalScript = script == NonLatinScriptKind.Latin ? "Latin" : script.ToString();
+
+            if (!requestIfMissing)
+                return;
+
+            var languageCode = script.ToLanguageCode();
+            if (!_configuration.EnableRomanization || string.IsNullOrEmpty(languageCode) ||
+                !_configuration.RomanizationLanguages.Contains(languageCode))
+            {
+                return;
+            }
+
+            try
+            {
+                message.RomanizedText = await _romanizationService.RomanizeAsync(
+                    message.OriginalText, languageCode, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _pluginLog.Warning(ex, "Romanization failed for incoming message");
+                message.RomanizedText = null;
+            }
         }
 
         private bool IsRmtSpam(string text)
@@ -511,16 +608,16 @@ namespace EchoXIV
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
             
-            // Eliminar caracteres de control o nulos que puedan romper el chat o el overlay
+            // Strip control/null chars that could break chat or overlay
             var sanitized = text.Replace("\0", "").Replace("\r", "").Replace("\n", " ");
             
-            // Asegurar UTF-8 válido (aunque .NET strings son UTF-16, esto previene basura)
-            // Dalamud maneja bien los strings, pero es mejor prevenir caracteres inválidos de las APIs
+            // Guard against invalid characters from APIs
             return sanitized;
         }
 
         public void Dispose()
         {
+            _lifetimeCts.Cancel();
             _chatGui.ChatMessage -= OnChatMessage;
             if (_configuration.VerboseLogging) _pluginLog.Info("IncomingMessageHandler disconnected.");
         }

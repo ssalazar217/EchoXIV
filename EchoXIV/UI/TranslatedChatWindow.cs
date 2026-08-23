@@ -22,6 +22,7 @@ namespace EchoXIV.UI
         private bool _resetPending = false;
         private bool _isOnMainScreen = true;
         private bool _stickToBottom = true;
+        private DateTime _lastActivity = DateTime.UtcNow;
 
         public bool IsOnMainScreen => _isOnMainScreen;
 
@@ -48,6 +49,9 @@ namespace EchoXIV.UI
 
         public void AddPendingMessage(TranslatedChatMessage message)
         {
+            _lastActivity = DateTime.UtcNow;
+            if (_configuration.HideWhenInactive && !IsOpen)
+                IsOpen = true;
             lock (_messagesLock)
             {
                 _messages.Add(message);
@@ -60,13 +64,25 @@ namespace EchoXIV.UI
 
         public void UpdateMessage(TranslatedChatMessage message)
         {
+            _lastActivity = DateTime.UtcNow;
             lock (_messagesLock)
             {
                 var existing = _messages.FirstOrDefault(m => m.Id == message.Id);
                 if (existing != null)
                 {
                     existing.TranslatedText = message.TranslatedText;
+                    existing.RomanizedText = message.RomanizedText;
+                    existing.OriginalScript = message.OriginalScript;
                     existing.IsTranslating = false;
+                }
+                else
+                {
+                    // New message (e.g., outgoing with fresh Id)
+                    _messages.Add(message);
+                    while (_messages.Count > _configuration.MaxDisplayedMessages)
+                    {
+                        _messages.RemoveAt(0);
+                    }
                 }
             }
         }
@@ -81,14 +97,44 @@ namespace EchoXIV.UI
 
         public override void Draw()
         {
-            // Detectar si estamos en el monitor principal del juego
+            // Detect if running on the game's primary monitor
             var viewport = ImGui.GetWindowViewport();
             var mainViewport = ImGui.GetMainViewport();
             _isOnMainScreen = (viewport.ID == mainViewport.ID);
 
-            DrawToolbar();
-            ImGui.Separator();
-            DrawMessageList();
+            // HideWhenInactive (ChatTwo pattern)
+            if (_configuration.HideWhenInactive && (DateTime.UtcNow - _lastActivity).TotalSeconds > _configuration.InactivityHideTimeout)
+            {
+                IsOpen = false;
+                return;
+            }
+
+            // Apply configured font size scale
+            ImGui.SetWindowFontScale(_configuration.FontSize / 16.0f);
+            try
+            {
+                DrawToolbar();
+                ImGui.Separator();
+
+                // Fixed banner when Local AI is unavailable
+                if (_configuration.LocalAiUnavailable)
+                {
+                    using var red = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.8f, 0.1f, 0.1f, 1f));
+                    using var banner = ImRaii.Child("LocalAiOfflineBanner", new Vector2(0, 26), false);
+                    ImGui.TextColored(new Vector4(1f, 1f, 1f, 1f), Resources.ChatWindow_IAOfflineBanner);
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip(Resources.ChatWindow_IAOfflineTooltip);
+                    }
+                    ImGui.Spacing();
+                }
+
+                DrawMessageList();
+            }
+            finally
+            {
+                ImGui.SetWindowFontScale(1.0f);
+            }
 
             if (_resetPending)
             {
@@ -141,6 +187,16 @@ namespace EchoXIV.UI
             ImGui.SameLine();
             ImGui.Checkbox(Resources.ChatWindow_AutoScroll, ref _autoScroll);
 
+            // Romanization checkbox
+            ImGui.SameLine();
+            var romanizationEnabled = _configuration.EnableRomanization;
+            if (ImGui.Checkbox(Resources.ChatWindow_Romanization, ref romanizationEnabled))
+            {
+                _configuration.EnableRomanization = romanizationEnabled;
+                _configuration.Save();
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.ChatWindow_RomanizationTooltip);
+
             ImGui.SameLine();
             if (ImGui.Button(Resources.ChatWindow_Retry))
             {
@@ -154,7 +210,8 @@ namespace EchoXIV.UI
             ImGui.SameLine();
             if (ImGui.Button(Resources.ChatWindow_Clear))
             {
-                ClearMessages();
+                // Clear UI list and persisted history
+                _historyManager.Clear();
             }
 
             if (_configuration.VerboseLogging)
@@ -190,17 +247,17 @@ namespace EchoXIV.UI
             using var child = ImRaii.Child("MessageList", new Vector2(0, 0), true);
             if (!child) return;
 
-            // Reducir espaciado de tabla para que se vea compacto como el chat original
+            // Compact table spacing like vanilla chat
             using var cellSpacing = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(2, 0));
             using var itemSpacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
 
-            // Configurar Tabla de 3 Columnas
-            // Columna 0: Timestamps (ancho fijo)
-            // Columna 1: Contenido (stretch)
-            // Columna 2: Indicador Original [?] (ancho fijo mínimo)
+            // 3-column table setup
+            // Column 0: timestamps (fixed width)
+            // Column 1: content (stretch)
+            // Column 2: [?] indicator (fixed min width)
             if (ImGui.BeginTable("ChatBodyTable", 3, ImGuiTableFlags.None))
             {
-                // Configurar ancho de columna de tiempo basado en la escala de fuente actual
+                // Time column width based on font scale
                 float timeWidth = 0.0f;
                 if (_configuration.ShowTimestamps)
                 {
@@ -258,24 +315,25 @@ namespace EchoXIV.UI
             var channelColor = GetChannelColor(message.ChatType);
             var channelName = GetChannelName(message.ChatType);
 
-            // --- COLUMNA 0: TIMESTAMP ---
+            // Romanization flags shared by both blocks
+            bool showRomanization = _configuration.EnableRomanization && 
+                                   !string.IsNullOrEmpty(message.RomanizedText);
+            bool isMsgOutgoing = message.IsOutgoing || message.ChatType == XivChatType.TellOutgoing;
+            
+            // --- COLUMN 0: TIMESTAMP ---
             if (_configuration.ShowTimestamps)
             {
                 ImGui.TableSetColumnIndex(0);
-                ImGui.TextColored(new Vector4(1f, 1f, 1f, 1f), $"[{message.Timestamp:HH:mm}]");
+                ImGui.TextColored(new Vector4(1f, 1f, 1f, 1f), $"[{FormatTimestamp(message.Timestamp)}]");
             }
 
-            // --- COLUMNA 1: BLOQUE DE MENSAJE ---
+            // --- COLUMN 1: MESSAGE BLOCK ---
             ImGui.TableSetColumnIndex(1);
             
-            // Usar TextWrapPos(0.0f) dentro de la celda de la tabla
-            // ImGui Tables manejan el wrapping automáticamente al borde de la celda
-            using (var wrap = ImRaii.TextWrapPos(0.0f))
+            // Wrap at cell edge to avoid clipping
+            using (var wrap = ImRaii.TextWrapPos(ImGui.GetCursorPos().X + ImGui.GetContentRegionAvail().X))
             {
-                // Construir la cadena completa para evitar SameLine() que rompe el wrapping
-                string fullContent = "";
-                
-                // Canal y Remitente
+                // Channel and sender
                 string senderPart = "";
                 if (message.ChatType == XivChatType.TellOutgoing)
                 {
@@ -299,23 +357,80 @@ namespace EchoXIV.UI
                 }
                 else
                 {
-                    // Imprimir todo junto para que el wrapping sea perfecto desde el inicio de la línea
-                    fullContent = senderPart + message.TranslatedText;
-                    ImGui.TextColored(channelColor, fullContent);
+                    // Main line shows romaji when enabled
+                    
+                    string displayText;
+                    if (showRomanization && isMsgOutgoing && message.OriginalScript != "Latin")
+                    {
+                        // Outgoing with romaji: show romaji as main line
+                        displayText = message.RomanizedText!;
+                    }
+                    else
+                    {
+                        // Otherwise show plain translation
+                        displayText = message.TranslatedText;
+                    }
+                    
+                    ImGui.TextColored(channelColor, senderPart + displayText);
                 }
             }
 
-            // --- COLUMNA 2: INDICADOR ORIGINAL ---
-            if (_configuration.ShowOriginalText && !string.Equals(message.OriginalText, message.TranslatedText, StringComparison.OrdinalIgnoreCase))
+            // --- COLUMN 2: ORIGINAL INDICATOR [?] ---
+            bool showOriginal = _configuration.ShowOriginalText && 
+                                !string.Equals(message.OriginalText, message.TranslatedText, StringComparison.OrdinalIgnoreCase);
+            
+            if (showOriginal || showRomanization)
             {
                 ImGui.TableSetColumnIndex(2);
                 ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), "[?]");
                 if (ImGui.IsItemHovered())
                 {
                     using var tooltip = ImRaii.Tooltip();
-                    ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_Original);
-                    ImGui.TextUnformatted(message.OriginalText);
+                    
+                    if (isMsgOutgoing)
+                    {
+                        if (showRomanization && message.OriginalScript != "Latin")
+                        {
+                            // Outgoing: target translation first, then source text
+                            ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_TranslationNative);
+                            ImGui.TextUnformatted(message.TranslatedText);
+                            ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_Original);
+                            ImGui.TextUnformatted(message.OriginalText);
+                        }
+                        else
+                        {
+                            ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_Original);
+                            ImGui.TextUnformatted(message.OriginalText);
+                        }
+                    }
+                    else
+                    {
+                        // Incoming: tooltip = original (native script) + romaji
+                        ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_Original);
+                        ImGui.TextUnformatted(message.OriginalText); // Sender's original (e.g., konnichiwa)
+                        
+                        if (showRomanization)
+                        {
+                            ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_RomanizationLabel);
+                            ImGui.TextUnformatted(message.RomanizedText!); // Romaji (e.g., konnichiwa)
+                        }
+                    }
                 }
+            }
+        }
+
+        private string FormatTimestamp(DateTime timestamp)
+        {
+            var format = _configuration.TimestampFormat;
+            if (string.IsNullOrWhiteSpace(format) || format == "Short")
+                return timestamp.ToString("HH:mm");
+            try
+            {
+                return timestamp.ToString(format);
+            }
+            catch
+            {
+                return timestamp.ToString("HH:mm");
             }
         }
 
@@ -384,24 +499,23 @@ namespace EchoXIV.UI
         }
         private void RetryStuckTranslations()
         {
-            int total = 0;
-            int sent = 0;
-            
+            List<TranslatedChatMessage> toRetry;
+            int total;
+
             lock (_messagesLock)
             {
                 total = _messages.Count;
-                foreach (var message in _messages)
-                {
-                    // Reintentar si está marcado como traduciendo o si el resultado parece ser el placeholder
-                    if (message.IsTranslating || string.IsNullOrEmpty(message.TranslatedText) || message.TranslatedText == Resources.ChatWindow_Translating)
-                    {
-                        sent++;
-                        OnRequestTranslation?.Invoke(message);
-                    }
-                }
+                toRetry = _messages
+                    .Where(m => m.IsTranslating || string.IsNullOrEmpty(m.TranslatedText))
+                    .ToList();
             }
-            
-            Plugin.PluginLog.Info($"[Retry] Scanned {total} messages, requested retry for {sent}.");
+
+            foreach (var message in toRetry)
+            {
+                OnRequestTranslation?.Invoke(message);
+            }
+
+            Plugin.PluginLog.Info($"[Retry] Scanned {total} messages, requested retry for {toRetry.Count}.");
         }
     }
 }
