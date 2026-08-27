@@ -15,6 +15,7 @@ namespace EchoXIV.UI
     {
         private readonly Configuration _configuration;
         public event Action<TranslatedChatMessage>? OnRequestTranslation;
+        public event Action? OnRequestSettings;
         private readonly MessageHistoryManager _historyManager;
         private readonly List<TranslatedChatMessage> _messages = new();
         private readonly object _messagesLock = new();
@@ -198,6 +199,13 @@ namespace EchoXIV.UI
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.ChatWindow_RomanizationTooltip);
 
             ImGui.SameLine();
+            if (Dalamud.Interface.Components.ImGuiComponents.IconButton("##ChatWindowSettings", Dalamud.Interface.FontAwesomeIcon.Cog))
+            {
+                OnRequestSettings?.Invoke();
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Resources.ChatWindow_SettingsTooltip);
+
+            ImGui.SameLine();
             if (ImGui.Button(Resources.ChatWindow_Retry))
             {
                 RetryStuckTranslations();
@@ -210,8 +218,7 @@ namespace EchoXIV.UI
             ImGui.SameLine();
             if (ImGui.Button(Resources.ChatWindow_Clear))
             {
-                // Clear UI list and persisted history
-                _historyManager.Clear();
+                ClearDisplayedMessages();
             }
 
             if (_configuration.VerboseLogging)
@@ -239,6 +246,11 @@ namespace EchoXIV.UI
                 {
                     ImGui.SetTooltip(Resources.ChatWindow_IAOfflineTooltip);
                 }
+            }
+
+            if (_configuration.PrimaryInstance == null)
+            {
+                ImGui.TextColored(new Vector4(1f, 0.7f, 0.2f, 1f), Resources.Engines_NoneEnabled);
             }
         }
 
@@ -316,8 +328,8 @@ namespace EchoXIV.UI
             var channelName = GetChannelName(message.ChatType);
 
             // Romanization flags shared by both blocks
-            bool showRomanization = _configuration.EnableRomanization && 
-                                   !string.IsNullOrEmpty(message.RomanizedText);
+            bool hasRomanization = !string.IsNullOrEmpty(message.RomanizedText);
+            bool showRomanization = _configuration.EnableRomanization && hasRomanization;
             bool isMsgOutgoing = message.IsOutgoing || message.ChatType == XivChatType.TellOutgoing;
             
             // --- COLUMN 0: TIMESTAMP ---
@@ -360,7 +372,7 @@ namespace EchoXIV.UI
                     // Main line shows romaji when enabled
                     
                     string displayText;
-                    if (showRomanization && isMsgOutgoing && message.OriginalScript != "Latin")
+                    if (showRomanization && isMsgOutgoing)
                     {
                         // Outgoing with romaji: show romaji as main line
                         displayText = message.RomanizedText!;
@@ -379,7 +391,7 @@ namespace EchoXIV.UI
             bool showOriginal = _configuration.ShowOriginalText && 
                                 !string.Equals(message.OriginalText, message.TranslatedText, StringComparison.OrdinalIgnoreCase);
             
-            if (showOriginal || showRomanization)
+            if (showOriginal || hasRomanization)
             {
                 ImGui.TableSetColumnIndex(2);
                 ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), "[?]");
@@ -389,11 +401,16 @@ namespace EchoXIV.UI
                     
                     if (isMsgOutgoing)
                     {
-                        if (showRomanization && message.OriginalScript != "Latin")
+                        if (hasRomanization)
                         {
-                            // Outgoing: target translation first, then source text
-                            ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_TranslationNative);
-                            ImGui.TextUnformatted(message.TranslatedText);
+                            // Outgoing: avoid repeating the native translation when it is already visible.
+                            if (showRomanization)
+                            {
+                                ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_TranslationNative);
+                                ImGui.TextUnformatted(message.TranslatedText);
+                            }
+                            ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_RomanizationLabel);
+                            ImGui.TextUnformatted(message.RomanizedText!);
                             ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_Original);
                             ImGui.TextUnformatted(message.OriginalText);
                         }
@@ -409,7 +426,7 @@ namespace EchoXIV.UI
                         ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_Original);
                         ImGui.TextUnformatted(message.OriginalText); // Sender's original (e.g., konnichiwa)
                         
-                        if (showRomanization)
+                        if (hasRomanization)
                         {
                             ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), Resources.ChatWindow_RomanizationLabel);
                             ImGui.TextUnformatted(message.RomanizedText!); // Romaji (e.g., konnichiwa)
@@ -497,6 +514,15 @@ namespace EchoXIV.UI
             _historyManager.OnMessageUpdated -= UpdateMessage;
             _historyManager.OnHistoryCleared -= ClearMessages;
         }
+
+        private void ClearDisplayedMessages()
+        {
+            lock (_messagesLock)
+            {
+                _messages.Clear();
+            }
+        }
+
         private void RetryStuckTranslations()
         {
             List<TranslatedChatMessage> toRetry;

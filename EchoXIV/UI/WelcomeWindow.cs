@@ -63,30 +63,6 @@ public class WelcomeWindow : Window
             _configuration.TargetLanguage = languages[currentTargetIdx];
         }
 
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        // Idioma para los demás (Entrantes)
-        ImGui.Text(Resources.Welcome_ReadQuestion);
-        ImGui.SetNextItemWidth(-1);
-
-        var incomingLangs = new[] { "", "es", "en", "ja", "fr", "de", "it", "ko", "no", "pt", "ru", "zh-CN", "zh-TW" };
-        var incomingLangNames = new[] { 
-            Resources.Incoming_UseWritingLanguage, Resources.Lang_ES, Resources.Lang_EN, Resources.Lang_JA, 
-            Resources.Lang_FR, Resources.Lang_DE, Resources.Lang_IT, Resources.Lang_KO,
-            Resources.Lang_NO, Resources.Lang_PT, Resources.Lang_RU, Resources.Lang_ZH_Simp,
-            Resources.Lang_ZH_Trad
-        };
-
-        var currentIncIdx = Array.IndexOf(incomingLangs, _configuration.IncomingTargetLanguage);
-        if (currentIncIdx == -1) currentIncIdx = 0;
-
-        if (ImGui.Combo("##WelcomeIncLang", ref currentIncIdx, incomingLangNames, incomingLangNames.Length))
-        {
-            _configuration.IncomingTargetLanguage = incomingLangs[currentIncIdx];
-        }
-
         ImGui.Dummy(new Vector2(0, 20));
         
         if (ImGui.Button(Resources.Welcome_SaveStart, new Vector2(-1, 40)))

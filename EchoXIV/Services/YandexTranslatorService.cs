@@ -12,7 +12,7 @@ namespace EchoXIV.Services;
 /// Free Yandex Translate engine (mobile endpoint, no API key).
 /// Session id is a dash-less UUID.
 /// </summary>
-public class YandexTranslatorService : ITranslationService
+public class YandexTranslatorService : ITranslationService, IRomanizationService
 {
     private static readonly HttpClient _httpClient = new HttpClient(new HttpClientHandler
     {
@@ -113,6 +113,9 @@ public class YandexTranslatorService : ITranslationService
             return null;
         }
     }
+
+    public Task<string?> RomanizeAsync(string text, string sourceLang, CancellationToken ct = default) => Task.FromResult<string?>(null);
+    public bool CanRomanize(string sourceLang, string text) => false;
 
     public void Dispose()
     {

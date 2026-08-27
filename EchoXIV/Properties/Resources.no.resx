@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -102,10 +102,10 @@
   <data name="ChatWindow_UnlockTooltip"><value>Lås opp vindu</value></data>
   <data name="ChatWindow_HideTooltip"><value>Skjul vindu</value></data>
   <data name="ChatWindow_ClearTooltip"><value>Tøm chatinnholdet</value></data>
-  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_Romanization"><value>Latinsk</value></data>
   <data name="ChatWindow_RomanizationTooltip"><value>Vis latinsk transliterering for ikke-latiniske skript (JA/KO/RU/ZH)</value></data>
 <data name="ChatWindow_TranslationNative"><value>Oversettelse (native script):</value></data>
-  <data name="ChatWindow_RomanizationLabel"><value>Romanisasjon:</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Latinsk skrift:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - Konfigurasjon</value></data>
   <data name="Tab_Visuals"><value>Utseende</value></data>
   <data name="General_Engine"><value>Oversettelsesmotor</value></data>
@@ -114,7 +114,7 @@
   <data name="General_InterfaceLanguageDefault"><value>Standard (som spill/Dalamud)</value></data>
   <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
   <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
-  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>LibreTranslate</value></data>
   <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
   <data name="General_EngineGoogleDesc"><value>Gratis Google Translate-endepunkt. Kan nå midlertidige rategrenser ved intensiv bruk.</value></data>
   <data name="General_EnginePapagoDesc"><value>Naver Papago web-endepunkt. Gratis, uten API-nøkkel. Kan nå midlertidige rategrenser.</value></data>
@@ -139,16 +139,6 @@
   <data name="LocalAI_DisableThinkingTip"><value>Reduserer ventetid i direkte chat for modeller med resonnering (Gemma 3, Qwen3 osv.). Ignoreres av modeller uten støtte.</value></data>
   <data name="LocalAI_MaxTokens"><value>Maks. svar-tokens</value></data>
   <data name="LocalAI_MaxTokensTip"><value>Begrenser svarlengden for å kutte ventetid. 64 er nok for chat-linjer; 0 = ingen grense.</value></data>
-  <data name="LocalAI_ContextTitle"><value>Samtalekontekst</value></data>
-  <data name="LocalAI_ContextDesc"><value>Inkluderer nylige meldinger fra en kanal som kontekst slik at KI-en holder oversettelsen i tråd med samtalen som pågår. Gjelder bare lokale KI-motoren og kanalene som er aktivert nedenfor.</value></data>
-  <data name="LocalAI_ContextEnable"><value>Aktiver samtalekontekst for innkommende meldinger</value></data>
-  <data name="LocalAI_ContextEnableTip"><value>Når aktivert, sendes nylige meldinger fra aktive kanaler til KI-en som kontekst før oversettelse.</value></data>
-  <data name="LocalAI_ContextDisabled"><value>Samtalekontekst er deaktivert.</value></data>
-  <data name="LocalAI_ContextMessages"><value>Kontekstmeldinger</value></data>
-  <data name="LocalAI_ContextMessagesTip"><value>Antall nylige meldinger som inkluderes som kontekst. Høyere verdier forbedrer sammenhengen, men øker ventetiden og bruker mer modellkontekst.</value></data>
-  <data name="LocalAI_ContextChannels"><value>Kanaler med kontekst:</value></data>
-  <data name="LocalAI_ContextChannelsTip"><value>Bare disse kanalene sender samtalekontekst. Hold dem få for å unngå kontekstspam i støyende kanaler.</value></data>
-  <data name="LocalAI_ContextDefaultNote"><value>Som standard bruker bare Party og Alliance kontekst. Say/Shout/Yell/FC/LS forblir uten kontekst.</value></data>
   <data name="General_VerboseLogs"><value>Detaljerte logger</value></data>
   <data name="General_VerboseLogsTip"><value>Aktiverer ekstra teknisk informasjon i Dalamud-loggen. Nyttig ved feilsøking.</value></data>
   <data name="Visuals_Description"><value>Tilpass utseendet til vinduet med oversatt chat.</value></data>
@@ -235,4 +225,137 @@
   <data name="About_Disclaimer">
     <value>Denne pluginen endrer ikke spillfiler og er ikke ment å bryte vilkårene for bruk. Bruk ansvarlig.</value>
   </data>
+<data name="Tab_Engines">
+    <value>Motorer</value>
+  </data>
+  <data name="Engines_Description">
+    <value>Aktiver eller deaktiver oversettelsesmotorer og konfigurer deres legitimasjon. Bare aktiverte motorer brukes av primær/reserve-ruting.</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>Ingen motorer er aktivert. Aktiver minst én motor for å oversette.</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>Konfigurer motor</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>Motor aktivert</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>API-nøkkel</value>
+  </data>
+  <data name="Engines_Model">
+    <value>Modell</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>Temperatur</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>Denne motoren krever ingen legitimasjon.</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>Primærmotor</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>Rekkefølgen i listen bestemmer reservemotoren som brukes når den aktive svikter. Motorene prøves ovenfra og ned.</value>
+  </data>
+  <data name="Engines_Add">
+    <value>Legg til motorinstans</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>Legg til</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>Instansnavn</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>Sett som primær</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>Primær (aktiv)</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>Reservemotor</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>Auto (roter gjennom de resterende)</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT bruker OpenAI API. Opprett en nøkkel på platform.openai.com.</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini bruker Google AI Studio API. Opprett en nøkkel på aistudio.google.com.</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude bruker Anthropic API. Opprett en nøkkel på console.anthropic.com.</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek bruker sin OpenAI-kompatible API. Opprett en nøkkel på platform.deepseek.com.</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter samler mange modeller. Opprett en nøkkel på openrouter.ai.</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>ChatGPT (OpenAI) sky-LLM. Krever API-nøkkel.</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Google Gemini sky-LLM. Krever API-nøkkel.</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Anthropic Claude sky-LLM. Krever API-nøkkel.</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>DeepSeek sky-LLM. Krever API-nøkkel.</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>OpenRouter sky-LLM. Krever API-nøkkel.</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>Ikke kompatibel med romaji</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>Ikke kompatibel med romaji for {0}</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>F.eks.: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>Chat</value></data>
+    <data name="Engines_Endpoint"><value>Endepunkt</value></data>
+    <data name="Engines_SelectProvider"><value>-- Leverandør --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>Tidsavbrudd ved inaktivitet (sekunder)</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>Kopier til utklippstavlen</value></data>
+    <data name="Incoming_LanguageDetection"><value>Språkdeteksjon</value></data><data name="Incoming_SkipSameLanguage"><value>Hopp over når språket samsvarer med målet</value></data><data name="Incoming_SkipSameLanguageTip"><value>Sender ikke meldingen til oversettelsesmotoren når lokal deteksjon bekrefter målspråket.</value></data><data name="Incoming_DetectionConfidence"><value>Deteksjonssikkerhet</value></data><data name="Incoming_DetectionConfidenceTip"><value>Minimumssikkerhet som kreves for å hoppe over en oversettelse. Høyere verdier reduserer unødvendige oversettelser; lavere verdier kan hoppe over oversettelser ved en feil.</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>Åpne EchoXIV-innstillinger</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>Vis logg ved åpning/lukking av chat</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>Viser en bekreftelse i spillchatten når /tl chat åpner eller lukker oversettelsesvinduet.</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>Maksimal historikkstørrelse (MB)</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>Maksimal størrelse på den lagrede historikkfilen. De eldste meldingene fjernes først når grensen overskrides.</value>
+    </data>
 </root>
+
+
+
+
+
+

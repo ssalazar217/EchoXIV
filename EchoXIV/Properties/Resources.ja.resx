@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
@@ -285,7 +285,7 @@
     <value>ローカルAIサーバーに接続できません。ローカルAIに戻すかサーバーが復旧するまで、EchoXIVはGoogle翻訳を使用します。</value>
   </data>
   <data name="ChatWindow_Romanization">
-    <value>Romanji</value>
+    <value>Romaji</value>
   </data>
   <data name="ChatWindow_RomanizationTooltip">
     <value>JA/KO/RU/ZHの非ラテン文字のラテン語転写を表示</value>
@@ -294,7 +294,7 @@
     <value>翻訳 (ネイティブスクリプト):</value>
   </data>
   <data name="ChatWindow_RomanizationLabel">
-    <value>Romanization:</value>
+    <value>Romaji:</value>
   </data>
   <data name="Command_MessageTruncated">
     <value>翻訳後のメッセージがチャット上限を超えたため、送信前に切り詰められました。</value>
@@ -366,7 +366,7 @@
     <value>Papago (Naver)</value>
   </data>
   <data name="General_EngineNameLibreTranslate">
-    <value>EchoXIV Translate</value>
+    <value>LibreTranslate</value>
   </data>
   <data name="General_EngineNameYandex">
     <value>Yandex Translate</value>
@@ -439,36 +439,6 @@
   </data>
   <data name="LocalAI_MaxTokensTip">
     <value>応答の長さを制限してレイテンシーを短縮します。チャットの一行には64で十分です。0 = 制限なし。</value>
-  </data>
-  <data name="LocalAI_ContextTitle">
-    <value>会話コンテキスト</value>
-  </data>
-  <data name="LocalAI_ContextDesc">
-    <value>チャンネルの最近のメッセージをコンテキストとして含め、進行中の会話と翻訳を一貫させます。ローカルAIエンジンと、下記で有効にしたチャンネルにのみ適用されます。</value>
-  </data>
-  <data name="LocalAI_ContextEnable">
-    <value>受信メッセージの会話コンテキストを有効にする</value>
-  </data>
-  <data name="LocalAI_ContextEnableTip">
-    <value>有効にすると、翻訳前に有効なチャンネルの最近のメッセージがコンテキストとしてAIに送信されます。</value>
-  </data>
-  <data name="LocalAI_ContextDisabled">
-    <value>会話コンテキストは無効です。</value>
-  </data>
-  <data name="LocalAI_ContextMessages">
-    <value>コンテキストメッセージ数</value>
-  </data>
-  <data name="LocalAI_ContextMessagesTip">
-    <value>コンテキストに含める最近のメッセージ数。値を増やすと一貫性は向上しますが、レイテンシーとモデルコンテキスト消費が増えます。</value>
-  </data>
-  <data name="LocalAI_ContextChannels">
-    <value>コンテキストを使用するチャンネル:</value>
-  </data>
-  <data name="LocalAI_ContextChannelsTip">
-    <value>これらのチャンネルのみが会話コンテキストを送信します。騒がしいチャンネルでのコンテキスト過多を避けるため、少なく保ってください。</value>
-  </data>
-  <data name="LocalAI_ContextDefaultNote">
-    <value>デフォルトではPartyとAllianceのみがコンテキストを使用します。Say/Shout/Yell/FC/LSはコンテキストなしのままです。</value>
   </data>
   <data name="General_VerboseLogs">
     <value>詳細ログの記録</value>
@@ -656,4 +626,137 @@
   <data name="About_Disclaimer">
     <value>このプラグインはゲームファイルを改変せず、利用規約に違反することを意図していません。責任を持って使用してください。</value>
   </data>
+<data name="Tab_Engines">
+    <value>エンジン</value>
+  </data>
+  <data name="Engines_Description">
+    <value>翻訳エンジンの有効/無効と認証情報を設定します。有効なエンジンのみが主/予備ルーティングで使用されます。</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>有効なエンジンがありません。翻訳するには少なくとも1つ有効にしてください。</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>エンジンを設定</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>エンジン有効</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>APIキー</value>
+  </data>
+  <data name="Engines_Model">
+    <value>モデル</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>温度</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>このエンジンは認証情報を必要としません。</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>主要エンジン</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>リストの順序は、使用中のエンジンが失敗したときに使う予備エンジンの順序です。上から下へ順に試します。</value>
+  </data>
+  <data name="Engines_Add">
+    <value>エンジンインスタンスを追加</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>追加</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>インスタンス名</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>主要に設定</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>主要（有効）</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>予備エンジン</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>自動（残りのエンジンを順に使用）</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPTはOpenAI APIを使用します。platform.openai.comでキーを作成してください。</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>GeminiはGoogle AI Studio APIを使用します。aistudio.google.comでキーを作成してください。</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>ClaudeはAnthropic APIを使用します。console.anthropic.comでキーを作成してください。</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeekはOpenAI互換APIを使用します。platform.deepseek.comでキーを作成してください。</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouterは多くのモデルをまとめています。openrouter.aiでキーを作成してください。</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>ChatGPT (OpenAI) クラウドLLM。APIキーが必要です。</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Google Gemini クラウドLLM。APIキーが必要です。</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Anthropic Claude クラウドLLM。APIキーが必要です。</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>DeepSeek クラウドLLM。APIキーが必要です。</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>OpenRouter クラウドLLM。APIキーが必要です。</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>ロマジ非対応</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>{0}でロマジ非対応</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>例: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>チャット</value></data>
+    <data name="Engines_Endpoint"><value>エンドポイント</value></data>
+    <data name="Engines_SelectProvider"><value>-- プロバイダー --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>非アクティブタイムアウト（秒）</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>クリップボードにコピー</value></data>
+    <data name="Incoming_LanguageDetection"><value>言語検出</value></data><data name="Incoming_SkipSameLanguage"><value>対象言語と一致する場合は翻訳を省略</value></data><data name="Incoming_SkipSameLanguageTip"><value>ローカル検出で対象言語と確認されたメッセージを翻訳エンジンに送信しません。</value></data><data name="Incoming_DetectionConfidence"><value>検出信頼度</value></data><data name="Incoming_DetectionConfidenceTip"><value>翻訳を省略するために必要な最小信頼度です。値が高いほど不要な翻訳を減らせますが、値が低いと誤って翻訳を省略する可能性があります。</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>EchoXIVの設定を開く</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>チャット開閉ログを表示</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>/tl chatで翻訳ウィンドウを開閉したとき、ゲームチャットに確認メッセージを表示します。</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>履歴の最大サイズ（MB）</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>保存される履歴ファイルの最大サイズです。上限を超えると古いメッセージから削除されます。</value>
+    </data>
 </root>
+
+
+
+
+
+

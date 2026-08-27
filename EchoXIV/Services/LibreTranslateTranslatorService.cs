@@ -9,24 +9,32 @@ using Newtonsoft.Json.Linq;
 namespace EchoXIV.Services;
 
 /// <summary>
-/// LibreTranslate (Argos/NMT) hosted on the public EchoXIV server; no API key.
-/// The server identifies clients via User-Agent "EchoXIV/&lt;version&gt;".
+/// LibreTranslate (Argos/NMT) translation engine.
 /// </summary>
 public class LibreTranslateTranslatorService : ITranslationService, IDisposable
 {
-    public string Name => "LibreTranslate";
+    public string Name => string.IsNullOrWhiteSpace(_instance?.Name) ? "LibreTranslate" : _instance.Name;
 
     private static readonly HttpClient SharedHttpClient = CreateHttpClient();
+    private readonly EngineInstance? _instance;
 
-    private const string TranslateUrl = "https://echoxiv.ddns.net/translate";
+    private const string DefaultTranslateUrl = "https://libretranslate.com/translate";
 
     private static HttpClient CreateHttpClient()
     {
         var httpClient = new HttpClient();
-        // Server-side validator requires "User-Agent: EchoXIV/<version>".
         httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(EchoXIVClient.UserAgent);
         return httpClient;
     }
+
+    public LibreTranslateTranslatorService() { }
+
+    public LibreTranslateTranslatorService(EngineInstance instance)
+    {
+        _instance = instance;
+    }
+
+    private string TranslateUrl => string.IsNullOrWhiteSpace(_instance?.Endpoint) ? DefaultTranslateUrl : _instance.Endpoint.TrimEnd('/');
 
     public async Task<string> TranslateAsync(string text, string sourceLang, string targetLang, CancellationToken cancellationToken = default)
     {
@@ -44,6 +52,9 @@ public class LibreTranslateTranslatorService : ITranslationService, IDisposable
                 ["source"] = "auto",
                 ["target"] = MapLanguage(targetLang),
             };
+            var apiKey = _instance?.ApiKey?.Trim();
+            if (!string.IsNullOrWhiteSpace(apiKey))
+                payload["api_key"] = apiKey;
 
             using var request = new HttpRequestMessage(HttpMethod.Post, TranslateUrl);
             request.Content = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
@@ -76,7 +87,7 @@ public class LibreTranslateTranslatorService : ITranslationService, IDisposable
     }
 
     /// <summary>
-    /// Maps EchoXIV codes to the LibreTranslate server codes
+    /// Maps language codes to LibreTranslate server codes
     /// (nb=Norwegian, zh=Simplified Chinese, zt=Traditional Chinese).
     /// </summary>
     private static string MapLanguage(string lang)

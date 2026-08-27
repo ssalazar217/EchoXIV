@@ -10,7 +10,7 @@
 - **Integrated Dalamud Window**: Displays translated chat inside the native Dalamud UI using ImGui.
 - **Localized UI**: Follows the language configured in Dalamud, including expanded support for the UI languages supported by Dalamud.
 - **Smooth First-Run Experience**: Initial setup is based on your Dalamud language, with a guided welcome screen.
-- **Multiple Engines**: Supports **Google Translate** (no API key), **Papago**, **EchoXIV Translate (LibreTranslate)**, **Yandex**, and **Local AI** (LM Studio / Ollama), with configurable fallback and automatic primary-engine recovery.
+- **Multiple Engines**: Supports **Google Translate** (no API key), **Papago**, **LibreTranslate**, **Yandex**, and **Local AI** (LM Studio / Ollama), with configurable fallback and automatic primary-engine recovery.
 - **Romanized Output**: When enabled, Japanese, Korean, Chinese, and other supported translations can be displayed in romanized form in the translated-chat window while preserving the original translated text.
 
 ## 🚀 Installation

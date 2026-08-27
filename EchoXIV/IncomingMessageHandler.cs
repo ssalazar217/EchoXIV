@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,6 +68,7 @@ public class TranslatedChatMessage
         private readonly IObjectTable _objectTable;
         private readonly IPluginLog _pluginLog;
         private readonly Dictionary<string, PendingOutgoingEntry> _pendingOutgoingTranslations = new(); // Translated -> Original
+        private readonly HashSet<string> _inflightTranslations = new();
 
         /// <summary>
         /// Raised when a message finishes translating
@@ -90,9 +92,23 @@ public class TranslatedChatMessage
 
         private readonly GlossaryService _glossaryService;
         private readonly TranslationCache _translationCache;
-        private readonly Func<XivChatType, List<ConversationLine>?>? _conversationContextProvider;
-        private IRomanizationService _romanizationService;
         private readonly CancellationTokenSource _lifetimeCts = new();
+        private readonly SemaphoreSlim _translationSlots = new(3, 3);
+
+        // Romanization uses the instance that produced the translation.
+        private IRomanizationService? RomanizationService
+        {
+            get
+            {
+                if (_primaryTranslator is IRomanizationService direct)
+                    return direct;
+
+                if (_primaryTranslator is TranslationRouter router)
+                    return router.GetLastUsedTranslator() as IRomanizationService;
+
+                return null;
+            }
+        }
 
         public IncomingMessageHandler(
             Configuration configuration,
@@ -104,9 +120,7 @@ public class TranslatedChatMessage
             IClientState clientState,
             IPlayerState playerState,
             IObjectTable objectTable,
-            IPluginLog pluginLog,
-            IRomanizationService romanizationService,
-            Func<XivChatType, List<ConversationLine>?>? conversationContextProvider = null)
+            IPluginLog pluginLog)
         {
             _configuration = configuration;
             _primaryTranslator = primaryTranslator;
@@ -118,8 +132,6 @@ public class TranslatedChatMessage
             _playerState = playerState;
             _objectTable = objectTable;
             _pluginLog = pluginLog;
-            _romanizationService = romanizationService;
-            _conversationContextProvider = conversationContextProvider;
 
             _chatGui.ChatMessage += OnChatMessage;
         }
@@ -132,11 +144,6 @@ public class TranslatedChatMessage
         public void UpdateSecondaryTranslator(ITranslationService? newService)
         {
             _secondaryTranslator = newService;
-        }
-
-        public void UpdateRomanizationService(IRomanizationService newService)
-        {
-            _romanizationService = newService;
         }
 
         public void RegisterPendingOutgoing(string sentText, string sourceText, string? nativeText = null, string? romanizedText = null)
@@ -313,6 +320,17 @@ public class TranslatedChatMessage
                 return;
             }
 
+            var dedupKey = $"{type}|{senderName}|{messageText}";
+            lock (_inflightTranslations)
+            {
+                if (_inflightTranslations.Contains(dedupKey))
+                {
+                    if (_configuration.VerboseLogging) _pluginLog.Debug($"Skipping duplicate in-flight for '{(messageText.Length > 30 ? messageText.Substring(0, 30) : messageText)}'");
+                    return;
+                }
+                _inflightTranslations.Add(dedupKey);
+            }
+
             var translatedMessage = new TranslatedChatMessage
             {
                 Timestamp = DateTime.Now,
@@ -325,7 +343,7 @@ public class TranslatedChatMessage
 
             OnTranslationStarted?.Invoke(translatedMessage);
 
-            _ = TranslateAsync(translatedMessage);
+            _ = TranslateAsync(translatedMessage, dedupKey);
         }
 
         public async Task ProcessMessageAsync(TranslatedChatMessage message)
@@ -337,12 +355,31 @@ public class TranslatedChatMessage
             await TranslateAsync(message);
         }
 
-        private async Task TranslateAsync(TranslatedChatMessage message)
+        private async Task TranslateAsync(TranslatedChatMessage message, string? dedupKey = null)
         {
+            var sw = Stopwatch.StartNew();
+            var slotAcquired = false;
             try
             {
-                // Check cache
+                await _translationSlots.WaitAsync(_lifetimeCts.Token);
+                slotAcquired = true;
+
                 var targetLanguage = _configuration.GetReadingLanguage();
+                var detectedLanguage = LanguageDetector.Detect(message.OriginalText);
+                if (_configuration.SkipSameLanguageTranslation &&
+                    detectedLanguage.IsConfident(_configuration.LanguageDetectionConfidence) &&
+                    LanguageDetector.IsSameLanguage(detectedLanguage.Code, targetLanguage))
+                {
+                    message.TranslatedText = message.OriginalText;
+                    await ApplyRomanizationAsync(message, CancellationToken.None, detectedLanguageCode: detectedLanguage.Code);
+                    message.IsTranslating = false;
+                    if (_configuration.VerboseLogging)
+                        _pluginLog.Info($"[{message.ChatType}] Incoming translation skipped (already {detectedLanguage.Code}, {detectedLanguage.Confidence:P0}): '{message.OriginalText}'");
+                    OnMessageTranslated?.Invoke(message);
+                    return;
+                }
+
+                // Check cache
 
                 if (_translationCache.TryGetWithRomanization(
                         message.OriginalText,
@@ -367,6 +404,7 @@ public class TranslatedChatMessage
                             message.RomanizedText);
                     }
                     message.IsTranslating = false;
+                    if (_configuration.VerboseLogging) _pluginLog.Info($"[{message.ChatType}] Incoming translated (cache, {sw.ElapsedMilliseconds}ms): '{message.OriginalText}' -> '{message.TranslatedText}'{(string.IsNullOrWhiteSpace(message.RomanizedText) ? "" : $" (romanji: '{message.RomanizedText}')")}");
                     OnMessageTranslated?.Invoke(message);
                     return;
                 }
@@ -382,42 +420,24 @@ public class TranslatedChatMessage
 
                 var sourceScript = NonLatinScriptDetector.Detect(message.OriginalText);
                 var sourceLanguageCode = sourceScript.ToLanguageCode();
-                var canUseCombinedRomanization = _configuration.EnableRomanization &&
-                    _configuration.SelectedEngine == TranslationEngine.LocalAI &&
-                    _romanizationService is LocalAiTranslatorService &&
+                var combinedRomanizationService = RomanizationService as ICombinedTranslator;
+                var canUseCombinedRomanization = combinedRomanizationService != null &&
+                    (_primaryTranslator is not TranslationRouter router || router.SupportsCombinedRomanization) &&
                     !string.IsNullOrEmpty(sourceLanguageCode) &&
                     _configuration.RomanizationLanguages.Contains(sourceLanguageCode);
 
-                if (canUseCombinedRomanization)
+                if (canUseCombinedRomanization && combinedRomanizationService != null)
                 {
-                    var localAi = (LocalAiTranslatorService)_romanizationService;
-                    var context = _configuration.LocalAiUseConversationContext && _conversationContextProvider != null
-                        ? _conversationContextProvider(message.ChatType)
-                        : null;
-                    var combined = await localAi.TranslateWithRomanizationAsync(
+                    var combined = await combinedRomanizationService.TranslateWithRomanizationAsync(
                         protectedText,
                         "auto",
                         targetLanguage,
-                        context,
                         primaryTimeout.Token,
                         romanizeTranslation: false);
                     translation = combined.Translation;
                     message.RomanizedText = combined.RomanizedText;
                     message.OriginalScript = combined.OriginalScript;
                     combinedRomanization = true;
-                }
-                else if (_primaryTranslator is LocalAiTranslatorService localAi &&
-                         _configuration.LocalAiUseConversationContext &&
-                         _conversationContextProvider != null)
-                {
-                    var context = _conversationContextProvider(message.ChatType);
-                    translation = await localAi.TranslateWithContextAsync(
-                        protectedText,
-                        "auto",
-                        targetLanguage,
-                        context,
-                        primaryTimeout.Token
-                    );
                 }
                 else
                 {
@@ -445,7 +465,11 @@ public class TranslatedChatMessage
                 
                 message.IsTranslating = false;
 
-                if (_configuration.VerboseLogging) _pluginLog.Info($"[{message.ChatType}] Incoming translated: '{message.OriginalText}' -> '{message.TranslatedText}'");
+                if (_configuration.VerboseLogging)
+                {
+                    var engineName = GetLastUsedEngineName();
+                    _pluginLog.Info($"[{message.ChatType}] Incoming translated using {engineName} ({sw.ElapsedMilliseconds}ms): '{message.OriginalText}' -> '{message.TranslatedText}'{(string.IsNullOrWhiteSpace(message.RomanizedText) ? "" : $" (romanji: '{message.RomanizedText}')")}");
+                }
 
                 // Notify translation ready
                 OnMessageTranslated?.Invoke(message);
@@ -455,7 +479,37 @@ public class TranslatedChatMessage
                 if (_lifetimeCts.IsCancellationRequested)
                     return;
 
-                _pluginLog.Warning(ex, "Translation timed out for incoming message.");
+                var preview = message.OriginalText.Length > 40 ? message.OriginalText.Substring(0, 40) + "..." : message.OriginalText;
+                var reason = ex.InnerException is System.IO.IOException ioEx && ioEx.InnerException is System.Net.Sockets.SocketException sockEx && sockEx.SocketErrorCode == System.Net.Sockets.SocketError.OperationAborted
+                    ? "I/O aborted (thread exit or connection closed)"
+                    : ex.CancellationToken.IsCancellationRequested ? "timeout" : "canceled";
+                _pluginLog.Warning(ex, $"Translation {reason} ({sw.ElapsedMilliseconds}ms) for incoming message: '{preview}'");
+
+                // Try fallback on timeout as well (mirror rate-limit path)
+                if (_secondaryTranslator != null)
+                {
+                    try
+                    {
+                        var secondaryGlossary = _glossaryService.Protect(message.OriginalText);
+                        var targetLanguage = _configuration.GetReadingLanguage();
+                        using var secondaryTimeout = TranslationDefaults.CreateTimeoutTokenSource(_lifetimeCts.Token);
+                        var translation = await _secondaryTranslator.TranslateAsync(secondaryGlossary.Text, "auto", targetLanguage, secondaryTimeout.Token);
+                        var finalTranslation = SanitizeText(secondaryGlossary.Restore(translation));
+                        message.TranslatedText = finalTranslation;
+                        await ApplyRomanizationAsync(message, secondaryTimeout.Token);
+                        message.IsTranslating = false;
+                        OnMessageTranslated?.Invoke(message);
+                        _translationCache.Add(message.OriginalText, "auto", targetLanguage, finalTranslation, message.RomanizedText);
+                        OnRequestEngineFailover?.Invoke();
+                        return;
+                    }
+                    catch (OperationCanceledException) when (_lifetimeCts.IsCancellationRequested) { return; }
+                    catch (Exception secEx)
+                    {
+                        _pluginLog.Warning(secEx, "Secondary translator also failed after timeout.");
+                    }
+                }
+
                 message.TranslatedText = message.OriginalText;
                 message.IsTranslating = false;
                 OnMessageTranslated?.Invoke(message);
@@ -520,12 +574,25 @@ public class TranslatedChatMessage
                 message.TranslatedText = message.OriginalText; // Fallback
                 message.IsTranslating = false;                OnMessageTranslated?.Invoke(message);
             }
+            finally
+            {
+                if (slotAcquired)
+                    _translationSlots.Release();
+                if (dedupKey != null)
+                {
+                    lock (_inflightTranslations)
+                    {
+                        _inflightTranslations.Remove(dedupKey);
+                    }
+                }
+            }
         }
 
         private async Task ApplyRomanizationAsync(
             TranslatedChatMessage message,
             CancellationToken cancellationToken,
-            bool requestIfMissing = true)
+            bool requestIfMissing = true,
+            string? detectedLanguageCode = null)
         {
             var script = NonLatinScriptDetector.Detect(message.OriginalText);
             if (message.OriginalScript == "Latin" || string.IsNullOrEmpty(message.OriginalScript))
@@ -534,16 +601,18 @@ public class TranslatedChatMessage
             if (!requestIfMissing)
                 return;
 
-            var languageCode = script.ToLanguageCode();
-            if (!_configuration.EnableRomanization || string.IsNullOrEmpty(languageCode) ||
+            var languageCode = detectedLanguageCode ?? script.ToLanguageCode();
+            if (string.IsNullOrEmpty(languageCode) ||
                 !_configuration.RomanizationLanguages.Contains(languageCode))
             {
                 return;
             }
 
+            var svc = RomanizationService;
+            if (svc == null || !svc.CanRomanize(languageCode, message.OriginalText)) return;
             try
             {
-                message.RomanizedText = await _romanizationService.RomanizeAsync(
+                message.RomanizedText = await svc.RomanizeAsync(
                     message.OriginalText, languageCode, cancellationToken);
             }
             catch (Exception ex)
@@ -551,6 +620,18 @@ public class TranslatedChatMessage
                 _pluginLog.Warning(ex, "Romanization failed for incoming message");
                 message.RomanizedText = null;
             }
+        }
+
+        private string GetLastUsedEngineName()
+        {
+            if (_primaryTranslator is TranslationRouter router &&
+                !string.IsNullOrWhiteSpace(router.LastUsedInstanceName) &&
+                router.LastUsedInstanceName != "?")
+            {
+                return router.LastUsedInstanceName;
+            }
+
+            return _primaryTranslator.Name;
         }
 
         private bool IsRmtSpam(string text)
@@ -618,6 +699,7 @@ public class TranslatedChatMessage
         public void Dispose()
         {
             _lifetimeCts.Cancel();
+            _translationSlots.Dispose();
             _chatGui.ChatMessage -= OnChatMessage;
             if (_configuration.VerboseLogging) _pluginLog.Info("IncomingMessageHandler disconnected.");
         }

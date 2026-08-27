@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
@@ -284,8 +284,8 @@
   <data name="ChatWindow_IAOfflineTooltip">
     <value>Der lokale KI-Server ist nicht erreichbar. EchoXIV verwendet Google Translate, bis du wieder zur lokalen KI wechselst oder der Server wieder verfügbar ist.</value>
   </data>
-  <data name="ChatWindow_Romanization">
-    <value>Romanji</value>
+    <data name="ChatWindow_Romanization">
+      <value>Lateinisch</value>
   </data>
   <data name="ChatWindow_RomanizationTooltip">
     <value>Zeige Lateinische Transkription für non-Latin-Skripte (JA/KO/RU/ZH)</value>
@@ -294,7 +294,7 @@
     <value>Übersetzung (natives Script):</value>
   </data>
   <data name="ChatWindow_RomanizationLabel">
-    <value>Romanisierung:</value>
+      <value>Lateinische Schrift:</value>
   </data>
   <data name="Command_MessageTruncated">
     <value>Die übersetzte Nachricht überschritt das Chat-Limit und wurde vor dem Senden gekürzt.</value>
@@ -366,7 +366,7 @@
     <value>Papago (Naver)</value>
   </data>
   <data name="General_EngineNameLibreTranslate">
-    <value>EchoXIV Translate</value>
+    <value>LibreTranslate</value>
   </data>
   <data name="General_EngineNameYandex">
     <value>Yandex Translate</value>
@@ -439,36 +439,6 @@
   </data>
   <data name="LocalAI_MaxTokensTip">
     <value>Begrenzt die Antwortlänge, um die Latenz zu senken. 64 reicht für Chat-Zeilen; 0 = kein Limit.</value>
-  </data>
-  <data name="LocalAI_ContextTitle">
-    <value>Gesprächskontext</value>
-  </data>
-  <data name="LocalAI_ContextDesc">
-    <value>Fügt kürzliche Nachrichten eines Kanals als Kontext hinzu, damit die KI die Übersetzung im Einklang mit dem laufenden Gespräch hält. Gilt nur für die lokale KI-Engine und für die unten aktivierten Kanäle.</value>
-  </data>
-  <data name="LocalAI_ContextEnable">
-    <value>Gesprächskontext für eingehende Nachrichten aktivieren</value>
-  </data>
-  <data name="LocalAI_ContextEnableTip">
-    <value>Wenn aktiviert, werden kürzliche Nachrichten aus aktivierten Kanälen vor der Übersetzung als Kontext an die KI gesendet.</value>
-  </data>
-  <data name="LocalAI_ContextDisabled">
-    <value>Der Gesprächskontext ist deaktiviert.</value>
-  </data>
-  <data name="LocalAI_ContextMessages">
-    <value>Kontext-Nachrichten</value>
-  </data>
-  <data name="LocalAI_ContextMessagesTip">
-    <value>Anzahl der als Kontext einbezogenen kürzlichen Nachrichten. Höhere Werte verbessern die Kohärenz, erhöhen aber die Latenz und nutzen mehr Modellkontext.</value>
-  </data>
-  <data name="LocalAI_ContextChannels">
-    <value>Kanäle mit Kontext:</value>
-  </data>
-  <data name="LocalAI_ContextChannelsTip">
-    <value>Nur diese Kanäle senden Gesprächskontext. Halte sie gering, um Kontext-Spam in lauten Kanälen zu vermeiden.</value>
-  </data>
-  <data name="LocalAI_ContextDefaultNote">
-    <value>Standardmäßig nutzen nur Party und Allianz Kontext. Say/Shout/Yell/FC/LS bleiben ohne Kontext.</value>
   </data>
   <data name="General_VerboseLogs">
     <value>Ausführliche Protokollierung</value>
@@ -657,4 +627,137 @@
   <data name="About_Disclaimer">
     <value>Dieses Plugin modifiziert keine Spieldateien und ist nicht dazu gedacht, die Nutzungsbedingungen zu verletzen. Bitte verantwortungsvoll verwenden.</value>
   </data>
+<data name="Tab_Engines">
+    <value>Motoren</value>
+  </data>
+  <data name="Engines_Description">
+    <value>Übersetzungsmotoren aktivieren oder deaktivieren und Anmeldedaten konfigurieren. Nur aktivierte Motoren werden für das primäre/Reserve-Routing verwendet.</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>Keine Motoren aktiviert. Aktiviere mindestens einen Motor zum Übersetzen.</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>Motor konfigurieren</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>Motor aktiviert</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>API-Schlüssel</value>
+  </data>
+  <data name="Engines_Model">
+    <value>Modell</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>Temperatur</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>Dieser Motor benötigt keine Anmeldedaten.</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>Primärer Motor</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>Die Listenreihenfolge bestimmt den Ersatzmotor, der verwendet wird, wenn der aktive ausfällt. Die Motoren werden von oben nach unten versucht.</value>
+  </data>
+  <data name="Engines_Add">
+    <value>Motorinstanz hinzufügen</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>Hinzufügen</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>Instanzname</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>Als primär festlegen</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>Primär (aktiv)</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>Reservemotor</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>Auto (durch alle übrigen rotieren)</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT verwendet die OpenAI-API. Erstelle einen Schlüssel unter platform.openai.com.</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini verwendet die Google-AI-Studio-API. Erstelle einen Schlüssel unter aistudio.google.com.</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude verwendet die Anthropic-API. Erstelle einen Schlüssel unter console.anthropic.com.</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek verwendet seine OpenAI-kompatible API. Erstelle einen Schlüssel unter platform.deepseek.com.</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter bündelt viele Modelle. Erstelle einen Schlüssel unter openrouter.ai.</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>ChatGPT (OpenAI) Cloud-LLM. Erfordert einen API-Schlüssel.</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Google Gemini Cloud-LLM. Erfordert einen API-Schlüssel.</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Anthropic Claude Cloud-LLM. Erfordert einen API-Schlüssel.</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>DeepSeek Cloud-LLM. Erfordert einen API-Schlüssel.</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>OpenRouter Cloud-LLM. Erfordert einen API-Schlüssel.</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>Nicht kompatibel mit Romaji</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>Nicht kompatibel mit Romaji für {0}</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>Z. B.: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>Chat</value></data>
+    <data name="Engines_Endpoint"><value>Endpunkt</value></data>
+    <data name="Engines_SelectProvider"><value>-- Anbieter --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>Inaktivitäts-Timeout (Sekunden)</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>In Zwischenablage kopieren</value></data>
+    <data name="Incoming_LanguageDetection"><value>Spracherkennung</value></data><data name="Incoming_SkipSameLanguage"><value>Übersetzung bei gleicher Sprache überspringen</value></data><data name="Incoming_SkipSameLanguageTip"><value>Nachrichten nicht an den Übersetzer senden, wenn die lokale Erkennung die Zielsprache bestätigt.</value></data><data name="Incoming_DetectionConfidence"><value>Erkennungssicherheit</value></data><data name="Incoming_DetectionConfidenceTip"><value>Mindestvertrauen, das zum Überspringen einer Übersetzung erforderlich ist. Höhere Werte verringern unnötige Übersetzungen; niedrigere Werte können Übersetzungen fälschlicherweise überspringen.</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>EchoXIV-Einstellungen öffnen</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>Chat-Umschaltprotokoll anzeigen</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>Zeigt eine Bestätigung im Spielchat, wenn /tl chat das Übersetzungsfenster öffnet oder schließt.</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>Maximale Verlaufsgröße (MB)</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>Maximale Größe der gespeicherten Verlaufsdatei. Bei Überschreitung werden zuerst die ältesten Nachrichten entfernt.</value>
+    </data>
 </root>
+
+
+
+
+
+

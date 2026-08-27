@@ -88,7 +88,7 @@ namespace EchoXIV.Services
         {
             if (string.IsNullOrWhiteSpace(text)) return null;
 
-            // Non-Latin scripts only
+            // only non-Latin
             if (NonLatinScriptDetector.Detect(text) == NonLatinScriptKind.Latin) return null;
             
             try
@@ -108,10 +108,15 @@ namespace EchoXIV.Services
                 foreach (var unit in units)
                 {
                     var unitArray = unit as JArray;
-                    if (unitArray != null && unitArray.Count > 2 && unitArray[2] != null)
-                    {
-                        romajiParts.Append(unitArray[2].ToString());
-                    }
+                    if (unitArray == null) continue;
+                    // romanji at index 2 or 3
+                    string? candidate = null;
+                    if (unitArray.Count > 3 && unitArray[3] != null && !string.IsNullOrWhiteSpace(unitArray[3].ToString()))
+                        candidate = unitArray[3].ToString();
+                    else if (unitArray.Count > 2 && unitArray[2] != null && !string.IsNullOrWhiteSpace(unitArray[2].ToString()))
+                        candidate = unitArray[2].ToString();
+                    if (!string.IsNullOrWhiteSpace(candidate))
+                        romajiParts.Append(candidate);
                 }
 
                 return romajiParts.Length > 0 ? romajiParts.ToString() : null;

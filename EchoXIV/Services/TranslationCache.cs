@@ -6,8 +6,11 @@ using Newtonsoft.Json.Linq;
 
 namespace EchoXIV.Services
 {
-    public class TranslationCache
-    {
+public sealed class TranslationCache : IDisposable
+{
+    private const string CacheKeyVersion = "v2";
+    private const int MaxEntries = 5000;
+    private static readonly TimeSpan MaxAge = TimeSpan.FromDays(30);
         private readonly string _cacheFilePath;
         private readonly object _gate = new();
         private readonly Dictionary<string, string> _cache = new();
@@ -21,11 +24,12 @@ namespace EchoXIV.Services
             Load();
         }
 
-        private void Load()
+    private void Load()
+    {
+        try
         {
-            try
-            {
-                if (!File.Exists(_cacheFilePath)) return;
+            if (!File.Exists(_cacheFilePath)) return;
+            if (DateTime.UtcNow - File.GetLastWriteTimeUtc(_cacheFilePath) > MaxAge) return;
 
                 var json = File.ReadAllText(_cacheFilePath);
                 var root = JObject.Parse(json);
@@ -94,28 +98,32 @@ namespace EchoXIV.Services
             Add(text, sourceLang, targetLang, translated, null);
         }
 
-        public void Add(string text, string sourceLang, string targetLang, string translated, string? romanized)
+    public void Add(string text, string sourceLang, string targetLang, string translated, string? romanized)
         {
             var key = GetKey(text, sourceLang, targetLang);
             lock (_gate)
             {
-                if (!_cache.ContainsKey(key))
+                if (!_cache.TryGetValue(key, out var existingTranslation) || existingTranslation != translated)
                 {
                     _cache[key] = translated;
                     _isDirty = true;
                     _changeVersion++;
                 }
 
-                if (!string.IsNullOrEmpty(romanized) && !_romanizationCache.ContainsKey(key))
+                if (!string.IsNullOrEmpty(romanized) &&
+                    (!_romanizationCache.TryGetValue(key, out var existingRomanized) || existingRomanized != romanized))
                 {
                     _romanizationCache[key] = romanized!;
                     _isDirty = true;
                     _changeVersion++;
                 }
+
+                TrimToLimit(_cache);
+                TrimToLimit(_romanizationCache);
             }
         }
 
-        public void Save()
+    public void Save()
         {
             JObject root;
             long snapshotVersion;
@@ -128,7 +136,9 @@ namespace EchoXIV.Services
 
             try
             {
-                File.WriteAllText(_cacheFilePath, root.ToString(Formatting.Indented));
+                var temporaryPath = _cacheFilePath + ".tmp";
+                File.WriteAllText(temporaryPath, root.ToString(Formatting.Indented));
+                File.Move(temporaryPath, _cacheFilePath, true);
                 lock (_gate)
                 {
                     // Keep dirty state when a write raced with a new cache entry.
@@ -142,6 +152,12 @@ namespace EchoXIV.Services
             }
         }
 
+        private static void TrimToLimit(Dictionary<string, string> cache)
+        {
+            while (cache.Count > MaxEntries)
+                cache.Remove(cache.Keys.First());
+        }
+
         private JObject BuildSnapshot()
         {
             return new JObject
@@ -153,6 +169,9 @@ namespace EchoXIV.Services
             };
         }
 
-        private string GetKey(string text, string sl, string tl) => $"{text}|{sl}|{tl}";
+        private static string GetKey(string text, string sl, string tl) =>
+            $"{CacheKeyVersion}|{text.Length}:{text}{sl.Length}:{sl}{tl.Length}:{tl}";
+
+        public void Dispose() => Save();
     }
 }

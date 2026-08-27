@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -102,10 +102,10 @@
   <data name="ChatWindow_UnlockTooltip"><value>Разблокировать окно</value></data>
   <data name="ChatWindow_HideTooltip"><value>Скрыть окно</value></data>
   <data name="ChatWindow_ClearTooltip"><value>Очистить содержимое чата</value></data>
-  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_Romanization"><value>Latin</value></data>
   <data name="ChatWindow_RomanizationTooltip"><value>Показать латинизацию для нелатинских скриптов (JA/KO/RU/ZH)</value></data>
   <data name="ChatWindow_TranslationNative"><value>Перевод (нативный скрипт):</value></data>
-  <data name="ChatWindow_RomanizationLabel"><value>Romanization:</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Latin:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - Настройки</value></data>
   <data name="Tab_Visuals"><value>Внешний вид</value></data>
   <data name="General_Engine"><value>Движок перевода</value></data>
@@ -114,7 +114,7 @@
   <data name="General_InterfaceLanguageDefault"><value>По умолчанию (как игра/Dalamud)</value></data>
   <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
   <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
-  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>LibreTranslate</value></data>
   <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
   <data name="General_EngineGoogleDesc"><value>Бесплатная конечная точка Google Translate. При интенсивном использовании могут действовать временные лимиты.</value></data>
   <data name="General_EnginePapagoDesc"><value>Веб-конечная точка Naver Papago. Бесплатно, без API-ключа. Могут действовать временные лимиты.</value></data>
@@ -139,16 +139,6 @@
   <data name="LocalAI_DisableThinkingTip"><value>Снижает задержку в живом чате для моделей с рассуждением (Gemma 3, Qwen3 и т.д.). Игнорируется моделями без поддержки.</value></data>
   <data name="LocalAI_MaxTokens"><value>Макс. токенов ответа</value></data>
   <data name="LocalAI_MaxTokensTip"><value>Ограничивает длину ответа для снижения задержки. 64 достаточно для строк чата; 0 = без ограничения.</value></data>
-  <data name="LocalAI_ContextTitle"><value>Контекст разговора</value></data>
-  <data name="LocalAI_ContextDesc"><value>Включает недавние сообщения канала как контекст, чтобы ИИ сохранял перевод согласованным с текущим разговором. Применяется только к локальному ИИ-движку и к каналам, включённым ниже.</value></data>
-  <data name="LocalAI_ContextEnable"><value>Включить контекст разговора для входящих сообщений</value></data>
-  <data name="LocalAI_ContextEnableTip"><value>При включении недавние сообщения из активных каналов отправляются ИИ как контекст перед переводом.</value></data>
-  <data name="LocalAI_ContextDisabled"><value>Контекст разговора отключён.</value></data>
-  <data name="LocalAI_ContextMessages"><value>Сообщений контекста</value></data>
-  <data name="LocalAI_ContextMessagesTip"><value>Количество недавних сообщений, включаемых как контекст. Большие значения улучшают согласованность, но добавляют задержку и используют больше контекста модели.</value></data>
-  <data name="LocalAI_ContextChannels"><value>Каналы с контекстом:</value></data>
-  <data name="LocalAI_ContextChannelsTip"><value>Только эти каналы отправляют контекст разговора. Держите их немного, чтобы избежать спама контекста в шумных каналах.</value></data>
-  <data name="LocalAI_ContextDefaultNote"><value>По умолчанию контекст используют только Party и Alliance. Say/Shout/Yell/FC/LS остаются без контекста.</value></data>
   <data name="General_VerboseLogs"><value>Подробные логи</value></data>
   <data name="General_VerboseLogsTip"><value>Включает дополнительную техническую информацию в лог Dalamud. Полезно для отладки.</value></data>
   <data name="Visuals_Description"><value>Настройте внешний вид окна переведенного чата.</value></data>
@@ -235,4 +225,137 @@
   <data name="About_Disclaimer">
     <value>Этот плагин не изменяет файлы игры и не предназначен для нарушения Условий использования. Используйте ответственно.</value>
   </data>
+<data name="Tab_Engines">
+    <value>Движки</value>
+  </data>
+  <data name="Engines_Description">
+    <value>Включите или отключите движки перевода и настройте их учётные данные. Только включённые движки используются основным/резервным маршрутизатором.</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>Нет включённых движков. Включите хотя бы один, чтобы переводить.</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>Настроить движок</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>Движок включён</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>API-ключ</value>
+  </data>
+  <data name="Engines_Model">
+    <value>Модель</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>Температура</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>Этот движок не требует учётных данных.</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>Основной движок</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>Порядок в списке определяет резервный движок, который используется, когда активный выходит из строя. Движки пробуются сверху вниз.</value>
+  </data>
+  <data name="Engines_Add">
+    <value>Добавить экземпляр движка</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>Добавить</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>Имя экземпляра</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>Сделать основным</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>Основной (активен)</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>Резервный движок</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>Авто (перебирать остальные)</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT использует API OpenAI. Создайте ключ на platform.openai.com.</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini использует API Google AI Studio. Создайте ключ на aistudio.google.com.</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude использует API Anthropic. Создайте ключ на console.anthropic.com.</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek использует API, совместимый с OpenAI. Создайте ключ на platform.deepseek.com.</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter объединяет множество моделей. Создайте ключ на openrouter.ai.</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>Облачный LLM ChatGPT (OpenAI). Требуется API-ключ.</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Облачный LLM Google Gemini. Требуется API-ключ.</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Облачный LLM Anthropic Claude. Требуется API-ключ.</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>Облачный LLM DeepSeek. Требуется API-ключ.</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>Облачный LLM OpenRouter. Требуется API-ключ.</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>Не совместимо с ромадзи</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>Не совместимо с ромадзи для {0}</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>Напр.: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>Чат</value></data>
+    <data name="Engines_Endpoint"><value>Конечная точка</value></data>
+    <data name="Engines_SelectProvider"><value>-- Провайдер --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>Тайм-аут неактивности (секунды)</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>Копировать в буфер обмена</value></data>
+    <data name="Incoming_LanguageDetection"><value>Определение языка</value></data><data name="Incoming_SkipSameLanguage"><value>Пропускать перевод при совпадении языка</value></data><data name="Incoming_SkipSameLanguageTip"><value>Не отправляет сообщения переводчику, если локальное определение подтверждает целевой язык.</value></data><data name="Incoming_DetectionConfidence"><value>Уверенность определения</value></data><data name="Incoming_DetectionConfidenceTip"><value>Минимальная уверенность, необходимая для пропуска перевода. Более высокие значения уменьшают количество ненужных переводов; более низкие могут привести к ошибочному пропуску перевода.</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>Открыть настройки EchoXIV</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>Показывать запись при открытии/закрытии чата</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>Показывает подтверждение в игровом чате, когда /tl chat открывает или закрывает окно перевода.</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>Максимальный размер истории (МБ)</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>Максимальный размер сохранённого файла истории. При превышении лимита сначала удаляются самые старые сообщения.</value>
+    </data>
 </root>
+
+
+
+
+
+

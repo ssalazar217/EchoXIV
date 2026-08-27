@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
 
@@ -17,6 +18,7 @@ namespace EchoXIV.Services
         private readonly string? _configDir;
         private readonly string? _historyPath;
         private readonly System.Threading.Timer? _saveTimer;
+        private readonly object _saveGate = new();
         private bool _dirty;
 
         public event Action<TranslatedChatMessage>? OnMessageAdded;
@@ -41,7 +43,7 @@ namespace EchoXIV.Services
             lock (_lock)
             {
                 _messages.Add(message);
-                PruneMessages();
+                PruneMessagesBySize();
             }
             ScheduleSave();
             OnMessageAdded?.Invoke(message);
@@ -63,7 +65,7 @@ namespace EchoXIV.Services
                 {
                     // New message (e.g., outgoing with fresh Id)
                     _messages.Add(message);
-                    PruneMessages();
+                    PruneMessagesBySize();
                 }
             }
             ScheduleSave();
@@ -83,8 +85,8 @@ namespace EchoXIV.Services
             lock (_lock)
             {
                 _messages.Clear();
-                SaveHistory();
             }
+            SaveHistory();
             OnHistoryCleared?.Invoke();
         }
 
@@ -97,20 +99,26 @@ namespace EchoXIV.Services
         private void ScheduleSave()
         {
             if (_saveTimer == null) return;
-            _dirty = true;
-            try
+            lock (_saveGate)
             {
-                _saveTimer.Change(SaveDebounceMs, Timeout.Infinite);
-            }
-            catch (ObjectDisposedException)
-            {
+                _dirty = true;
+                try
+                {
+                    _saveTimer.Change(SaveDebounceMs, Timeout.Infinite);
+                }
+                catch (ObjectDisposedException)
+                {
+                }
             }
         }
 
         private void FlushSave()
         {
-            if (!_dirty) return;
-            _dirty = false;
+            lock (_saveGate)
+            {
+                if (!_dirty) return;
+                _dirty = false;
+            }
             SaveHistory();
         }
 
@@ -138,6 +146,7 @@ namespace EchoXIV.Services
                     {
                         _messages.Clear();
                         _messages.AddRange(loadedMessages);
+                        PruneMessagesBySize();
                     }
                     SaveHistory();
                 }
@@ -159,7 +168,9 @@ namespace EchoXIV.Services
                 {
                     json = JsonConvert.SerializeObject(_messages, Formatting.Indented);
                 }
-                File.WriteAllText(_historyPath, json);
+                var temporaryPath = _historyPath + ".tmp";
+                File.WriteAllText(temporaryPath, json);
+                File.Move(temporaryPath, _historyPath, true);
             }
             catch (Exception)
             {
@@ -167,10 +178,24 @@ namespace EchoXIV.Services
             }
         }
 
-        private void PruneMessages()
+        public void TrimToConfiguredSize()
         {
-            while (_messages.Count > _configuration.MaxDisplayedMessages)
+            lock (_lock)
             {
+                PruneMessagesBySize();
+            }
+            SaveHistory();
+        }
+
+        private void PruneMessagesBySize()
+        {
+            var maxBytes = (long)Math.Clamp(_configuration.MaxHistorySizeMb, 1, 1024) * 1024 * 1024;
+            while (_messages.Count > 0)
+            {
+                var json = JsonConvert.SerializeObject(_messages, Formatting.None);
+                if (Encoding.UTF8.GetByteCount(json) <= maxBytes)
+                    break;
+
                 _messages.RemoveAt(0);
             }
         }

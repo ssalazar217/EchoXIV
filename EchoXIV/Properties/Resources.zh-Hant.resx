@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -102,10 +102,10 @@
   <data name="ChatWindow_UnlockTooltip"><value>解除鎖定視窗</value></data>
   <data name="ChatWindow_HideTooltip"><value>隱藏視窗</value></data>
   <data name="ChatWindow_ClearTooltip"><value>清空聊天內容</value></data>
-  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_Romanization"><value>Latin</value></data>
   <data name="ChatWindow_RomanizationTooltip"><value>顯示非拉丁腳本的拉丁轉寫 (JA/KO/RU/ZH)</value></data>
   <data name="ChatWindow_TranslationNative"><value>翻譯 (原生腳本):</value></data>
-  <data name="ChatWindow_RomanizationLabel"><value>Romanization:</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Latin:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - 設定</value></data>
   <data name="Tab_Visuals"><value>視覺</value></data>
   <data name="General_Engine"><value>翻譯引擎</value></data>
@@ -114,7 +114,7 @@
   <data name="General_InterfaceLanguageDefault"><value>預設（同遊戲/Dalamud）</value></data>
   <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
   <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
-  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>LibreTranslate</value></data>
   <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
   <data name="General_EngineGoogleDesc"><value>Google 翻譯免費端點。大量使用時可能達到臨時速率限制。</value></data>
   <data name="General_EnginePapagoDesc"><value>Naver Papago 網頁端點。免費，無需 API 金鑰。可能達到臨時速率限制。</value></data>
@@ -139,16 +139,6 @@
   <data name="LocalAI_DisableThinkingTip"><value>降低支援推理的模型（Gemma 3、Qwen3 等）在即時聊天中的延遲。不支援的模型會忽略此設定。</value></data>
   <data name="LocalAI_MaxTokens"><value>最大回應令牌數</value></data>
   <data name="LocalAI_MaxTokensTip"><value>限制回應長度以縮短延遲。聊天一行 64 足夠；0 = 無限制。</value></data>
-  <data name="LocalAI_ContextTitle"><value>對話上下文</value></data>
-  <data name="LocalAI_ContextDesc"><value>包含頻道的最近訊息作為上下文，使 AI 的翻譯與進行中的對話保持一致。僅適用於本機 AI 引擎及下方啟用的頻道。</value></data>
-  <data name="LocalAI_ContextEnable"><value>為收到的訊息啟用對話上下文</value></data>
-  <data name="LocalAI_ContextEnableTip"><value>啟用後，翻譯前會將已啟用頻道的最近訊息作為上下文傳送給 AI。</value></data>
-  <data name="LocalAI_ContextDisabled"><value>對話上下文已停用。</value></data>
-  <data name="LocalAI_ContextMessages"><value>上下文訊息數</value></data>
-  <data name="LocalAI_ContextMessagesTip"><value>作為上下文包含的最近訊息數量。數值越高連貫性越好，但會增加延遲並使用更多模型上下文。</value></data>
-  <data name="LocalAI_ContextChannels"><value>使用上下文的頻道：</value></data>
-  <data name="LocalAI_ContextChannelsTip"><value>僅這些頻道會傳送對話上下文。請保持少量，避免在嘈雜頻道中產生上下文洗版。</value></data>
-  <data name="LocalAI_ContextDefaultNote"><value>預設僅 Party 和 Alliance 使用上下文。Say/Shout/Yell/FC/LS 保持無上下文。</value></data>
   <data name="General_VerboseLogs"><value>詳細記錄</value></data>
   <data name="General_VerboseLogsTip"><value>在 Dalamud 記錄中啟用額外的技術資訊。適合除錯使用。</value></data>
   <data name="Visuals_Description"><value>自訂翻譯聊天視窗的外觀。</value></data>
@@ -235,4 +225,137 @@
   <data name="About_Disclaimer">
     <value>此外掛不會修改遊戲檔案，也無意違反服務條款。請負責任地使用。</value>
   </data>
+<data name="Tab_Engines">
+    <value>引擎</value>
+  </data>
+  <data name="Engines_Description">
+    <value>啟用或停用翻譯引擎並設定其憑證。只有啟用的引擎才會用於主/備路由。</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>沒有啟用的引擎。請至少啟用一個引擎進行翻譯。</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>設定引擎</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>引擎已啟用</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>API 金鑰</value>
+  </data>
+  <data name="Engines_Model">
+    <value>模型</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>溫度</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>此引擎無需憑證。</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>主要引擎</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>清單順序決定了目前引擎失敗時使用的備用引擎。將按從上到下的順序嘗試。</value>
+  </data>
+  <data name="Engines_Add">
+    <value>新增引擎執行個體</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>新增</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>執行個體名稱</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>設為主要</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>主要（使用中）</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>備用引擎</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>自動（輪換其餘引擎）</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT 使用 OpenAI API。請在 platform.openai.com 建立金鑰。</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini 使用 Google AI Studio API。請在 aistudio.google.com 建立金鑰。</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude 使用 Anthropic API。請在 console.anthropic.com 建立金鑰。</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek 使用其相容 OpenAI 的 API。請在 platform.deepseek.com 建立金鑰。</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter 彙整許多模型。請在 openrouter.ai 建立金鑰。</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>ChatGPT (OpenAI) 雲端 LLM。需要 API 金鑰。</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Google Gemini 雲端 LLM。需要 API 金鑰。</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Anthropic Claude 雲端 LLM。需要 API 金鑰。</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>DeepSeek 雲端 LLM。需要 API 金鑰。</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>OpenRouter 雲端 LLM。需要 API 金鑰。</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>與羅馬字不相容</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>與{0}的羅馬字不相容</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>例如: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>聊天</value></data>
+    <data name="Engines_Endpoint"><value>端點</value></data>
+    <data name="Engines_SelectProvider"><value>-- 提供者 --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>閒置逾時（秒）</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>複製到剪貼簿</value></data>
+    <data name="Incoming_LanguageDetection"><value>語言偵測</value></data><data name="Incoming_SkipSameLanguage"><value>語言與目標相同時略過翻譯</value></data><data name="Incoming_SkipSameLanguageTip"><value>本機偵測確認訊息已是目標語言時，不會將其傳送至翻譯引擎。</value></data><data name="Incoming_DetectionConfidence"><value>偵測信心度</value></data><data name="Incoming_DetectionConfidenceTip"><value>略過翻譯所需的最低信心度。較高的值可減少不必要的翻譯；較低的值可能會錯誤地略過翻譯。</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>開啟 EchoXIV 設定</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>顯示聊天視窗開關記錄</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>使用 /tl chat 開啟或關閉翻譯視窗時，在遊戲聊天中顯示確認訊息。</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>歷史記錄最大大小（MB）</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>已儲存歷史檔案的最大大小。超過限制時會優先刪除最早的訊息。</value>
+    </data>
 </root>
+
+
+
+
+
+

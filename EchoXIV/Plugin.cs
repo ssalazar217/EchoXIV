@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -7,6 +8,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
 using EchoXIV.Services;
+using EchoXIV.GameFunctions;
 using EchoXIV.UI;
 using EchoXIV.Properties;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -25,6 +27,7 @@ namespace EchoXIV
     /// </summary>
     public sealed class Plugin : IDalamudPlugin
     {
+        public static FontManager? FontManager { get; private set; }
         private const string CommandName = "/translate";
         private const string CommandNameShort = "/tl";
         private const string ConfigCommandName = "/echoxiv";
@@ -48,9 +51,22 @@ namespace EchoXIV
         private LocalAiTranslatorService _localAiTranslator = null!;
         private LibreTranslateTranslatorService _libreTranslateTranslator = null!;
         private YandexTranslatorService _yandexTranslator = null!;
+        private List<ITranslationService> _instanceServices = new();
         private GlossaryService _glossaryService = null!;
         private TranslationCache _translationCache = null!;
-        private IRomanizationService _romanizationService = null!;
+        private IRomanizationService? RomanizationService
+        {
+            get
+            {
+                if (_translatorService is IRomanizationService direct)
+                    return direct;
+
+                if (_translatorService is TranslationRouter router)
+                    return router.GetLastUsedTranslator() as IRomanizationService;
+
+                return null;
+            }
+        }
         private WindowSystem _windowSystem = null!;
         private ConfigWindow? _configWindow = null;
         private TranslatedChatWindow? _translatedChatWindow = null;
@@ -69,6 +85,8 @@ namespace EchoXIV
             {
                 // Load configuration
                 _configuration = LoadConfiguration();
+                FontManager = new Services.FontManager(_configuration, PluginInterface);
+                FontManager.BuildFonts();
                 _historyManager = new MessageHistoryManager(_configuration, PluginInterface.GetPluginConfigDirectory());
 
                 // Initialize new services
@@ -83,7 +101,6 @@ namespace EchoXIV
                     {
                         _configuration.SourceLanguage = uiLang;
                         _configuration.TargetLanguage = "en";
-                        _configuration.IncomingTargetLanguage = string.Empty;
                         // Keep FirstRun=true so the welcome window shows
                         _configuration.Save();
                     }
@@ -130,9 +147,7 @@ namespace EchoXIV
                     ClientState,
                     PlayerState,
                     ObjectTable,
-                    PluginLog,
-                    _romanizationService,
-                    BuildConversationContext
+                    PluginLog
                 );
                 // Wire events
                 _incomingMessageHandler.OnTranslationStarted += OnTranslationStarted;
@@ -150,7 +165,6 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
                          _glossaryService,
                          _translationCache,
                          _incomingMessageHandler!,
-                         _romanizationService,
                          PluginLog,
                          ClientState,
                          GameInteropProvider,
@@ -227,12 +241,15 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
         {
             var translatedChatWindow = new TranslatedChatWindow(_configuration, _historyManager);
             translatedChatWindow.OnRequestTranslation += OnTranslatedChatRequestTranslation;
+            translatedChatWindow.OnRequestSettings += ToggleConfigUI;
             _windowSystem.AddWindow(translatedChatWindow);
             return translatedChatWindow;
         }
 
         private void DrawUi()
         {
+            FontManager?.BuildFonts();
+            using var font = FontManager?.Push();
             _windowSystem.Draw();
         }
 
@@ -367,6 +384,7 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
 
             // Stop incoming message handler
             _incomingMessageHandler?.Dispose();
+            FontManager?.Dispose();
 
             // Stop translation engines
             _googleTranslator?.Dispose();
@@ -374,6 +392,11 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
             _localAiTranslator?.Dispose();
             if (_libreTranslateTranslator is IDisposable libreDisp) libreDisp.Dispose();
             if (_yandexTranslator is IDisposable yandexDisp) yandexDisp.Dispose();
+            foreach (var svc in _instanceServices)
+            {
+                if (svc is IDisposable d) d.Dispose();
+            }
+            _instanceServices.Clear();
 
             // Stop native hook
             _chatBoxHook?.Dispose();
@@ -395,6 +418,7 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
             if (_translatedChatWindow != null)
             {
                 _translatedChatWindow.OnRequestTranslation -= OnTranslatedChatRequestTranslation;
+                _translatedChatWindow.OnRequestSettings -= ToggleConfigUI;
             }
 
             if (_incomingMessageHandler != null)
@@ -405,7 +429,8 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
                 _incomingMessageHandler.OnRequestEngineFailover -= SwitchToGoogleFailover;
             }
             
-            _translationCache.Save();
+            _translationCache.Dispose();
+            _configuration.SaveNow();
             _historyManager?.Dispose();
             
             // Remove commands
@@ -625,6 +650,7 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
             // Traducir async
             _ = Task.Run(async () =>
             {
+                var sw = Stopwatch.StartNew();
                 try
                 {
                     var (prefix, message, type, recipient) = ParseChannelAndMessage(input);
@@ -663,38 +689,22 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
                     string? romanizedText = null;
                     var combinedRomanization = false;
 
-                    var canUseCombinedRomanization = _configuration.EnableRomanization &&
-                        _configuration.SelectedEngine == TranslationEngine.LocalAI &&
-                        _configuration.RomanizationLanguages.Contains(_configuration.TargetLanguage);
+                    var combinedRomanizationService = RomanizationService as ICombinedTranslator;
+                    var canUseCombinedRomanization = _configuration.RomanizationLanguages.Contains(_configuration.TargetLanguage) &&
+                        combinedRomanizationService != null &&
+                        (_translatorService is not TranslationRouter router || router.SupportsCombinedRomanization);
 
-                    if (canUseCombinedRomanization)
+                    if (canUseCombinedRomanization && combinedRomanizationService != null)
                     {
-                        var context = _configuration.LocalAiUseConversationContext
-                            ? BuildConversationContext(type)
-                            : null;
-                        var combined = await _localAiTranslator.TranslateWithRomanizationAsync(
+                        var combined = await combinedRomanizationService.TranslateWithRomanizationAsync(
                             message,
                             "auto",
                             _configuration.TargetLanguage,
-                            context,
                             timeout.Token,
                             romanizeTranslation: true);
                         translated = combined.Translation;
                         romanizedText = combined.RomanizedText;
                         combinedRomanization = true;
-                    }
-                    else if (_translatorService is LocalAiTranslatorService localAi &&
-                             _configuration.LocalAiUseConversationContext)
-                    {
-                        // Build context from the target channel history.
-                        var context = BuildConversationContext(type);
-                        translated = await localAi.TranslateWithContextAsync(
-                            message,
-                            "auto",
-                            _configuration.TargetLanguage,
-                            context,
-                            timeout.Token
-                        );
                     }
                     else
                     {
@@ -709,13 +719,14 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
                     var nativeTranslated = translated;
                     var textToSend = translated;
                     var translatedScript = NonLatinScriptDetector.Detect(nativeTranslated);
+                    var romanizationService = RomanizationService;
                     if (!combinedRomanization &&
-                        _configuration.EnableRomanization &&
                         _configuration.RomanizationLanguages.Contains(_configuration.TargetLanguage) &&
-                        translatedScript != NonLatinScriptKind.Latin)
+                        translatedScript != NonLatinScriptKind.Latin &&
+                        romanizationService != null)
                     {
                         using var romanizationTimeout = TranslationDefaults.CreateTimeoutTokenSource(_shutdownCts.Token);
-                        romanizedText = await _romanizationService.RomanizeAsync(
+                        romanizedText = await romanizationService.RomanizeAsync(
                             nativeTranslated,
                             _configuration.TargetLanguage,
                             romanizationTimeout.Token);
@@ -737,7 +748,21 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
                             romanizedText);
                         
                         SendToChannel(textToSend, prefix);
-                        PluginLog.Info($"Translated and sent [{type}] using {_configuration.SelectedEngine} to {_configuration.TargetLanguage}: '{message}' -> '{textToSend}'");
+                        string usedInstanceName = "unknown";
+                        if (_translatorService is TranslationRouter r2 && !string.IsNullOrWhiteSpace(r2.LastUsedInstanceName) && r2.LastUsedInstanceName != "?")
+                            usedInstanceName = r2.LastUsedInstanceName;
+                        else
+                            usedInstanceName = _configuration.PrimaryInstanceName;
+                        if (usedInstanceName == "?" || string.IsNullOrWhiteSpace(usedInstanceName))
+                            usedInstanceName = _configuration.SelectedEngine.ToString();
+                        ChatBoxHook.LogOutgoingTranslation(
+                            PluginLog,
+                            usedInstanceName,
+                            _configuration.TargetLanguage,
+                            sw.ElapsedMilliseconds,
+                            message,
+                            nativeTranslated,
+                            romanizedText);
                     });
                 }
                 catch (OperationCanceledException ex)
@@ -813,42 +838,6 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
                 TranslatedText = message,
                 IsTranslating = false
             });
-        }
-
-        /// <summary>
-        /// Builds conversation context from the target channel history.
-        /// Returns null when context is disabled or insufficient.
-        /// </summary>
-        private List<ConversationLine>? BuildConversationContext(XivChatType channelType)
-        {
-            if (!_configuration.LocalAiUseConversationContext || _configuration.LocalAiContextMessages <= 0)
-                return null;
-
-            if (_configuration.LocalAiContextChannels == null ||
-                !_configuration.LocalAiContextChannels.Contains((int)channelType))
-            {
-                return null;
-            }
-
-            if (_historyManager == null)
-                return null;
-
-            var count = _configuration.LocalAiContextMessages;
-
-            var history = _historyManager.GetHistory();
-            if (history == null || history.Count == 0)
-                return null;
-
-            // Filter by the target channel.
-            var channelMessages = history
-                .Where(m => m.ChatType == channelType)
-                .OrderByDescending(m => m.Timestamp)
-                .Take(count)
-                .Reverse()
-                .Select(m => new ConversationLine(m.Sender, m.OriginalText))
-                .ToList();
-
-            return channelMessages.Count == 0 ? null : channelMessages;
         }
 
         private unsafe (string? prefix, string message, XivChatType type, string recipient) ParseChannelAndMessage(string input)
@@ -1065,7 +1054,13 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
         
         private Configuration LoadConfiguration()
         {
-            var config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            var loaded = PluginInterface.GetPluginConfig() as Configuration;
+            if (loaded == null)
+            {
+                PluginLog.Warning("Saved configuration could not be loaded (deserialization failed). Starting with default engines.");
+                loaded = new Configuration();
+            }
+            var config = loaded;
             config.Initialize(PluginInterface);
             var hasChanges = config.NormalizeDefaults();
             if (hasChanges)
@@ -1086,68 +1081,84 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
             _configuration.OverlayVisible = _translatedChatWindow.IsOpen;
             
             _configuration.Save();
-            ChatGui.Print(GetResourceText(
-                _configuration.OverlayVisible ? "Command_ChatVisible" : "Command_ChatHidden",
-                _configuration.OverlayVisible ? "Translated chat: visible" : "Translated chat: hidden"));
+            if (_configuration.ShowChatToggleLog)
+            {
+                ChatGui.Print(GetResourceText(
+                    _configuration.OverlayVisible ? "Command_ChatVisible" : "Command_ChatHidden",
+                    _configuration.OverlayVisible ? "Translated chat: visible" : "Translated chat: hidden"));
+            }
         }
 
         private void UpdateTranslationService()
         {
-            // Dispose previous service if disposable
+            // Dispose previous instance services (per-instance cloud LLM translators).
+            foreach (var svc in _instanceServices)
+            {
+                if (svc is IDisposable d) d.Dispose();
+            }
+            _instanceServices = new List<ITranslationService>();
             if (_translatorService is IDisposable disposable)
             {
                 disposable.Dispose();
             }
 
-            var engines = new Dictionary<TranslationEngine, ITranslationService>
+            // Build the ordered instance list (list order = fallback priority).
+            var ordered = new List<(Guid Id, ITranslationService Translator, string DisplayName)>();
+            foreach (var instance in _configuration.Engines.Where(e => e.Enabled))
             {
-                [TranslationEngine.Google] = _googleTranslator,
-                [TranslationEngine.Papago] = _papagoTranslator,
-                [TranslationEngine.LibreTranslate] = _libreTranslateTranslator,
-                [TranslationEngine.Yandex] = _yandexTranslator,
-                [TranslationEngine.LocalAI] = _localAiTranslator,
-            };
+                ITranslationService svc;
+                switch (instance.Type)
+                {
+                    case TranslationEngine.Google: svc = _googleTranslator; break;
+                    case TranslationEngine.Papago: svc = _papagoTranslator; break;
+                    case TranslationEngine.LibreTranslate:
+                        svc = new LibreTranslateTranslatorService(instance);
+                        _instanceServices.Add(svc);
+                        break;
+                    case TranslationEngine.Yandex: svc = _yandexTranslator; break;
+                    case TranslationEngine.LocalAI: svc = _localAiTranslator; break;
+                    case TranslationEngine.ChatGPT:
+                    case TranslationEngine.DeepSeek:
+                    case TranslationEngine.OpenRouter:
+                        svc = new OpenAiCompatibleTranslatorService(_configuration, instance);
+                        _instanceServices.Add(svc);
+                        break;
+                    case TranslationEngine.Gemini:
+                        svc = new GeminiTranslatorService(_configuration, instance, PluginLog);
+                        _instanceServices.Add(svc);
+                        break;
+                    case TranslationEngine.Claude:
+                        svc = new ClaudeTranslatorService(_configuration, instance);
+                        _instanceServices.Add(svc);
+                        break;
+                    default: continue;
+                }
+                var displayName = string.IsNullOrWhiteSpace(instance.Name) ? instance.Type.ToString() : instance.Name;
+                ordered.Add((instance.Id, svc, displayName));
+            }
 
             _translatorService = new TranslationRouter(
-                _configuration.SelectedEngine,
-                _configuration.FallbackEngine,
-                engines,
-                _configuration.EngineRecoveryCheckMinutes);
-
-// Configure romanization engines (direct dictionary lookup)
-            var romanizationEngines = new Dictionary<TranslationEngine, IRomanizationService>
-            {
-                [TranslationEngine.Google] = _googleTranslator,
-                [TranslationEngine.Papago] = _papagoTranslator,
-                [TranslationEngine.LocalAI] = _localAiTranslator,
-                // Yandex/LibreTranslate lack native romanization; skipped
-            };
-
-            // Use the primary engine directly per configuration
-            _romanizationService = romanizationEngines.TryGetValue(_configuration.SelectedEngine, out var service)
-                ? service
-                : _googleTranslator;
+                _configuration.PrimaryEngineId,
+                ordered,
+                _configuration.EngineRecoveryCheckMinutes,
+                PluginLog);
 
             if (_configuration.VerboseLogging)
-                PluginLog.Info($"Romanization engine active: {_configuration.SelectedEngine}");
+                PluginLog.Info($"Translation engine active: {_configuration.PrimaryInstanceName}");
 
-            var secondaryTranslator = _configuration.SelectedEngine == TranslationEngine.Google 
-                ? (ITranslationService)_papagoTranslator 
-                : _googleTranslator;
+            var secondaryTranslator = ordered.FirstOrDefault(t => t.Id != _configuration.PrimaryEngineId).Translator
+                                      ?? (ITranslationService)_googleTranslator;
             
-            // Update reference in IncomingMessageHandler if present.
+            // Update translators (romanization always same engine)
             if (_incomingMessageHandler != null)
             {
                 _incomingMessageHandler.UpdateTranslator(_translatorService);
                 _incomingMessageHandler.UpdateSecondaryTranslator(secondaryTranslator);
-                _incomingMessageHandler.UpdateRomanizationService(_romanizationService);
             }
             
-            // Actualizar referencia en ChatBoxHook
             if (_chatBoxHook != null)
             {
                 _chatBoxHook.UpdateTranslators(_translatorService, secondaryTranslator);
-                _chatBoxHook.UpdateRomanizationService(_romanizationService);
                 if (_configuration.VerboseLogging) PluginLog.Info("ChatBoxHook: translator updated.");
             }
 
@@ -1166,10 +1177,16 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
             // Failover must actually switch engines or retries hit the same dead LocalAI.
             if (_configuration.SelectedEngine != TranslationEngine.Google)
             {
-                _configuration.SelectedEngine = TranslationEngine.Google;
-                _configuration.LocalAiUnavailable = wasLocalAi;
-                _configuration.Save();
-                UpdateTranslationService();
+                // Only switch to an EXISTING Google instance; never re-add deleted engines.
+                var google = _configuration.Engines.FirstOrDefault(e => e.Type == TranslationEngine.Google);
+                if (google != null)
+                {
+                    google.Enabled = true;
+                    _configuration.PrimaryEngineId = google.Id;
+                    _configuration.LocalAiUnavailable = wasLocalAi;
+                    _configuration.Save();
+                    UpdateTranslationService();
+                }
             }
 
             // Notify the user via game chat
@@ -1224,10 +1241,15 @@ _chatBoxHook = new GameFunctions.ChatBoxHook(
 
             try
             {
-                var available = await _localAiTranslator.IsAvailableAsync(_shutdownCts.Token);
+var available = await _localAiTranslator.IsAvailableAsync(_shutdownCts.Token);
                 if (available)
                 {
-                    _configuration.SelectedEngine = TranslationEngine.LocalAI;
+                    // Restore the Local AI instance as primary if one exists.
+                    var localAi = _configuration.Engines.FirstOrDefault(e => e.Type == TranslationEngine.LocalAI && e.Enabled);
+                    if (localAi != null)
+                    {
+                        _configuration.PrimaryEngineId = localAi.Id;
+                    }
                     _configuration.LocalAiUnavailable = false;
                     _configuration.Save();
                     UpdateTranslationService();

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -102,10 +102,10 @@
   <data name="ChatWindow_UnlockTooltip"><value>Pencere kilidini aç</value></data>
   <data name="ChatWindow_HideTooltip"><value>Pencereyi gizle</value></data>
   <data name="ChatWindow_ClearTooltip"><value>Sohbet içeriğini temizle</value></data>
-  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_Romanization"><value>Latin</value></data>
   <data name="ChatWindow_RomanizationTooltip"><value>JA/KO/RU/ZH olmayanlar için Latin transkripsiyonu göster</value></data>
   <data name="ChatWindow_TranslationNative"><value>Doğal script çevirisi:</value></data>
-  <data name="ChatWindow_RomanizationLabel"><value>Romanization:</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Latin yazı:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - Yapılandırma</value></data>
   <data name="Tab_Visuals"><value>Görseller</value></data>
   <data name="General_Engine"><value>Çeviri Motoru</value></data>
@@ -114,7 +114,7 @@
   <data name="General_InterfaceLanguageDefault"><value>Varsayılan (oyun/Dalamud ile aynı)</value></data>
 <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
   <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
-  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>LibreTranslate</value></data>
   <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
   <data name="General_EngineGoogleDesc"><value>Ücretsiz Google Translate uç noktası. Yoğun kullanımda geçici hız sınırlarına ulaşabilir.</value></data>
   <data name="General_EnginePapagoDesc"><value>Naver Papago web uç noktası. Ücretsiz, API anahtarı gerekmez. Geçici hız sınırlarına ulaşabilir.</value></data>
@@ -139,16 +139,6 @@
   <data name="LocalAI_DisableThinkingTip"><value>Akıl yürütme destekli modellerde (Gemma 3, Qwen3 vb.) canlı sohbette gecikmeyi azaltır. Desteklemeyen modellerde yok sayılır.</value></data>
   <data name="LocalAI_MaxTokens"><value>Maks. yanıt token sayısı</value></data>
   <data name="LocalAI_MaxTokensTip"><value>Gecikmeyi azaltmak için yanıt uzunluğunu sınırlar. Sohbet satırları için 64 yeterli; 0 = sınır yok.</value></data>
-  <data name="LocalAI_ContextTitle"><value>Konuşma Bağlamı</value></data>
-  <data name="LocalAI_ContextDesc"><value>Yapay zekanın çeviriyi süregelen konuşmayla tutarlı tutması için bir kanalın son mesajlarını bağlam olarak ekler. Yalnızca yerel AI motoru ve aşağıda etkinleştirilen kanallar için geçerlidir.</value></data>
-  <data name="LocalAI_ContextEnable"><value>Gelen mesajlar için konuşma bağlamını etkinleştir</value></data>
-  <data name="LocalAI_ContextEnableTip"><value>Etkinleştirildiğinde, çeviriden önce etkin kanalların son mesajları yapay zekaya bağlam olarak gönderilir.</value></data>
-  <data name="LocalAI_ContextDisabled"><value>Konuşma bağlamı devre dışı.</value></data>
-  <data name="LocalAI_ContextMessages"><value>Bağlam mesajları</value></data>
-  <data name="LocalAI_ContextMessagesTip"><value>Bağlam olarak dahil edilen son mesaj sayısı. Daha yüksek değerler tutarlılığı artırır ancak gecikme ekler ve daha fazla model bağlamı kullanır.</value></data>
-  <data name="LocalAI_ContextChannels"><value>Bağlam kullanılan kanallar:</value></data>
-  <data name="LocalAI_ContextChannelsTip"><value>Yalnızca bu kanallar konuşma bağlamı gönderir. Gürültülü kanallarda bağlam spam'ini önlemek için az tutun.</value></data>
-  <data name="LocalAI_ContextDefaultNote"><value>Varsayılan olarak yalnızca Party ve Alliance bağlam kullanır. Say/Shout/Yell/FC/LS bağlamsız kalır.</value></data>
   <data name="General_VerboseLogs"><value>Ayrıntılı Günlükleme</value></data>
   <data name="General_VerboseLogsTip"><value>Dalamud günlüğünde ekstra teknik bilgi sağlar. Hata ayıklama için yararlıdır.</value></data>
   <data name="Visuals_Description"><value>Çevrilmiş sohbet penceresinin görünümünü özelleştirin.</value></data>
@@ -235,4 +225,137 @@
   <data name="About_Disclaimer">
     <value>Bu eklenti oyun dosyalarını değiştirmez ve Hizmet Şartlarını ihlal etmek amacı taşımaz. Sorumlu bir şekilde kullanın.</value>
   </data>
+<data name="Tab_Engines">
+    <value>Motorlar</value>
+  </data>
+  <data name="Engines_Description">
+    <value>Çeviri motorlarını etkinleştirin/devre dışı bırakın ve kimlik bilgilerini yapılandırın. Ana/yedek yönlendirmede yalnızca etkin motorlar kullanılır.</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>Etkin motor yok. Çevirmek için en az bir motoru etkinleştirin.</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>Motoru yapılandır</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>Motor etkin</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>API anahtarı</value>
+  </data>
+  <data name="Engines_Model">
+    <value>Model</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>Sıcaklık</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>Bu motor kimlik bilgisi gerektirmez.</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>Birincil motor</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>Listedeki sıra, etkin olan başarısız olduğunda kullanılacak yedek motoru belirler. Motorlar yukarıdan aşağıya denenir.</value>
+  </data>
+  <data name="Engines_Add">
+    <value>Motor örneği ekle</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>Ekle</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>Örnek adı</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>Birincil olarak ayarla</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>Birincil (etkin)</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>Yedek motor</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>Otomatik (kalan motorları dön)</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT, OpenAI API'sini kullanır. platform.openai.com adresinde anahtar oluşturun.</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini, Google AI Studio API'sini kullanır. aistudio.google.com adresinde anahtar oluşturun.</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude, Anthropic API'sini kullanır. console.anthropic.com adresinde anahtar oluşturun.</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek, OpenAI uyumlu API'sini kullanır. platform.deepseek.com adresinde anahtar oluşturun.</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter birçok modeli bir araya getirir. openrouter.ai adresinde anahtar oluşturun.</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>ChatGPT (OpenAI) bulut LLM. API anahtarı gerekir.</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Google Gemini bulut LLM. API anahtarı gerekir.</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Anthropic Claude bulut LLM. API anahtarı gerekir.</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>DeepSeek bulut LLM. API anahtarı gerekir.</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>OpenRouter bulut LLM. API anahtarı gerekir.</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>Romaji ile uyumlu değil</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>{0} için romaji ile uyumlu değil</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>Örn.: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>Sohbet</value></data>
+    <data name="Engines_Endpoint"><value>Uç nokta</value></data>
+    <data name="Engines_SelectProvider"><value>-- Sağlayıcı --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>Etkinlik zaman aşımı (saniye)</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>Panoya kopyala</value></data>
+    <data name="Incoming_LanguageDetection"><value>Dil algılama</value></data><data name="Incoming_SkipSameLanguage"><value>Dil hedefle eşleştiğinde çeviriyi atla</value></data><data name="Incoming_SkipSameLanguageTip"><value>Yerel algılama hedef dili doğruladığında mesajı çeviri motoruna göndermez.</value></data><data name="Incoming_DetectionConfidence"><value>Algılama güveni</value></data><data name="Incoming_DetectionConfidenceTip"><value>Çeviriyi atlamak için gereken minimum güven düzeyi. Daha yüksek değerler gereksiz çevirileri azaltır; daha düşük değerler çevirilerin yanlışlıkla atlanmasına neden olabilir.</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>EchoXIV ayarlarını aç</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>Sohbet açma/kapatma günlüğünü göster</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>/tl chat çeviri penceresini açtığında veya kapattığında oyun sohbetinde onay gösterir.</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>Maksimum geçmiş boyutu (MB)</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>Kaydedilen geçmiş dosyasının maksimum boyutu. Sınır aşılırsa önce en eski mesajlar silinir.</value>
+    </data>
 </root>
+
+
+
+
+
+

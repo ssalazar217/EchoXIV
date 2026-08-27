@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -102,10 +102,10 @@
   <data name="ChatWindow_UnlockTooltip"><value>창 잠금 해제</value></data>
   <data name="ChatWindow_HideTooltip"><value>창 숨기기</value></data>
   <data name="ChatWindow_ClearTooltip"><value>채팅 내용을 지웁니다</value></data>
-  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_Romanization"><value>Latin</value></data>
   <data name="ChatWindow_RomanizationTooltip"><value>JA/KO/RU/ZH 비라틴 스크립트에 대한 라틴 변환 표시</value></data>
 <data name="ChatWindow_TranslationNative"><value>번역 (네이티브 스크립트):</value></data>
-  <data name="ChatWindow_RomanizationLabel"><value>Romanization:</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Latin:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - 설정</value></data>
   <data name="Tab_Visuals"><value>외형</value></data>
   <data name="General_Engine"><value>번역 엔진</value></data>
@@ -114,7 +114,7 @@
   <data name="General_InterfaceLanguageDefault"><value>기본값 (게임/Dalamud와 동일)</value></data>
   <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
   <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
-  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>LibreTranslate</value></data>
   <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
   <data name="General_EngineGoogleDesc"><value>Google 번역 무료 엔드포인트. 과도한 사용 시 일시적인 속도 제한에 도달할 수 있습니다.</value></data>
   <data name="General_EnginePapagoDesc"><value>Naver Papago 웹 엔드포인트. 무료, API 키 불필요. 일시적인 속도 제한에 도달할 수 있습니다.</value></data>
@@ -139,16 +139,6 @@
   <data name="LocalAI_DisableThinkingTip"><value>추론을 지원하는 모델(Gemma 3, Qwen3 등)에서 실시간 채팅 지연을 줄입니다. 사고 미지원 모델에서는 무시됩니다.</value></data>
   <data name="LocalAI_MaxTokens"><value>최대 응답 토큰</value></data>
   <data name="LocalAI_MaxTokensTip"><value>지연 시간을 줄이기 위해 응답 길이를 제한합니다. 채팅 한 줄에는 64면 충분합니다. 0 = 제한 없음.</value></data>
-  <data name="LocalAI_ContextTitle"><value>대화 컨텍스트</value></data>
-  <data name="LocalAI_ContextDesc"><value>채널의 최근 메시지를 컨텍스트로 포함하여 AI가 진행 중인 대화와 일관된 번역을 유지하도록 합니다. 로컬 AI 엔진과 아래에서 활성화한 채널에만 적용됩니다.</value></data>
-  <data name="LocalAI_ContextEnable"><value>수신 메시지에 대화 컨텍스트 사용</value></data>
-  <data name="LocalAI_ContextEnableTip"><value>활성화하면 번역 전에 활성 채널의 최근 메시지가 컨텍스트로 AI에 전송됩니다.</value></data>
-  <data name="LocalAI_ContextDisabled"><value>대화 컨텍스트가 비활성화되어 있습니다.</value></data>
-  <data name="LocalAI_ContextMessages"><value>컨텍스트 메시지 수</value></data>
-  <data name="LocalAI_ContextMessagesTip"><value>컨텍스트로 포함할 최근 메시지 수. 값이 높을수록 일관성이 좋아지지만 지연 시간이 늘어나고 모델 컨텍스트를 더 사용합니다.</value></data>
-  <data name="LocalAI_ContextChannels"><value>컨텍스트 사용 채널:</value></data>
-  <data name="LocalAI_ContextChannelsTip"><value>이 채널들만 대화 컨텍스트를 보냅니다. 시끄러운 채널에서 컨텍스트 과부하를 피하려면 적게 유지하세요.</value></data>
-  <data name="LocalAI_ContextDefaultNote"><value>기본적으로 Party와 Alliance만 컨텍스트를 사용합니다. Say/Shout/Yell/FC/LS는 컨텍스트 없이 유지됩니다.</value></data>
   <data name="General_VerboseLogs"><value>상세 로그</value></data>
   <data name="General_VerboseLogsTip"><value>Dalamud 로그에 추가 기술 정보를 표시합니다. 디버깅에 유용합니다.</value></data>
   <data name="Visuals_Description"><value>번역된 채팅 창의 모양을 사용자 지정합니다.</value></data>
@@ -235,4 +225,137 @@
   <data name="About_Disclaimer">
     <value>이 플러그인은 게임 파일을 수정하지 않으며 서비스 약관을 위반하려는 의도가 없습니다. 책임감 있게 사용하세요.</value>
   </data>
+<data name="Tab_Engines">
+    <value>엔진</value>
+  </data>
+  <data name="Engines_Description">
+    <value>번역 엔진을 활성화/비활성화하고 자격 증명을 설정합니다. 활성화된 엔진만 기본/예비 라우팅에 사용됩니다.</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>활성화된 엔진이 없습니다. 번역하려면 하나 이상 활성화하세요.</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>엔진 구성</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>엔진 활성화</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>API 키</value>
+  </data>
+  <data name="Engines_Model">
+    <value>모델</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>온도</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>이 엔진은 자격 증명이 필요하지 않습니다.</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>기본 엔진</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>목록 순서는 활성 엔진이 실패할 때 사용할 예비 엔진의 순서입니다. 위에서 아래로 시도합니다.</value>
+  </data>
+  <data name="Engines_Add">
+    <value>엔진 인스턴스 추가</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>추가</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>인스턴스 이름</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>기본으로 설정</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>기본 (활성)</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>예비 엔진</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>자동 (나머지 엔진 순환)</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT는 OpenAI API를 사용합니다. platform.openai.com에서 키를 만드세요.</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini는 Google AI Studio API를 사용합니다. aistudio.google.com에서 키를 만드세요.</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude는 Anthropic API를 사용합니다. console.anthropic.com에서 키를 만드세요.</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek는 OpenAI 호환 API를 사용합니다. platform.deepseek.com에서 키를 만드세요.</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter는 많은 모델을 모아둡니다. openrouter.ai에서 키를 만드세요.</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>ChatGPT (OpenAI) 클라우드 LLM. API 키 필요.</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Google Gemini 클라우드 LLM. API 키 필요.</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Anthropic Claude 클라우드 LLM. API 키 필요.</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>DeepSeek 클라우드 LLM. API 키 필요.</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>OpenRouter 클라우드 LLM. API 키 필요.</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>로마자와 호환되지 않음</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>{0}에 대해 로마자와 호환되지 않음</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>예: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>채팅</value></data>
+    <data name="Engines_Endpoint"><value>엔드포인트</value></data>
+    <data name="Engines_SelectProvider"><value>-- 공급자 --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>비활성 시간 제한(초)</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>클립보드에 복사</value></data>
+    <data name="Incoming_LanguageDetection"><value>언어 감지</value></data><data name="Incoming_SkipSameLanguage"><value>대상 언어와 같으면 번역 건너뛰기</value></data><data name="Incoming_SkipSameLanguageTip"><value>로컬 감지로 대상 언어임이 확인된 메시지는 번역 엔진에 보내지 않습니다.</value></data><data name="Incoming_DetectionConfidence"><value>감지 신뢰도</value></data><data name="Incoming_DetectionConfidenceTip"><value>번역을 건너뛰는 데 필요한 최소 신뢰도입니다. 값이 높을수록 불필요한 번역을 줄이지만, 값이 낮으면 번역을 잘못 건너뛸 수 있습니다.</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>EchoXIV 설정 열기</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>채팅 창 열기/닫기 로그 표시</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>/tl chat으로 번역 창을 열거나 닫을 때 게임 채팅에 확인 메시지를 표시합니다.</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>기록 최대 크기(MB)</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>저장된 기록 파일의 최대 크기입니다. 한도를 초과하면 오래된 메시지부터 삭제됩니다.</value>
+    </data>
 </root>
+
+
+
+
+
+

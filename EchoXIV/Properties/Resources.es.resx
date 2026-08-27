@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
@@ -336,16 +336,16 @@
         <value>El servidor de IA local no está disponible. EchoXIV usa Google Translate hasta que vuelvas a elegir IA local o el servidor responda.</value>
     </data>
     <data name="ChatWindow_Romanization">
-        <value>Romanji</value>
+        <value>Latino</value>
     </data>
     <data name="ChatWindow_RomanizationTooltip">
-        <value>Mostrar transliteración latina para scripts no-latinos (JA/KO/RU/ZH)</value>
+        <value>Mostrar textos no latinos usando caracteres latinos cuando estén disponibles.</value>
     </data>
     <data name="ChatWindow_TranslationNative">
         <value>Traducción (script nativo):</value>
     </data>
     <data name="ChatWindow_RomanizationLabel">
-        <value>Romanización:</value>
+        <value>Escritura latina:</value>
     </data>
     <data name="Command_MessageTruncated">
         <value>El mensaje traducido superó el límite del chat y fue recortado antes de enviarse.</value>
@@ -417,7 +417,7 @@
     <value>Papago (Naver)</value>
   </data>
   <data name="General_EngineNameLibreTranslate">
-    <value>EchoXIV Translate</value>
+    <value>LibreTranslate</value>
   </data>
   <data name="General_EngineNameYandex">
     <value>Yandex Translate</value>
@@ -432,7 +432,7 @@
     <value>IA local vía servidor compatible con OpenAI (LM Studio, Ollama). Corre en tu GPU. Sin límites.</value>
   </data>
   <data name="General_EngineLibreTranslateDesc">
-    <value>Servidor de traducción propio de EchoXIV. Gratis, sin límites, sin API key. Motor LibreTranslate (Argos NMT).</value>
+    <value>Motor LibreTranslate. Configura el endpoint y la API key cuando sea necesario.</value>
   </data>
   <data name="General_EngineYandexDesc">
     <value>Yandex Translate gratuito (endpoint móvil). Sin API key. Puede alcanzar límites temporales.</value>
@@ -490,36 +490,6 @@
   </data>
   <data name="LocalAI_MaxTokensTip">
     <value>Limita la longitud de la respuesta para recortar latencia. 64 es suficiente para líneas de chat; 0 = sin límite.</value>
-  </data>
-  <data name="LocalAI_ContextTitle">
-    <value>Contexto de Conversación</value>
-  </data>
-  <data name="LocalAI_ContextDesc">
-    <value>Incluye mensajes recientes de un canal como contexto para que la IA mantenga la traducción coherente con la conversación en curso. Solo aplica al motor Local AI y a los canales habilitados abajo.</value>
-  </data>
-  <data name="LocalAI_ContextEnable">
-    <value>Habilitar contexto de conversación para mensajes entrantes</value>
-  </data>
-  <data name="LocalAI_ContextEnableTip">
-    <value>Al habilitarlo, los mensajes recientes de los canales activos se envían a la IA como contexto antes de traducir.</value>
-  </data>
-  <data name="LocalAI_ContextDisabled">
-    <value>El contexto de conversación está deshabilitado.</value>
-  </data>
-  <data name="LocalAI_ContextMessages">
-    <value>Mensajes de contexto</value>
-  </data>
-  <data name="LocalAI_ContextMessagesTip">
-    <value>Número de mensajes recientes incluidos como contexto. Valores más altos mejoran la coherencia pero añaden latencia y usan más contexto del modelo.</value>
-  </data>
-  <data name="LocalAI_ContextChannels">
-    <value>Canales con contexto:</value>
-  </data>
-  <data name="LocalAI_ContextChannelsTip">
-    <value>Solo estos canales envían contexto de conversación. Mantenlos pocos para evitar spam de contexto en canales ruidosos.</value>
-  </data>
-  <data name="LocalAI_ContextDefaultNote">
-    <value>Por defecto solo Party y Alliance usan contexto. Say/Shout/Yell/FC/LS permanecen sin contexto.</value>
   </data>
   <data name="General_VerboseLogs">
     <value>Registro de Logs Detallados</value>
@@ -672,4 +642,147 @@
   <data name="History_Title">
     <value>Historial de Mensajes</value>
   </data>
+<data name="Tab_Engines">
+    <value>Motores</value>
+  </data>
+  <data name="Engines_Description">
+    <value>Activa o desactiva los motores de traducción y configura sus credenciales. Solo los motores activados se usan en el enrutado principal/respaldo.</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>No hay motores activados. Activa al menos uno para traducir.</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>Configurar motor</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>Motor activado</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>Clave de API</value>
+  </data>
+  <data name="Engines_Model">
+    <value>Modelo</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>Temperatura</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>Este motor no requiere credenciales.</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>Motor principal</value>
+  </data>
+    <data name="Engines_PriorityNote">
+    <value>El orden del listado corresponde al motor de respaldo que se utilizará cuando el activo falle. Se prueban de arriba a abajo.</value>
+  </data>
+  <data name="Engines_Add">
+    <value>Agregar instancia de motor</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>Agregar</value>
+  </data>
+  <data name="Engines_SelectProvider">
+    <value>-- Proveedor --</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>Nombre de la instancia</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>Establecer como principal</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>Principal (activo)</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>Motor de respaldo</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>Auto (rotar los motores restantes)</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT usa la API de OpenAI. Crea una clave en platform.openai.com.</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini usa la API de Google AI Studio. Crea una clave en aistudio.google.com.</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude usa la API de Anthropic. Crea una clave en console.anthropic.com.</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek usa su API compatible con OpenAI. Crea una clave en platform.deepseek.com.</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter agrega muchos modelos. Crea una clave en openrouter.ai.</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>ChatGPT (OpenAI) LLM en la nube. Requiere clave de API.</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Google Gemini LLM en la nube. Requiere clave de API.</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Anthropic Claude LLM en la nube. Requiere clave de API.</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>DeepSeek LLM en la nube. Requiere clave de API.</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>OpenRouter LLM en la nube. Requiere clave de API.</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Haz clic derecho en un motor para ver las opciones.</value></data>
+  <data name="Engines_MoveUp"><value>Mover arriba</value></data>
+  <data name="Engines_MoveDown"><value>Mover abajo</value></data>
+  <data name="Engines_ToggleEnabled"><value>Activar o desactivar</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Establecer como principal</value></data>
+  <data name="Engines_Delete"><value>Eliminar</value></data>
+  <data name="Engines_ModelBrowser"><value>Navegador de modelos:</value></data>
+  <data name="Engines_LoadModels"><value>Cargar modelos disponibles</value></data>
+  <data name="Engines_Loading"><value>Cargando...</value></data>
+  <data name="Engines_TranslatableModels"><value>Modelos traducibles:</value></data>
+  <data name="Engines_Filter"><value>Filtrar...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No se devolvieron modelos. Comprueba la clave de API y la conexión de red.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Ocultar cuando esté inactivo</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Oculta la ventana de traducción después de un periodo de inactividad.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>No admite escritura latina</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>No admite escritura latina para {0}</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>Ej.: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Engines_Endpoint">
+        <value>Endpoint</value>
+    </data>
+    <data name="Visuals_InactivityTimeout">
+        <value>Tiempo de inactividad (segundos)</value>
+    </data>
+    <data name="Tab_Chat"><value>Chat</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>Copiar al portapapeles</value></data>
+    <data name="Incoming_LanguageDetection"><value>Detección de idioma</value></data>
+    <data name="Incoming_SkipSameLanguage"><value>Omitir traducción cuando el idioma coincide con el destino</value></data>
+    <data name="Incoming_SkipSameLanguageTip"><value>Evita enviar mensajes al motor cuando la detección local confirma que ya están en el idioma de destino seleccionado.</value></data>
+    <data name="Incoming_DetectionConfidence"><value>Confianza de detección</value></data>
+  <data name="Incoming_DetectionConfidenceTip"><value>Confianza mínima necesaria para omitir una traducción. Los valores altos evitan más traducciones innecesarias; los valores bajos pueden omitir traducciones por error.</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>Abrir configuración de EchoXIV</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>Mostrar registro al abrir o cerrar la ventana de chat</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>Muestra una confirmación en el chat del juego cuando /tl chat abre o cierra la ventana de traducción.</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>Tamaño máximo del historial (MB)</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>Tamaño máximo del archivo de historial guardado. Si se supera el límite, se eliminan primero los mensajes más antiguos.</value>
+    </data>
 </root>
+
+
+
+
+
+

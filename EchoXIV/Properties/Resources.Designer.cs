@@ -69,7 +69,42 @@ namespace EchoXIV.Properties {
         public static string Tab_Cache { get { return GetString("Tab_Cache"); } }
         public static string Tab_IncomingChannels { get { return GetString("Tab_IncomingChannels"); } }
         public static string Tab_History { get { return GetString("Tab_History"); } }
+        public static string Tab_Chat { get { return GetString("Tab_Chat"); } }
         public static string Tab_About { get { return GetString("Tab_About"); } }
+        public static string Tab_Engines { get { return GetString("Tab_Engines"); } }
+        public static string Engines_Description { get { return GetString("Engines_Description"); } }
+        public static string Engines_NoneEnabled { get { return GetString("Engines_NoneEnabled"); } }
+        public static string Engines_Configure { get { return GetString("Engines_Configure"); } }
+        public static string Engines_Enabled { get { return GetString("Engines_Enabled"); } }
+        public static string Engines_ApiKey { get { return GetString("Engines_ApiKey"); } }
+        public static string Engines_Model { get { return GetString("Engines_Model"); } }
+        public static string Engines_Endpoint { get { return GetString("Engines_Endpoint"); } }
+        public static string Engines_Temperature { get { return GetString("Engines_Temperature"); } }
+        public static string Engines_NoConfigNeeded { get { return GetString("Engines_NoConfigNeeded"); } }
+        public static string Engines_Primary { get { return GetString("Engines_Primary"); } }
+        public static string Engines_PriorityNote { get { return GetString("Engines_PriorityNote"); } }
+        public static string Engines_Add { get { return GetString("Engines_Add"); } }
+        public static string Engines_AddButton { get { return GetString("Engines_AddButton"); } }
+        public static string Engines_SelectProvider { get { return GetString("Engines_SelectProvider"); } }
+        public static string Engines_InstanceName { get { return GetString("Engines_InstanceName"); } }
+        public static string Engines_SetPrimary { get { return GetString("Engines_SetPrimary"); } }
+        public static string Engines_PrimarySetActive { get { return GetString("Engines_PrimarySetActive"); } }
+        public static string Engines_Fallback { get { return GetString("Engines_Fallback"); } }
+        public static string Engines_FallbackNone { get { return GetString("Engines_FallbackNone"); } }
+        public static string Engines_ChatGptEndpointTip { get { return GetString("Engines_ChatGptEndpointTip"); } }
+        public static string Engines_GeminiEndpointTip { get { return GetString("Engines_GeminiEndpointTip"); } }
+        public static string Engines_ClaudeEndpointTip { get { return GetString("Engines_ClaudeEndpointTip"); } }
+        public static string Engines_DeepSeekEndpointTip { get { return GetString("Engines_DeepSeekEndpointTip"); } }
+        public static string Engines_OpenRouterEndpointTip { get { return GetString("Engines_OpenRouterEndpointTip"); } }
+        public static string Engines_CopyApiKeyTooltip { get { return GetString("Engines_CopyApiKeyTooltip"); } }
+        public static string Engines_RomanjiNotCompatible { get { return GetString("Engines_RomanjiNotCompatible"); } }
+        public static string Engines_RomanjiNotCompatibleFor { get { return GetString("Engines_RomanjiNotCompatibleFor"); } }
+        public static string Engines_LibreTranslateExample { get { return GetString("Engines_LibreTranslateExample"); } }
+        public static string General_EngineChatGptDesc { get { return GetString("General_EngineChatGptDesc"); } }
+        public static string General_EngineGeminiDesc { get { return GetString("General_EngineGeminiDesc"); } }
+        public static string General_EngineClaudeDesc { get { return GetString("General_EngineClaudeDesc"); } }
+        public static string General_EngineDeepSeekDesc { get { return GetString("General_EngineDeepSeekDesc"); } }
+        public static string General_EngineOpenRouterDesc { get { return GetString("General_EngineOpenRouterDesc"); } }
         public static string About_Title { get { return GetString("About_Title"); } }
         public static string About_Description { get { return GetString("About_Description"); } }
         public static string About_Author { get { return GetString("About_Author"); } }
@@ -92,6 +127,11 @@ namespace EchoXIV.Properties {
         public static string Incoming_Disabled { get { return GetString("Incoming_Disabled"); } }
         public static string Incoming_TranslateTo { get { return GetString("Incoming_TranslateTo"); } }
         public static string Incoming_AutoDetectNote { get { return GetString("Incoming_AutoDetectNote"); } }
+        public static string Incoming_LanguageDetection { get { return GetString("Incoming_LanguageDetection"); } }
+        public static string Incoming_SkipSameLanguage { get { return GetString("Incoming_SkipSameLanguage"); } }
+        public static string Incoming_SkipSameLanguageTip { get { return GetString("Incoming_SkipSameLanguageTip"); } }
+        public static string Incoming_DetectionConfidence { get { return GetString("Incoming_DetectionConfidence"); } }
+        public static string Incoming_DetectionConfidenceTip { get { return GetString("Incoming_DetectionConfidenceTip"); } }
         public static string Incoming_UseWritingLanguage { get { return GetString("Incoming_UseWritingLanguage"); } }
         public static string Incoming_DisplayOptions { get { return GetString("Incoming_DisplayOptions"); } }
         public static string Incoming_ShowOriginal { get { return GetString("Incoming_ShowOriginal"); } }
@@ -144,6 +184,9 @@ namespace EchoXIV.Properties {
         public static string ChatWindow_RomanizationTooltip { get { return GetString("ChatWindow_RomanizationTooltip"); } }
         public static string ChatWindow_TranslationNative { get { return GetString("ChatWindow_TranslationNative"); } }
         public static string ChatWindow_RomanizationLabel { get { return GetString("ChatWindow_RomanizationLabel"); } }
+        public static string ChatWindow_SettingsTooltip { get { return GetString("ChatWindow_SettingsTooltip"); } }
+        public static string General_ShowChatToggleLog { get { return GetString("General_ShowChatToggleLog"); } }
+        public static string General_ShowChatToggleLogTip { get { return GetString("General_ShowChatToggleLogTip"); } }
         public static string ConfigWindow_Title { get { return GetString("ConfigWindow_Title"); } }
         public static string Tab_Visuals { get { return GetString("Tab_Visuals"); } }
         public static string General_Engine { get { return GetString("General_Engine"); } }
@@ -177,16 +220,6 @@ namespace EchoXIV.Properties {
         public static string LocalAI_DisableThinkingTip { get { return GetString("LocalAI_DisableThinkingTip"); } }
         public static string LocalAI_MaxTokens { get { return GetString("LocalAI_MaxTokens"); } }
         public static string LocalAI_MaxTokensTip { get { return GetString("LocalAI_MaxTokensTip"); } }
-        public static string LocalAI_ContextTitle { get { return GetString("LocalAI_ContextTitle"); } }
-        public static string LocalAI_ContextDesc { get { return GetString("LocalAI_ContextDesc"); } }
-        public static string LocalAI_ContextEnable { get { return GetString("LocalAI_ContextEnable"); } }
-        public static string LocalAI_ContextEnableTip { get { return GetString("LocalAI_ContextEnableTip"); } }
-        public static string LocalAI_ContextDisabled { get { return GetString("LocalAI_ContextDisabled"); } }
-        public static string LocalAI_ContextMessages { get { return GetString("LocalAI_ContextMessages"); } }
-        public static string LocalAI_ContextMessagesTip { get { return GetString("LocalAI_ContextMessagesTip"); } }
-        public static string LocalAI_ContextChannels { get { return GetString("LocalAI_ContextChannels"); } }
-        public static string LocalAI_ContextChannelsTip { get { return GetString("LocalAI_ContextChannelsTip"); } }
-        public static string LocalAI_ContextDefaultNote { get { return GetString("LocalAI_ContextDefaultNote"); } }
         public static string General_VerboseLogs { get { return GetString("General_VerboseLogs"); } }
         public static string General_VerboseLogsTip { get { return GetString("General_VerboseLogsTip"); } }
         public static string Visuals_Description { get { return GetString("Visuals_Description"); } }
@@ -196,6 +229,7 @@ namespace EchoXIV.Properties {
         public static string Visuals_TimeFormatShort { get { return GetString("Visuals_TimeFormatShort"); } }
         public static string Visuals_TimeFormatLong { get { return GetString("Visuals_TimeFormatLong"); } }
         public static string Visuals_TimeFormatAMPM { get { return GetString("Visuals_TimeFormatAMPM"); } }
+        public static string Visuals_InactivityTimeout { get { return GetString("Visuals_InactivityTimeout"); } }
         public static string Incoming_ShowOutgoing { get { return GetString("Incoming_ShowOutgoing"); } }
         public static string WelcomeWindow_Title { get { return GetString("WelcomeWindow_Title"); } }
         public static string Welcome_Intro { get { return GetString("Welcome_Intro"); } }
@@ -237,6 +271,8 @@ namespace EchoXIV.Properties {
         public static string History_NoMessages { get { return GetString("History_NoMessages"); } }
         public static string History_Clear { get { return GetString("History_Clear"); } }
         public static string History_Title { get { return GetString("History_Title"); } }
+        public static string History_MaxSizeMb { get { return GetString("History_MaxSizeMb"); } }
+        public static string History_MaxSizeMbTip { get { return GetString("History_MaxSizeMbTip"); } }
         public static string ChatWindow_Retry { get { return GetString("ChatWindow_Retry"); } }
         public static string ChatWindow_RetryTooltip { get { return GetString("ChatWindow_RetryTooltip"); } }
         public static string ChatWindow_IAOffline { get { return GetString("ChatWindow_IAOffline"); } }

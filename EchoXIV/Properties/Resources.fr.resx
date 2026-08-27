@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
@@ -284,8 +284,8 @@
   <data name="ChatWindow_IAOfflineTooltip">
     <value>Le serveur d'IA locale est injoignable. EchoXIV utilise Google Translate jusqu'à ce que vous repassiez à l'IA locale ou que le serveur soit de nouveau disponible.</value>
   </data>
-  <data name="ChatWindow_Romanization">
-    <value>Romanji</value>
+    <data name="ChatWindow_Romanization">
+      <value>Latin</value>
   </data>
   <data name="ChatWindow_RomanizationTooltip">
     <value>Afficher la translittération latine pour les scripts non-latinos (JA/KO/RU/ZH)</value>
@@ -294,7 +294,7 @@
     <value>Traduction (script natif) :</value>
   </data>
   <data name="ChatWindow_RomanizationLabel">
-    <value>Romanisation :</value>
+      <value>Écriture latine :</value>
   </data>
   <data name="Command_MessageTruncated">
     <value>Le message traduit a dépassé la limite du chat et a été tronqué avant l'envoi.</value>
@@ -366,7 +366,7 @@
     <value>Papago (Naver)</value>
   </data>
   <data name="General_EngineNameLibreTranslate">
-    <value>EchoXIV Translate</value>
+    <value>LibreTranslate</value>
   </data>
   <data name="General_EngineNameYandex">
     <value>Yandex Translate</value>
@@ -439,36 +439,6 @@
   </data>
   <data name="LocalAI_MaxTokensTip">
     <value>Limite la longueur de la réponse pour réduire la latence. 64 suffit pour les lignes de chat ; 0 = sans limite.</value>
-  </data>
-  <data name="LocalAI_ContextTitle">
-    <value>Contexte de conversation</value>
-  </data>
-  <data name="LocalAI_ContextDesc">
-    <value>Inclut les messages récents d'un canal comme contexte afin que l'IA garde la traduction cohérente avec la conversation en cours. S'applique uniquement au moteur IA locale et aux canaux activés ci-dessous.</value>
-  </data>
-  <data name="LocalAI_ContextEnable">
-    <value>Activer le contexte de conversation pour les messages entrants</value>
-  </data>
-  <data name="LocalAI_ContextEnableTip">
-    <value>Une fois activé, les messages récents des canaux activés sont envoyés à l'IA comme contexte avant la traduction.</value>
-  </data>
-  <data name="LocalAI_ContextDisabled">
-    <value>Le contexte de conversation est désactivé.</value>
-  </data>
-  <data name="LocalAI_ContextMessages">
-    <value>Messages de contexte</value>
-  </data>
-  <data name="LocalAI_ContextMessagesTip">
-    <value>Nombre de messages récents inclus comme contexte. Des valeurs plus élevées améliorent la cohérence mais ajoutent de la latence et utilisent plus de contexte du modèle.</value>
-  </data>
-  <data name="LocalAI_ContextChannels">
-    <value>Canaux avec contexte :</value>
-  </data>
-  <data name="LocalAI_ContextChannelsTip">
-    <value>Seuls ces canaux envoient le contexte de conversation. Gardez-les peu nombreux pour éviter le spam de contexte dans les canaux bruyants.</value>
-  </data>
-  <data name="LocalAI_ContextDefaultNote">
-    <value>Par défaut, seuls Party et Alliance utilisent le contexte. Say/Shout/Yell/FC/LS restent sans contexte.</value>
   </data>
   <data name="General_VerboseLogs">
     <value>Journalisation détaillée</value>
@@ -552,7 +522,7 @@
     <value>Chinois (Simp)</value>
   </data>
   <data name="Lang_ZH_Trad">
-    <value>Chinoisi (Trad)</value>
+    <value>Chinois (Trad)</value>
   </data>
   <data name="Lang_RU">
     <value>Russe</value>
@@ -657,4 +627,137 @@
   <data name="About_Disclaimer">
     <value>Ce plugin ne modifie pas les fichiers du jeu et n'est pas destiné à violer les conditions d'utilisation. Utilisez-le de manière responsable.</value>
   </data>
+<data name="Tab_Engines">
+    <value>Moteurs</value>
+  </data>
+  <data name="Engines_Description">
+    <value>Activez ou désactivez les moteurs de traduction et configurez leurs identifiants. Seuls les moteurs activés sont utilisés par le routage principal/auxiliaire.</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>Aucun moteur activé. Activez au moins un moteur pour traduire.</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>Configurer le moteur</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>Moteur activé</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>Clé API</value>
+  </data>
+  <data name="Engines_Model">
+    <value>Modèle</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>Température</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>Ce moteur ne nécessite aucun identifiant.</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>Moteur principal</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>L'ordre de la liste détermine le moteur de secours utilisé lorsque le moteur actif échoue. Les moteurs sont essayés de haut en bas.</value>
+  </data>
+  <data name="Engines_Add">
+    <value>Ajouter une instance de moteur</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>Ajouter</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>Nom de l'instance</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>Définir comme principal</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>Principal (actif)</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>Moteur de secours</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>Auto (rotation des autres moteurs)</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT utilise l'API OpenAI. Créez une clé sur platform.openai.com.</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini utilise l'API Google AI Studio. Créez une clé sur aistudio.google.com.</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude utilise l'API Anthropic. Créez une clé sur console.anthropic.com.</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek utilise son API compatible OpenAI. Créez une clé sur platform.deepseek.com.</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter regroupe de nombreux modèles. Créez une clé sur openrouter.ai.</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>LLM cloud ChatGPT (OpenAI). Nécessite une clé API.</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>LLM cloud Google Gemini. Nécessite une clé API.</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>LLM cloud Anthropic Claude. Nécessite une clé API.</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>LLM cloud DeepSeek. Nécessite une clé API.</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>LLM cloud OpenRouter. Nécessite une clé API.</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>Non compatible avec romaji</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>Non compatible avec romaji pour {0}</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>Ex. : https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>Chat</value></data>
+    <data name="Engines_Endpoint"><value>Point de terminaison</value></data>
+    <data name="Engines_SelectProvider"><value>-- Fournisseur --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>Délai d’inactivité (secondes)</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>Copier dans le presse-papiers</value></data>
+    <data name="Incoming_LanguageDetection"><value>Détection de la langue</value></data><data name="Incoming_SkipSameLanguage"><value>Ignorer si la langue correspond à la cible</value></data><data name="Incoming_SkipSameLanguageTip"><value>N’envoie pas le message au moteur lorsque la détection locale confirme la langue cible.</value></data><data name="Incoming_DetectionConfidence"><value>Confiance de détection</value></data><data name="Incoming_DetectionConfidenceTip"><value>Niveau de confiance minimal requis pour ignorer une traduction. Les valeurs élevées réduisent les traductions inutiles ; les valeurs faibles peuvent ignorer une traduction par erreur.</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>Ouvrir les paramètres d’EchoXIV</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>Afficher le journal d’ouverture/fermeture du chat</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>Affiche une confirmation dans le chat du jeu lorsque /tl chat ouvre ou ferme la fenêtre de traduction.</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>Taille maximale de l’historique (Mo)</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>Taille maximale du fichier d’historique enregistré. En cas de dépassement, les messages les plus anciens sont supprimés en premier.</value>
+    </data>
 </root>
+
+
+
+
+
+

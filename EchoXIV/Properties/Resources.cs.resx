@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -102,10 +102,10 @@
   <data name="ChatWindow_UnlockTooltip"><value>Odemknout okno</value></data>
   <data name="ChatWindow_HideTooltip"><value>Skrýt okno</value></data>
 <data name="ChatWindow_ClearTooltip"><value>Vyčistit obsah chatu</value></data>
-  <data name="ChatWindow_Romanization"><value>Romanji</value></data>
+  <data name="ChatWindow_Romanization"><value>Latinka</value></data>
   <data name="ChatWindow_RomanizationTooltip"><value>Zobrazit latinskou transliteraci pro non-latinské skripty (JA/KO/RU/ZH)</value></data>
-  <data name="ChatWindow_TranslationNative"><value>Překlad (rodicí skript):</value></data>
-  <data name="ChatWindow_RomanizationLabel"><value>Romanizace:</value></data>
+  <data name="ChatWindow_TranslationNative"><value>Překlad (nativní skript):</value></data>
+  <data name="ChatWindow_RomanizationLabel"><value>Latinka:</value></data>
   <data name="ConfigWindow_Title"><value>EchoXIV - Konfigurace</value></data>
   <data name="Tab_Visuals"><value>Vizuální stránka</value></data>
   <data name="General_Engine"><value>Překladový nástroj</value></data>
@@ -114,7 +114,7 @@
   <data name="General_InterfaceLanguageDefault"><value>Výchozí (jako hra/Dalamud)</value></data>
 <data name="General_EngineNameGoogle"><value>Google Translate</value></data>
   <data name="General_EngineNamePapago"><value>Papago (Naver)</value></data>
-  <data name="General_EngineNameLibreTranslate"><value>EchoXIV Translate</value></data>
+  <data name="General_EngineNameLibreTranslate"><value>LibreTranslate</value></data>
   <data name="General_EngineNameYandex"><value>Yandex Translate</value></data>
   <data name="General_EngineGoogleDesc"><value>Bezplatný koncový bod Google Translate. Při intenzivním používání může dosáhnout dočasných limitů.</value></data>
   <data name="General_EnginePapagoDesc"><value>Webový koncový bod Naver Papago. Zdarma, bez API klíče. Může dosáhnout dočasných limitů.</value></data>
@@ -139,16 +139,6 @@
   <data name="LocalAI_DisableThinkingTip"><value>Snižuje latenci v živém chatu u modelů s uvažováním (Gemma 3, Qwen3 atd.). Ignorováno modely bez podpory.</value></data>
   <data name="LocalAI_MaxTokens"><value>Max. tokenů odpovědi</value></data>
   <data name="LocalAI_MaxTokensTip"><value>Omezuje délku odpovědi pro zkrácení latence. 64 stačí pro řádky chatu; 0 = bez limitu.</value></data>
-  <data name="LocalAI_ContextTitle"><value>Kontext konverzace</value></data>
-  <data name="LocalAI_ContextDesc"><value>Zahrnuje nedávné zprávy kanálu jako kontext, aby AI udrželo překlad konzistentní s probíhající konverzací. Týká se pouze místního AI nástroje a níže povolených kanálů.</value></data>
-  <data name="LocalAI_ContextEnable"><value>Povolit kontext konverzace pro příchozí zprávy</value></data>
-  <data name="LocalAI_ContextEnableTip"><value>Pokud je povoleno, nedávné zprávy z aktivních kanálů se před překladem odešlou AI jako kontext.</value></data>
-  <data name="LocalAI_ContextDisabled"><value>Kontext konverzace je zakázán.</value></data>
-  <data name="LocalAI_ContextMessages"><value>Zpráv kontextu</value></data>
-  <data name="LocalAI_ContextMessagesTip"><value>Počet nedávných zpráv zahrnutých jako kontext. Vyšší hodnoty zlepšují konzistenci, ale přidávají latenci a využívají více kontextu modelu.</value></data>
-  <data name="LocalAI_ContextChannels"><value>Kanály s kontextem:</value></data>
-  <data name="LocalAI_ContextChannelsTip"><value>Pouze tyto kanály odesílají kontext konverzace. Držte jich málo, abyste se vyhnuli spamu kontextu v hlučných kanálech.</value></data>
-  <data name="LocalAI_ContextDefaultNote"><value>Ve výchozím nastavení používají kontext pouze Party a Alliance. Say/Shout/Yell/FC/LS zůstávají bez kontextu.</value></data>
   <data name="General_VerboseLogs"><value>Podrobné protokolování</value></data>
   <data name="General_VerboseLogsTip"><value>Povolí další technické informace v logu Dalamud. Užitečné pro ladění.</value></data>
   <data name="Visuals_Description"><value>Přizpůsobte vzhled okna přeloženého chatu.</value></data>
@@ -235,4 +225,137 @@
   <data name="About_Disclaimer">
     <value>Tento plugin nemodifikuje herní soubory a není určen k porušení podmínek služby. Používejte zodpovědně.</value>
   </data>
+<data name="Tab_Engines">
+    <value>Motory</value>
+  </data>
+  <data name="Engines_Description">
+    <value>Povolte nebo zakažte překladové motory a nakonfigurujte jejich přihlašovací údaje. Pouze povolené motory se používají pro hlavní/záložní směrování.</value>
+  </data>
+  <data name="Engines_NoneEnabled">
+    <value>Žádné motory nejsou povoleny. Povolte alespoň jeden motor pro překlad.</value>
+  </data>
+  <data name="Engines_Configure">
+    <value>Konfigurovat motor</value>
+  </data>
+  <data name="Engines_Enabled">
+    <value>Motor povolen</value>
+  </data>
+  <data name="Engines_ApiKey">
+    <value>API klíč</value>
+  </data>
+  <data name="Engines_Model">
+    <value>Model</value>
+  </data>
+  <data name="Engines_Temperature">
+    <value>Teplota</value>
+  </data>
+  <data name="Engines_NoConfigNeeded">
+    <value>Tento motor nevyžaduje přihlašovací údaje.</value>
+  </data>
+  <data name="Engines_Primary">
+    <value>Hlavní motor</value>
+  </data>
+  <data name="Engines_PriorityNote">
+    <value>Pořadí v seznamu určuje záložní motor použitý, když aktivní selže. Motory se zkoušejí shora dolů.</value>
+  </data>
+  <data name="Engines_Add">
+    <value>Přidat instanci motoru</value>
+  </data>
+  <data name="Engines_AddButton">
+    <value>Přidat</value>
+  </data>
+  <data name="Engines_InstanceName">
+    <value>Název instance</value>
+  </data>
+  <data name="Engines_SetPrimary">
+    <value>Nastavit jako hlavní</value>
+  </data>
+  <data name="Engines_PrimarySetActive">
+    <value>Hlavní (aktivní)</value>
+  </data>
+  <data name="Engines_Fallback">
+    <value>Záložní motor</value>
+  </data>
+  <data name="Engines_FallbackNone">
+    <value>Auto (procházet zbývající motory)</value>
+  </data>
+  <data name="Engines_ChatGptEndpointTip">
+    <value>ChatGPT používá API OpenAI. Vytvořte klíč na platform.openai.com.</value>
+  </data>
+  <data name="Engines_GeminiEndpointTip">
+    <value>Gemini používá API Google AI Studio. Vytvořte klíč na aistudio.google.com.</value>
+  </data>
+  <data name="Engines_ClaudeEndpointTip">
+    <value>Claude používá API Anthropic. Vytvořte klíč na console.anthropic.com.</value>
+  </data>
+  <data name="Engines_DeepSeekEndpointTip">
+    <value>DeepSeek používá API kompatibilní s OpenAI. Vytvořte klíč na platform.deepseek.com.</value>
+  </data>
+  <data name="Engines_OpenRouterEndpointTip">
+    <value>OpenRouter agreguje mnoho modelů. Vytvořte klíč na openrouter.ai.</value>
+  </data>
+  <data name="General_EngineChatGptDesc">
+    <value>Cloudový LLM ChatGPT (OpenAI). Vyžaduje API klíč.</value>
+  </data>
+  <data name="General_EngineGeminiDesc">
+    <value>Cloudový LLM Google Gemini. Vyžaduje API klíč.</value>
+  </data>
+  <data name="General_EngineClaudeDesc">
+    <value>Cloudový LLM Anthropic Claude. Vyžaduje API klíč.</value>
+  </data>
+  <data name="General_EngineDeepSeekDesc">
+    <value>Cloudový LLM DeepSeek. Vyžaduje API klíč.</value>
+  </data>
+  <data name="General_EngineOpenRouterDesc">
+    <value>Cloudový LLM OpenRouter. Vyžaduje API klíč.</value>
+  </data>
+  <data name="Engines_ContextMenuHelp"><value>Right-click an engine for options.</value></data>
+  <data name="Engines_MoveUp"><value>Move up</value></data>
+  <data name="Engines_MoveDown"><value>Move down</value></data>
+  <data name="Engines_ToggleEnabled"><value>Toggle enabled</value></data>
+  <data name="Engines_SetPrimaryMenu"><value>Set as primary</value></data>
+  <data name="Engines_Delete"><value>Delete</value></data>
+  <data name="Engines_ModelBrowser"><value>Model browser:</value></data>
+  <data name="Engines_LoadModels"><value>Load available models</value></data>
+  <data name="Engines_Loading"><value>Loading...</value></data>
+  <data name="Engines_TranslatableModels"><value>Translatable models:</value></data>
+  <data name="Engines_Filter"><value>Filter...</value></data>
+  <data name="Engines_NoModelsReturned"><value>No models returned. Check the API key and your network connection.</value></data>
+  <data name="Visuals_HideWhenInactive"><value>Hide when inactive</value></data>
+  <data name="Visuals_HideWhenInactiveTip"><value>Hides the translated window after inactivity.</value></data>
+    <data name="Engines_RomanjiNotCompatible">
+        <value>Nekompatibilní s romaji</value>
+    </data>
+    <data name="Engines_RomanjiNotCompatibleFor">
+        <value>Nekompatibilní s romaji pro {0}</value>
+    </data><data name="Engines_LibreTranslateExample">
+        <value>Např.: https://libretranslate.com/translate</value>
+    </data>
+    <data name="Tab_Chat"><value>Chat</value></data>
+    <data name="Engines_Endpoint"><value>Koncový bod</value></data>
+    <data name="Engines_SelectProvider"><value>-- Poskytovatel --</value></data>
+    <data name="Visuals_InactivityTimeout"><value>Časový limit neaktivity (sekundy)</value></data>
+    <data name="Engines_CopyApiKeyTooltip"><value>Kopírovat do schránky</value></data>
+    <data name="Incoming_LanguageDetection"><value>Detekce jazyka</value></data><data name="Incoming_SkipSameLanguage"><value>Přeskočit překlad při shodě jazyka</value></data><data name="Incoming_SkipSameLanguageTip"><value>Neodesílat zprávy do překladače, pokud místní detekce potvrdí cílový jazyk.</value></data><data name="Incoming_DetectionConfidence"><value>Spolehlivost detekce</value></data><data name="Incoming_DetectionConfidenceTip"><value>Minimální spolehlivost potřebná k přeskočení překladu. Vyšší hodnoty omezí zbytečné překlady; nižší hodnoty mohou překlad přeskočit omylem.</value></data>
+    <data name="ChatWindow_SettingsTooltip">
+        <value>Otevřít nastavení EchoXIV</value>
+    </data>
+    <data name="General_ShowChatToggleLog">
+        <value>Zobrazovat záznam při otevření/zavření chatu</value>
+    </data>
+    <data name="General_ShowChatToggleLogTip">
+        <value>Zobrazí potvrzení v herním chatu, když /tl chat otevře nebo zavře okno překladu.</value>
+    </data>
+    <data name="History_MaxSizeMb">
+        <value>Maximální velikost historie (MB)</value>
+    </data>
+    <data name="History_MaxSizeMbTip">
+        <value>Maximální velikost uloženého souboru historie. Při překročení limitu se nejdříve odstraní nejstarší zprávy.</value>
+    </data>
 </root>
+
+
+
+
+
+

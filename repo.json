@@ -3,9 +3,9 @@
     "Author": "ssalazar217 (SteSE)",
     "Name": "EchoXIV",
     "InternalName": "EchoXIV",
-    "AssemblyVersion": "1.0.2.0",
-    "DownloadLinkInstall": "https://github.com/ssalazar217/EchoXIV/releases/download/v1.0.2.0/EchoXIV.zip",
-  "Description": "Automatically translates outgoing and incoming chat messages. Supports Google Translate, Papago, EchoXIV Translate (LibreTranslate), Yandex, and Local AI with configurable fallback, automatic primary recovery, and optional romanized output. No API Key required.",
+    "AssemblyVersion": "1.0.2.1",
+    "DownloadLinkInstall": "https://github.com/ssalazar217/EchoXIV/releases/download/v1.0.2.1/EchoXIV.zip",
+  "Description": "Automatically translates outgoing and incoming chat messages. Supports Google Translate, Papago, LibreTranslate, Yandex, and Local AI with configurable fallback, automatic primary recovery, and optional romanized output. No API Key required.",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/ssalazar217/EchoXIV",
     "Tags": [
